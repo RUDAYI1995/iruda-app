@@ -95,7 +95,7 @@ export function NaEnomButton() {
           🫵
           <span className="absolute -right-2 -top-2 text-[9px]">😠</span>
         </span>
-        네이놈
+        네이노옴
       </button>
 
       {open && (
@@ -110,7 +110,7 @@ export function NaEnomButton() {
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <h2 className="flex items-center gap-2 text-lg font-bold text-zinc-900 dark:text-zinc-50">
-                  🫵 네이놈 · 고발합니다
+                  🫵 네이노옴 · 고발합니다
                 </h2>
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   소심한 여행자가 가면 기 빨리거나 불친절했던 곳을 제보해요.

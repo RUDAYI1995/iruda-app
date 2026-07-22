@@ -15,6 +15,8 @@ import { ShyCareButton } from "@/components/ShyCareButton";
 import { AnimalCompanionButton } from "@/components/AnimalCompanionButton";
 import { PetPettingButton } from "@/components/PetPettingButton";
 import { NaEnomButton } from "@/components/NaEnomButton";
+import { OnlineTravelButton } from "@/components/OnlineTravelButton";
+import { LudariaButton } from "@/components/LudariaButton";
 import {
   CherryBlossomBg,
   CallCenterBg,
@@ -280,27 +282,24 @@ export default async function Home() {
           <span className="shrink-0 whitespace-nowrap pt-1.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             루다월드
           </span>
-          <div className="min-w-[120px] flex-1 pt-1.5">
-            <SiteSearchBar items={SEARCH_ITEMS} />
-          </div>
           <div className="flex flex-col gap-2">
             <TravelGuidebookButton />
             <AnimalCompanionButton />
           </div>
           <div className="flex flex-col gap-2">
-            <TodayMoodButton />
+            <div className="flex gap-2">
+              <TodayMoodButton />
+              <DestinationWeatherButton />
+              <ShyCareButton />
+              <LudariaButton />
+            </div>
             <div className="flex gap-2">
               <PetPettingButton />
               <NaEnomButton />
+              <OnlineTravelButton />
             </div>
           </div>
-          <div className="pt-0">
-            <DestinationWeatherButton />
-          </div>
-          <div className="pt-0">
-            <ShyCareButton />
-          </div>
-          <nav className="flex items-center gap-4 pt-1.5 text-sm font-medium">
+          <nav className="ml-auto flex items-center gap-4 pt-1.5 text-sm font-medium">
             <Link
               href="/board"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
@@ -358,6 +357,9 @@ export default async function Home() {
               </>
             )}
           </nav>
+        </div>
+        <div className="w-full max-w-xs">
+          <SiteSearchBar items={SEARCH_ITEMS} />
         </div>
         <PopularSearchTicker />
       </header>
