@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TRAVELER
+  GUIDE
+  BOTH
+}
+
+enum BroadCategory {
+  CONFORMIST // 동조형
+  SMALL_TALK // 스몰톡형
+  COHABITANT // 공동생활형
+  TRANSIT_ONLY // 이동동행형
+}
+
+enum GuideApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum ReadyRoomStatus {
+  WAITING
+  READY_CHECK
+  CONFIRMED
+  EXPIRED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(TRAVELER)
+  phoneVerified Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  personalityProfile PersonalityProfile?
+  guideProfile        GuideProfile?
+  meetupMembers       MeetupMember[]
+  readyRoomParticipants ReadyRoomParticipant[]
+  bookingsAsTraveler  GuideBooking[]        @relation("TravelerBookings")
+  posts               Post[]
+  comments            Comment[]
+  sentMessages        Message[]             @relation("SentMessages")
+  conversationsA      Conversation[]        @relation("ConversationUserA")
+  conversationsB      Conversation[]        @relation("ConversationUserB")
+  reviewsWritten      Review[]              @relation("ReviewAuthor")
+  reportsFiled        Report[]              @relation("ReportAuthor")
+  reportsReceived     Report[]              @relation("ReportTarget")
+  attractionsAdded    Attraction[]
+  attractionFavorites AttractionFavorite[]
+  animalCompanionRequest AnimalCompanionRequest?
+}
+
+model PersonalityProfile {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id])
+  broadCategory      BroadCategory
+  axisScores         Json // { EI, SN, TF, JP }
+  pace                String
+  groupSizeComfort    Int
+  interests           String // JSON 배열 문자열, 예: '["역사","맛집"]'
+  budgetLevel         Int
+  alcoholComfort      Boolean
+  anxietyTriggers     String // JSON 배열 문자열 — 비공개 필드
+  languages           String // JSON 배열 문자열
+  aiExplanation       String? // Upstage Solar가 생성한 성향 해설 (캐시)
+  interestEmbedding   String? // Upstage 임베딩 결과, JSON 배열 문자열 (숫자 벡터)
+  createdAt           DateTime      @default(now())
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  meetups     Meetup[]
+}
+
+model Meetup {
+  id          String         @id @default(cuid())
+  activityId  String
+  activity    Activity       @relation(fields: [activityId], references: [id])
+  location    String
+  scheduledAt DateTime
+  minSize     Int            @default(3)
+  maxSize     Int            @default(5)
+  createdAt   DateTime       @default(now())
+
+  members     MeetupMember[]
+  readyRoom   ReadyRoom?
+}
+
+model MeetupMember {
+  id        String   @id @default(cuid())
+  meetupId  String
+  meetup    Meetup   @relation(fields: [meetupId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  matchScore Float
+  joinedAt  DateTime @default(now())
+
+  @@unique([meetupId, userId])
+}
+
+model ReadyRoom {
+  id          String          @id @default(cuid())
+  meetupId    String          @unique
+  meetup      Meetup          @relation(fields: [meetupId], references: [id])
+  status      ReadyRoomStatus @default(WAITING)
+  expiresAt   DateTime
+  createdAt   DateTime        @default(now())
+
+  participants ReadyRoomParticipant[]
+}
+
+model ReadyRoomParticipant {
+  id          String     @id @default(cuid())
+  readyRoomId String
+  readyRoom   ReadyRoom  @relation(fields: [readyRoomId], references: [id])
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  readyAt     DateTime?
+
+  @@unique([readyRoomId, userId])
+}
+
+model GuideProfile {
+  id          String                 @id @default(cuid())
+  userId      String                 @unique
+  user        User                   @relation(fields: [userId], references: [id])
+  status      GuideApplicationStatus @default(PENDING)
+  languages   String // JSON 배열 문자열
+  region      String
+  hourlyRate  Int
+  rating      Float                  @default(0)
+  bio         String
+  createdAt   DateTime               @default(now())
+
+  bookings    GuideBooking[]
+}
+
+model GuideBooking {
+  id          String        @id @default(cuid())
+  guideId     String
+  guide       GuideProfile  @relation(fields: [guideId], references: [id])
+  travelerId  String
+  traveler    User          @relation("TravelerBookings", fields: [travelerId], references: [id])
+  status      BookingStatus @default(REQUESTED)
+  meetingPlace String
+  date        DateTime
+  createdAt   DateTime      @default(now())
+
+  payment     Payment?
+  review      Review?
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  bookingId String        @unique
+  booking   GuideBooking  @relation(fields: [bookingId], references: [id])
+  amount    Int
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  bookingId String       @unique
+  booking   GuideBooking @relation(fields: [bookingId], references: [id])
+  authorId  String
+  author    User         @relation("ReviewAuthor", fields: [authorId], references: [id])
+  rating    Int
+  comment   String
+  createdAt DateTime     @default(now())
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  authorId   String
+  author     User     @relation("ReportAuthor", fields: [authorId], references: [id])
+  targetId   String
+  target     User     @relation("ReportTarget", fields: [targetId], references: [id])
+  reason     String
+  createdAt  DateTime @default(now())
+}
+
+model Attraction {
+  id          String   @id @default(cuid())
+  name        String
+  region      String
+  category    String // 자연/역사/문화/맛집/액티비티
+  description String
+  addedById   String
+  addedBy     User     @relation(fields: [addedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  favorites   AttractionFavorite[]
+}
+
+model AttractionFavorite {
+  id           String     @id @default(cuid())
+  attractionId String
+  attraction   Attraction @relation(fields: [attractionId], references: [id])
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([attractionId, userId])
+}
+
+model AnimalCompanionRequest {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  soloTravel  Boolean  @default(false)
+  soloRental  Boolean  @default(false)
+  groupTravel Boolean  @default(false)
+  groupRental Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
+  title     String
+  body      String
+  category  String
+  createdAt DateTime  @default(now())
+
+  comments  Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Conversation {
+  id         String    @id @default(cuid())
+  userAId    String
+  userA      User      @relation("ConversationUserA", fields: [userAId], references: [id])
+  userBId    String
+  userB      User      @relation("ConversationUserB", fields: [userBId], references: [id])
+  createdAt  DateTime  @default(now())
+
+  messages   Message[]
+
+  @@unique([userAId, userBId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  body           String
+  createdAt      DateTime     @default(now())
+}
