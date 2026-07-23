@@ -61,7 +61,7 @@ export function PetPettingButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-pink-300 bg-pink-50 px-2.5 py-1.5 text-xs font-medium text-pink-800 shadow-sm transition-transform hover:scale-105 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-200"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1.5 rounded-full border border-pink-300 bg-pink-50 px-2.5 py-1.5 text-xs font-medium text-pink-800 shadow-sm transition-transform hover:scale-105 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-200"
       >
         <span className="relative text-sm">
           🐶

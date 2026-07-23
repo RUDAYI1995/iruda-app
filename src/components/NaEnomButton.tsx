@@ -89,7 +89,7 @@ export function NaEnomButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-800 shadow-sm transition-transform hover:scale-105 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-800 shadow-sm transition-transform hover:scale-105 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
       >
         <span className="relative text-sm">
           🫵

@@ -9,7 +9,7 @@ export function OnlineTravelButton() {
     <div className="relative shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-full border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-800 shadow-sm transition-transform hover:scale-105 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1.5 rounded-full border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-800 shadow-sm transition-transform hover:scale-105 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200"
         aria-expanded={open}
       >
         <span className="relative inline-flex h-4 w-4 shrink-0 items-center justify-center">

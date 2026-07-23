@@ -371,3 +371,32 @@ body {
   animation: console-wiggle 0.6s ease-in-out infinite;
 }
 
+@keyframes rain-fall {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(340px);
+    opacity: 0;
+  }
+}
+
+@keyframes lightning-flash {
+  0%,
+  92%,
+  100% {
+    opacity: 0;
+  }
+  93%,
+  95% {
+    opacity: 0.9;
+  }
+  94% {
+    opacity: 0.2;
+  }
+}
+

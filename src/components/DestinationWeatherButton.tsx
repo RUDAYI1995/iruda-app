@@ -74,7 +74,7 @@ export function DestinationWeatherButton() {
     <div className="relative shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-800 shadow-sm transition-transform hover:scale-105 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-800 shadow-sm transition-transform hover:scale-105 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
         aria-expanded={open}
       >
         <span className="text-sm">{result ? weatherEmoji(result.weatherCode) : "🌍"}</span>

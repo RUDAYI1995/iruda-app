@@ -63,7 +63,7 @@ export function AnimalCompanionButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-[#a9744f] bg-[#f5ebe0] px-2.5 py-1.5 text-xs font-medium text-[#6b4226] shadow-sm transition-transform hover:scale-105 dark:border-[#8a5a35] dark:bg-[#3b2a1e]/50 dark:text-[#e8c9a0]"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1.5 rounded-full border border-[#a9744f] bg-[#f5ebe0] px-2.5 py-1.5 text-xs font-medium text-[#6b4226] shadow-sm transition-transform hover:scale-105 dark:border-[#8a5a35] dark:bg-[#3b2a1e]/50 dark:text-[#e8c9a0]"
       >
         <span className="relative text-sm">
           🐕

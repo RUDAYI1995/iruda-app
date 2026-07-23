@@ -1,23 +1,80 @@
-export function HeroLandscape() {
+import type { SimpleCondition } from "@/lib/weather/openMeteo";
+
+const RAIN_DROPS = Array.from({ length: 24 }, (_, i) => ({
+  left: `${(i * 4.2) % 100}%`,
+  delay: `${(i % 8) * 0.15}s`,
+  duration: `${0.6 + (i % 5) * 0.08}s`,
+}));
+
+export function HeroLandscape({ condition = "clear" }: { condition?: SimpleCondition }) {
+  const isGloomy = condition !== "clear";
+  const isRaining = condition === "rain" || condition === "thunder";
+  const isThunder = condition === "thunder";
+
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
-      {/* 청량한 낮 하늘 */}
+      {/* 하늘 - 날씨에 따라 맑음/우중충 전환 */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 transition-colors duration-1000"
         style={{
-          background:
-            "linear-gradient(180deg, #38bdf8 0%, #7dd3fc 35%, #bae6fd 60%, #e0f2fe 100%)",
+          background: isGloomy
+            ? "linear-gradient(180deg, #4b5563 0%, #6b7280 35%, #9ca3af 60%, #d1d5db 100%)"
+            : "linear-gradient(180deg, #38bdf8 0%, #7dd3fc 35%, #bae6fd 60%, #e0f2fe 100%)",
         }}
       />
 
-      {/* 뭉게구름 */}
+      {/* 번개 플래시 */}
+      {isThunder && (
+        <div
+          className="absolute inset-0 bg-white"
+          style={{ animation: "lightning-flash 5s ease-in-out infinite" }}
+        />
+      )}
+      {isThunder && (
+        <span
+          className="absolute left-[62%] top-[6%] text-4xl"
+          style={{ animation: "lightning-flash 5s ease-in-out infinite" }}
+        >
+          ⚡
+        </span>
+      )}
+
+      {/* 뭉게구름 (맑을 때 기본) */}
       <div className="absolute left-[8%] top-[8%] h-10 w-24 rounded-full bg-white/90 blur-[0.5px]" />
       <div className="absolute left-[6%] top-[6%] h-8 w-16 rounded-full bg-white/90" />
       <div className="absolute right-[15%] top-[14%] h-8 w-20 rounded-full bg-white/85" />
       <div className="absolute right-[13%] top-[12%] h-6 w-14 rounded-full bg-white/85" />
 
-      {/* 해 */}
-      <span className="absolute left-[18%] top-[16%] text-3xl">☀️</span>
+      {/* 흐리거나 비 올 때 구름 추가 */}
+      {isGloomy && (
+        <>
+          <div className="absolute left-[30%] top-[5%] h-9 w-28 rounded-full bg-slate-300/90" />
+          <div className="absolute left-[42%] top-[10%] h-7 w-20 rounded-full bg-slate-400/80" />
+          <div className="absolute right-[32%] top-[6%] h-10 w-24 rounded-full bg-slate-300/90" />
+          <div className="absolute right-[42%] top-[16%] h-6 w-16 rounded-full bg-slate-400/70" />
+          <div className="absolute left-[60%] top-[4%] h-8 w-32 rounded-full bg-slate-300/80" />
+        </>
+      )}
+
+      {/* 해 - 맑을 때만 */}
+      {!isGloomy && <span className="absolute left-[18%] top-[16%] text-3xl">☀️</span>}
+
+      {/* 비 애니메이션 */}
+      {isRaining && (
+        <div className="pointer-events-none absolute inset-0">
+          {RAIN_DROPS.map((d, i) => (
+            <span
+              key={i}
+              className="absolute top-[-5%] h-8 w-[2px] rounded-full bg-sky-100/70"
+              style={{
+                left: d.left,
+                animation: `rain-fall ${d.duration} linear infinite`,
+                animationDelay: d.delay,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* 비행기 */}
       <span
@@ -93,6 +150,26 @@ export function HeroLandscape() {
         <span className="text-lg drop-shadow">🗽</span>
         <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-zinc-700">미국</span>
       </div>
+      <div className="absolute bottom-[46%] left-[16%] flex flex-col items-center">
+        <span className="text-lg drop-shadow">🎡</span>
+        <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-zinc-700">영국</span>
+      </div>
+      <div className="absolute bottom-[44%] left-[62%] flex flex-col items-center">
+        <span className="text-lg drop-shadow">🏮</span>
+        <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-zinc-700">중국</span>
+      </div>
+      <div className="absolute bottom-[20%] left-[28%] flex flex-col items-center">
+        <span className="text-lg drop-shadow">🛕</span>
+        <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-zinc-700">인도</span>
+      </div>
+      <div className="absolute bottom-[42%] left-[74%] flex flex-col items-center">
+        <span className="text-lg drop-shadow">🕌</span>
+        <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-zinc-700">이집트</span>
+      </div>
+      <div className="absolute bottom-[16%] left-[94%] flex flex-col items-center">
+        <span className="text-lg drop-shadow">🗿</span>
+        <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-zinc-700">칠레</span>
+      </div>
 
       {/* 나무 & 꽃 장식 */}
       <span className="absolute bottom-[24%] left-[20%] text-xl">🌲</span>
@@ -126,6 +203,42 @@ export function HeroLandscape() {
             <span className="relative text-2xl">🐈‍⬛</span>
             <div className="mx-auto mt-0.5 h-1.5 w-5 rounded-full bg-black/20 blur-[1px]" />
           </div>
+        </div>
+      </div>
+
+      {/* 아이돌 리놀렉스 대구 방문 콘서트 */}
+      <div className="absolute bottom-[6%] left-[44%] flex flex-col items-center">
+        <div className="relative mb-1 whitespace-nowrap rounded-2xl bg-fuchsia-100 px-3 py-1.5 text-center text-[10px] font-extrabold leading-tight text-fuchsia-900 shadow-md">
+          🎤 리놀렉스(가칭) 대구 방문
+          <br />
+          2026년 8월 10일에 만나요!
+          <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-fuchsia-100" />
+        </div>
+        <div className="flex items-end gap-1">
+          <span className="text-2xl">💃</span>
+          <span className="text-2xl">🕺</span>
+          <div className="relative">
+            <span className="text-2xl">🙋‍♀️</span>
+            <div className="absolute -right-1 -top-6 whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[8px] font-bold text-white shadow">
+              오빠 사랑해요!
+            </div>
+          </div>
+          <span className="text-2xl">🙌</span>
+          <span className="text-2xl">🙋</span>
+        </div>
+      </div>
+
+      {/* 하늘 위 귀여운 애드벌룬 */}
+      <div className="absolute left-[26%] top-[3%] flex flex-col items-center">
+        <span className="text-3xl">🎈</span>
+        <div className="mt-0.5 whitespace-nowrap rounded-full bg-emerald-100 px-2 py-1 text-[9px] font-bold text-emerald-900 shadow-md">
+          강원도에서 부산까지 절찬 여행코스
+        </div>
+      </div>
+      <div className="absolute left-[68%] top-[2%] flex flex-col items-center">
+        <span className="text-3xl">🎈</span>
+        <div className="mt-0.5 whitespace-nowrap rounded-full bg-amber-100 px-2 py-1 text-[9px] font-bold text-amber-900 shadow-md">
+          루다월드만의 단톡혜택 지금즉시 확인해보세요
         </div>
       </div>
 

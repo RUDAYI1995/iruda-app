@@ -26,6 +26,19 @@ export function describeWeatherCode(code: number) {
   return WEATHER_CODE_MAP[code] ?? { emoji: "🌡️", label: "알 수 없음" };
 }
 
+export type SimpleCondition = "clear" | "cloudy" | "rain" | "thunder";
+
+const THUNDER_CODES = new Set([95, 96, 99]);
+const RAIN_CODES = new Set([51, 53, 55, 61, 63, 65, 80, 81, 82, 71, 73, 75]);
+const CLOUDY_CODES = new Set([2, 3, 45, 48]);
+
+export function getSimpleCondition(code: number): SimpleCondition {
+  if (THUNDER_CODES.has(code)) return "thunder";
+  if (RAIN_CODES.has(code)) return "rain";
+  if (CLOUDY_CODES.has(code)) return "cloudy";
+  return "clear";
+}
+
 export async function geocodeCity(city: string) {
   const res = await fetch(
     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ko&format=json`

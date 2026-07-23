@@ -55,6 +55,7 @@ model User {
   name         String
   role         Role     @default(TRAVELER)
   phoneVerified Boolean @default(false)
+  isOperator    Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   personalityProfile PersonalityProfile?
@@ -73,6 +74,9 @@ model User {
   attractionsAdded    Attraction[]
   attractionFavorites AttractionFavorite[]
   animalCompanionRequest AnimalCompanionRequest?
+  groupChatMembers    GroupChatMember[]
+  groupMessages       GroupMessage[]
+  createdGroupChats   GroupChat[]           @relation("GroupChatCreator")
 }
 
 model PersonalityProfile {
@@ -287,4 +291,36 @@ model Message {
   sender         User         @relation("SentMessages", fields: [senderId], references: [id])
   body           String
   createdAt      DateTime     @default(now())
+}
+
+model GroupChat {
+  id        String   @id @default(cuid())
+  name      String
+  creatorId String
+  creator   User     @relation("GroupChatCreator", fields: [creatorId], references: [id])
+  createdAt DateTime @default(now())
+
+  members  GroupChatMember[]
+  messages GroupMessage[]
+}
+
+model GroupChatMember {
+  id          String    @id @default(cuid())
+  groupChatId String
+  groupChat   GroupChat @relation(fields: [groupChatId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  joinedAt    DateTime  @default(now())
+
+  @@unique([groupChatId, userId])
+}
+
+model GroupMessage {
+  id          String    @id @default(cuid())
+  groupChatId String
+  groupChat   GroupChat @relation(fields: [groupChatId], references: [id])
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id])
+  body        String
+  createdAt   DateTime  @default(now())
 }

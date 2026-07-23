@@ -9,7 +9,7 @@ export function ShyCareButton() {
     <div className="relative shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2.5 py-1.5 text-xs font-medium text-violet-800 shadow-sm transition-transform hover:scale-105 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1 rounded-full border border-violet-300 bg-violet-50 px-2.5 py-1.5 text-xs font-medium text-violet-800 shadow-sm transition-transform hover:scale-105 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200"
         aria-expanded={open}
       >
         <span className="relative inline-flex h-4 w-5 shrink-0 items-center justify-center text-sm">

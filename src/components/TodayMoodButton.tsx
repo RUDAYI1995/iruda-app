@@ -58,7 +58,7 @@ export function TodayMoodButton() {
     <div className="relative shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded-full border border-green-300 bg-green-50 px-2.5 py-1.5 text-xs font-medium text-green-800 shadow-sm transition-transform hover:scale-105 dark:border-green-800 dark:bg-green-950/40 dark:text-green-200"
+        className="flex h-[34px] w-[116px] items-center justify-center gap-1 rounded-full border border-green-300 bg-green-50 px-2.5 py-1.5 text-xs font-medium text-green-800 shadow-sm transition-transform hover:scale-105 dark:border-green-800 dark:bg-green-950/40 dark:text-green-200"
         aria-expanded={open}
       >
         <span className="text-sm">{mood ? mood.emoji : "🐕"}</span>

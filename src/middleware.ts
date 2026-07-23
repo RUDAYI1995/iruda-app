@@ -13,6 +13,7 @@ export const config = {
     "/dashboard/:path*",
     "/matches/:path*",
     "/messages/:path*",
+    "/group-chats/:path*",
     "/meetups/:path*/ready",
     "/bookings/:path*",
     "/guides/apply",

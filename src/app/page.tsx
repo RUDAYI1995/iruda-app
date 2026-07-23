@@ -5,6 +5,12 @@ import { PopularSearchTicker } from "@/components/PopularSearchTicker";
 import { HourglassCategoryPicker } from "@/components/HourglassCategoryPicker";
 import { AdventureBanner } from "@/components/AdventureBanner";
 import { HeroLandscape } from "@/components/HeroLandscape";
+import {
+  geocodeCity,
+  getCurrentWeather,
+  getSimpleCondition,
+  type SimpleCondition,
+} from "@/lib/weather/openMeteo";
 import { PinkHeartBurst } from "@/components/PinkHeartBurst";
 import { ScheduleBox } from "@/components/ScheduleBox";
 import { AttractionExplorer } from "@/components/AttractionExplorer";
@@ -17,6 +23,9 @@ import { PetPettingButton } from "@/components/PetPettingButton";
 import { NaEnomButton } from "@/components/NaEnomButton";
 import { OnlineTravelButton } from "@/components/OnlineTravelButton";
 import { LudariaButton } from "@/components/LudariaButton";
+import { LudapiaButton } from "@/components/LudapiaButton";
+import { LudaWorldLogo } from "@/components/LudaWorldLogo";
+import { PromoTravelBanner } from "@/components/PromoTravelBanner";
 import {
   CherryBlossomBg,
   CallCenterBg,
@@ -265,8 +274,20 @@ const HOURGLASS_CATEGORIES = FEATURE_GROUPS.map((g) => ({
   emoji: g.emoji,
 }));
 
+async function getDaeguCondition(): Promise<SimpleCondition> {
+  try {
+    const place = await geocodeCity("Daegu");
+    if (!place) return "clear";
+    const weather = await getCurrentWeather(place.latitude, place.longitude);
+    return getSimpleCondition(weather.weatherCode);
+  } catch {
+    return "clear";
+  }
+}
+
 export default async function Home() {
   const session = await auth();
+  const heroCondition = await getDaeguCondition();
   const posts = await prisma.post.findMany({ include: { author: true, comments: true } });
   const newestPosts = [...posts]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -279,14 +300,12 @@ export default async function Home() {
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-8">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="shrink-0 whitespace-nowrap pt-1.5 text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            루다월드
-          </span>
+          <LudaWorldLogo />
           <div className="flex flex-col gap-2">
             <TravelGuidebookButton />
             <AnimalCompanionButton />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="relative flex flex-col gap-2">
             <div className="flex gap-2">
               <TodayMoodButton />
               <DestinationWeatherButton />
@@ -297,6 +316,24 @@ export default async function Home() {
               <PetPettingButton />
               <NaEnomButton />
               <OnlineTravelButton />
+              <LudapiaButton />
+            </div>
+            <div className="absolute left-0 top-full mt-2 h-[110px] w-[240px]">
+              <PromoTravelBanner />
+            </div>
+            <div className="absolute left-[248px] top-full mt-2 h-[110px] w-[240px]">
+              <PromoTravelBanner
+                image="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80"
+                alt="스위스 융프라우 여행특가"
+                title="스위스 융프라우 · 지금 예약하면 특가"
+              />
+            </div>
+            <div className="absolute left-[496px] top-full mt-2 h-[110px] w-[240px]">
+              <PromoTravelBanner
+                image="https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=800&q=80"
+                alt="일본 교토 여행특가"
+                title="일본 교토 · 지금 예약하면 특가"
+              />
             </div>
           </div>
           <nav className="ml-auto flex items-center gap-4 pt-1.5 text-sm font-medium">
@@ -313,6 +350,12 @@ export default async function Home() {
               정모
             </Link>
             <Link
+              href="/group-chats"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              단체채팅
+            </Link>
+            <Link
               href="/matching-test"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
             >
@@ -320,8 +363,13 @@ export default async function Home() {
             </Link>
             {session?.user ? (
               <>
-                <span className="text-zinc-600 dark:text-zinc-400">
+                <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
                   환영해요, {session.user.name}님
+                  {(session.user as { isOperator?: boolean }).isOperator && (
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                      운영자 공동계정
+                    </span>
+                  )}
                 </span>
                 <Link
                   href="/dashboard"
@@ -358,14 +406,14 @@ export default async function Home() {
             )}
           </nav>
         </div>
-        <div className="w-full max-w-xs">
+        <div className="w-[232px]">
           <SiteSearchBar items={SEARCH_ITEMS} />
         </div>
         <PopularSearchTicker />
       </header>
 
       <section className="relative flex flex-col items-center gap-6 overflow-hidden px-6 py-32 text-center sm:py-44">
-        <HeroLandscape />
+        <HeroLandscape condition={heroCondition} />
         <div className="absolute inset-0 z-[1] bg-gradient-to-b from-white/0 via-white/10 to-zinc-50 dark:to-black" />
 
         <div className="relative z-10 flex flex-col items-center gap-6">
@@ -405,7 +453,23 @@ export default async function Home() {
           </div>
 
           <h1 className="max-w-2xl text-4xl font-bold leading-tight tracking-tight text-zinc-900 drop-shadow-[0_2px_8px_rgba(255,255,255,0.8)] sm:text-5xl">
-            소심한 사람들을 위한
+            <span className="relative inline-block">
+              소심한
+              <svg
+                className="pointer-events-none absolute -inset-x-5 -inset-y-4 select-none"
+                viewBox="0 0 130 60"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M9,30 C7,13 35,4 65,5 C97,6 122,13 120,30 C123,46 92,55 63,54 C33,53 6,47 10,31"
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>{" "}
+            사람들을 위한
             <br />
             수줍은 여행 플랫폼
           </h1>
