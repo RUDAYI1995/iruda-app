@@ -177,7 +177,7 @@ export default function MatchingTestPage() {
           </button>
         ) : (
           <Link
-            href="/"
+            href="/home"
             className="rounded-full border border-sky-400/40 bg-white/60 px-6 py-2.5 text-sm font-medium text-sky-800 backdrop-blur transition-colors hover:bg-white/90"
           >
             매칭 취소

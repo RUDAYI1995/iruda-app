@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: #0d0c12;
   color: #cfc6d6;
-  font-family: sans-serif;
+  font-family: "OngleipParkDahyeon", sans-serif;
   position: relative;
 }
 
@@ -133,6 +133,19 @@
 }
 .hud-item {
   color: #cfc6d6;
+}
+.hud-back-link {
+  color: #e8c9a0;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid #6b4226;
+  border-radius: 999px;
+  margin-right: auto;
+}
+.hud-back-link:hover {
+  background: #2e2839;
 }
 
 .game-wrap {

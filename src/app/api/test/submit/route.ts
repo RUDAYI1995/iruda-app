@@ -45,6 +45,11 @@ export async function POST(request: Request) {
     interestEmbedding = null;
   }
 
+  const existingProfile = await prisma.personalityProfile.findUnique({
+    where: { userId: session.user.id },
+    select: { id: true },
+  });
+
   await prisma.personalityProfile.upsert({
     where: { userId: session.user.id },
     create: {
@@ -72,6 +77,12 @@ export async function POST(request: Request) {
       ...(interestEmbedding ? { interestEmbedding } : {}),
     },
   });
+
+  if (!existingProfile) {
+    await prisma.questCompletion.create({
+      data: { userId: session.user.id, questType: "PERSONALITY_TEST" },
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

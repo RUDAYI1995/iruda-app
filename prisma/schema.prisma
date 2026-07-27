@@ -324,3 +324,39 @@ model GroupMessage {
   body        String
   createdAt   DateTime  @default(now())
 }
+
+// 첫 페이지(아싸게임 인트로) 실시간 통계 카드용 로그 테이블
+model CheerClick {
+  id        String   @id @default(cuid())
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+model QuestCompletion {
+  id        String   @id @default(cuid())
+  userId    String
+  questType String // 예: "PERSONALITY_TEST"
+  createdAt DateTime @default(now())
+}
+
+// 루다피아 게임 채팅 — Supabase 클라이언트가 raw SQL로 만든 기존 테이블을 그대로 매핑
+// (Prisma로 관리하지 않음: db push가 스키마에 없다는 이유로 삭제하지 않도록 매핑만 유지)
+model ChatMessage {
+  id         BigInt   @id @default(autoincrement())
+  senderName String   @map("sender_name")
+  message    String
+  isHidden   Boolean  @default(false) @map("is_hidden")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("chat_messages")
+}
+
+model ChatReport {
+  id            BigInt   @id @default(autoincrement())
+  messageId     BigInt?  @map("message_id")
+  reporterName  String   @map("reporter_name")
+  reason        String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("chat_reports")
+}

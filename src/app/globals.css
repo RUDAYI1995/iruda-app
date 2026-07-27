@@ -1,14 +1,31 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "OngleipParkDahyeon";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2")
+    format("woff2");
+  font-weight: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+html {
+  font-size: 114%;
+}
+
+html[data-font="original"] {
+  font-size: 100%;
+  --font-sans: var(--font-geist-sans);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "OngleipParkDahyeon", var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -22,7 +39,29 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: "OngleipParkDahyeon", Arial, Helvetica, sans-serif;
+}
+
+html[data-font="original"] body {
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes assa-start-bounce {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -54%) scale(1.06);
+  }
+}
+
+.assa-start-btn {
+  animation: assa-start-bounce 1.1s ease-in-out infinite;
+}
+
+.assa-start-btn:hover {
+  animation-play-state: paused;
 }
 
 @keyframes cloud-drift {

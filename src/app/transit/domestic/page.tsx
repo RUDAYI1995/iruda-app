@@ -173,7 +173,7 @@ export default function DomesticTransitPage() {
         )}
 
         <Link
-          href="/"
+          href="/home"
           className="mt-10 inline-block text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
         >
           ← 홈페이지로 돌아가기

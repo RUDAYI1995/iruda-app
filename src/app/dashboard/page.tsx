@@ -31,7 +31,7 @@ export default async function DashboardPage() {
           {profile ? "내 성향 결과 보기" : "성향테스트 하러가기"}
         </Link>
         <Link
-          href="/"
+          href="/home"
           className="rounded-full border border-zinc-300 px-6 py-2.5 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-900"
         >
           홈페이지로 이동하기
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
       <form
         action={async () => {
           "use server";
-          await signOut({ redirectTo: "/" });
+          await signOut({ redirectTo: "/home" });
         }}
       >
         <button className="rounded-full border border-zinc-300 px-6 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-900">

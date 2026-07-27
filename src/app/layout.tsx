@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
+import { FontToggle } from "@/components/FontToggle";
+import { BackgroundMusic } from "@/components/BackgroundMusic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,9 +30,15 @@ export default function RootLayout({
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        <Script id="font-pref-init" strategy="beforeInteractive">
+          {"try{if(localStorage.getItem('iruda-font-pref')==='original'){document.documentElement.dataset.font='original';}}catch(e){}"}
+        </Script>
         <Providers>{children}</Providers>
+        <FontToggle />
+        <BackgroundMusic />
       </body>
     </html>
   );

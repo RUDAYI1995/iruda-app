@@ -81,7 +81,7 @@ export default async function ComingSoonPage({
         {page.desc}
       </p>
       <Link
-        href="/"
+        href="/home"
         className="mt-4 rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
       >
         홈페이지로 돌아가기

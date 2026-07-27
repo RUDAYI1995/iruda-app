@@ -20,7 +20,7 @@ export default function LudapiaPage() {
         <button id="introStartBtn" className="intro-start-btn">
           게임 시작
         </button>
-        <Link href="/" className="intro-back-link">
+        <Link href="/home" className="intro-back-link">
           ← 루다월드로 돌아가기
         </Link>
       </div>
@@ -28,6 +28,9 @@ export default function LudapiaPage() {
       <div className="ludapia-layout">
         <div className="ludapia-main">
           <div className="hud-bar">
+            <Link href="/home" className="hud-back-link">
+              ← 루다월드로 돌아가기
+            </Link>
             <span id="role" className="hud-item" />
             <span id="phase" className="hud-item" />
             <span className="hud-item">
