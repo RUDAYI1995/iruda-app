@@ -1,0 +1,346 @@
+.ludapia-root {
+  min-height: 100vh;
+  background: #0d0c12;
+  color: #cfc6d6;
+  font-family: sans-serif;
+  position: relative;
+}
+
+/* ---------- 인트로 화면 ---------- */
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: radial-gradient(ellipse at center, #26202f 0%, #0a0910 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+.intro-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #e8c9a0;
+  margin: 0 0 6px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.intro-sub {
+  color: #9a8fae;
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+.intro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: 28px;
+}
+.place-card {
+  background: #1c1826;
+  border: 1px solid #3a3348;
+  border-radius: 12px;
+  padding: 12px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2e2839;
+}
+.card-header .flag {
+  font-size: 22px;
+}
+.place-name {
+  font-weight: 700;
+  color: #e8c9a0;
+  font-size: 13px;
+}
+.country-name {
+  font-size: 11px;
+  color: #7a6f8a;
+}
+.character-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.char-avatar {
+  font-size: 28px;
+}
+.char-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #cfc6d6;
+}
+.char-desc {
+  font-size: 11px;
+  color: #8a7f9a;
+}
+.intro-start-btn {
+  background: linear-gradient(135deg, #a9744f, #6b4226);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 36px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(169, 116, 79, 0.4);
+}
+.intro-start-btn:hover {
+  opacity: 0.9;
+}
+.intro-back-link {
+  margin-top: 16px;
+  color: #7a6f8a;
+  font-size: 12px;
+  text-decoration: none;
+}
+.intro-back-link:hover {
+  color: #cfc6d6;
+}
+
+/* ---------- 게임 레이아웃 ---------- */
+.ludapia-layout {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  max-width: 1300px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.ludapia-main {
+  flex: 1 1 700px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hud-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #1c1826;
+  border: 1px solid #3a3348;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.hud-item {
+  color: #cfc6d6;
+}
+
+.game-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 900 / 560;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #3a3348;
+}
+.game-wrap canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.overlay-hint {
+  display: none;
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 15, 25, 0.85);
+  color: #e8c9a0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid #6b4226;
+}
+.overlay-msg {
+  display: none;
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 15, 25, 0.92);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #6a5a7a;
+}
+.overlay-space {
+  display: none;
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ff8a8a;
+  font-weight: 800;
+  font-size: 16px;
+  animation: ludapia-pulse 0.4s ease-in-out infinite alternate;
+}
+@keyframes ludapia-pulse {
+  from {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.15);
+  }
+}
+
+.char-menu {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  background: #1c1826;
+  border: 1px solid #6a5a7a;
+  border-radius: 10px;
+  padding: 8px;
+  width: 155px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.char-menu-header {
+  font-weight: 700;
+  font-size: 12px;
+  color: #e8c9a0;
+  padding: 4px 6px 8px;
+  border-bottom: 1px solid #3a3348;
+  margin-bottom: 6px;
+}
+.char-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #cfc6d6;
+  font-size: 12px;
+  padding: 6px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.char-menu button:hover {
+  background: #2e2839;
+}
+
+.vote-box {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 15;
+  background: rgba(20, 15, 25, 0.95);
+  border: 1px solid #6a5a7a;
+  border-radius: 10px;
+  padding: 12px;
+  width: 220px;
+  max-height: 80%;
+  overflow-y: auto;
+}
+.vote-box h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #e8c9a0;
+}
+.voteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #2e2839;
+}
+.voteRow button {
+  background: #a9744f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.voteRow button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.suspicion {
+  color: #c98a8a;
+  font-size: 10px;
+  margin-left: 6px;
+}
+
+/* ---------- 사이드바 ---------- */
+.ludapia-side {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 260px;
+}
+.log-panel,
+.chat-panel {
+  background: #1c1826;
+  border: 1px solid #3a3348;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+.log-panel h3,
+.chat-panel h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #e8c9a0;
+}
+.log-body {
+  height: 160px;
+  overflow-y: auto;
+  font-size: 11px;
+  color: #9a8fae;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.chat-body {
+  height: 220px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #cfc6d6;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+}
+.chat-input-row input {
+  flex: 1;
+  background: #14111b;
+  border: 1px solid #3a3348;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #cfc6d6;
+  font-size: 12px;
+}
+.chat-input-row button {
+  background: #a9744f;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
