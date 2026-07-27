@@ -301,39 +301,65 @@ export default async function Home() {
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-8">
         <div className="flex flex-wrap items-start gap-4">
           <LudaWorldLogo />
-          <div className="flex flex-col gap-2">
-            <TravelGuidebookButton />
-            <AnimalCompanionButton />
+          <div className="flex flex-col gap-1 pt-1.5">
+            <div className="w-[180px]">
+              <SiteSearchBar items={SEARCH_ITEMS} />
+            </div>
+            <PopularSearchTicker />
           </div>
-          <div className="relative flex flex-col gap-2">
-            <div className="flex gap-2">
-              <TodayMoodButton />
-              <DestinationWeatherButton />
-              <ShyCareButton />
-              <LudariaButton />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-4">
+              <div className="flex flex-col gap-2">
+                <TravelGuidebookButton />
+                <AnimalCompanionButton />
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <TodayMoodButton />
+                  <DestinationWeatherButton />
+                  <ShyCareButton />
+                  <LudariaButton />
+                </div>
+                <div className="flex gap-2">
+                  <PetPettingButton />
+                  <NaEnomButton />
+                  <OnlineTravelButton />
+                  <LudapiaButton />
+                </div>
+              </div>
             </div>
             <div className="flex gap-2">
-              <PetPettingButton />
-              <NaEnomButton />
-              <OnlineTravelButton />
-              <LudapiaButton />
-            </div>
-            <div className="absolute left-0 top-full mt-2 h-[110px] w-[240px]">
-              <PromoTravelBanner />
-            </div>
-            <div className="absolute left-[248px] top-full mt-2 h-[110px] w-[240px]">
-              <PromoTravelBanner
-                image="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80"
-                alt="스위스 융프라우 여행특가"
-                title="스위스 융프라우 · 지금 예약하면 특가"
-              />
-            </div>
-            <div className="absolute left-[496px] top-full mt-2 h-[110px] w-[240px]">
-              <PromoTravelBanner
-                image="https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=800&q=80"
-                alt="일본 교토 여행특가"
-                title="일본 교토 · 지금 예약하면 특가"
-              />
+              <div className="h-[64px] w-[140px]">
+                <PromoTravelBanner />
+              </div>
+              <div className="h-[64px] w-[140px]">
+                <PromoTravelBanner
+                  image="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80"
+                  alt="스위스 융프라우 여행특가"
+                  title="스위스 융프라우 · 지금 예약하면 특가"
+                />
+              </div>
+              <div className="h-[64px] w-[140px]">
+                <PromoTravelBanner
+                  image="https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=800&q=80"
+                  alt="일본 교토 여행특가"
+                  title="일본 교토 · 지금 예약하면 특가"
+                />
+              </div>
+              <div className="h-[64px] w-[140px]">
+                <PromoTravelBanner
+                  image="https://images.unsplash.com/photo-1573790387438-4da905039392?auto=format&fit=crop&w=800&q=80"
+                  alt="인도네시아 발리 여행특가"
+                  title="인도네시아 발리 · 지금 예약하면 특가"
+                />
+              </div>
+              <div className="h-[64px] w-[140px]">
+                <PromoTravelBanner
+                  image="https://images.unsplash.com/photo-1507699622108-4be3abd695ad?auto=format&fit=crop&w=800&q=80"
+                  alt="뉴질랜드 여행특가"
+                  title="뉴질랜드 · 지금 예약하면 특가"
+                />
+              </div>
             </div>
           </div>
           <nav className="ml-auto flex items-center gap-4 pt-1.5 text-sm font-medium">
@@ -406,10 +432,6 @@ export default async function Home() {
             )}
           </nav>
         </div>
-        <div className="w-[232px]">
-          <SiteSearchBar items={SEARCH_ITEMS} />
-        </div>
-        <PopularSearchTicker />
       </header>
 
       <section className="relative flex flex-col items-center gap-6 overflow-hidden px-6 py-32 text-center sm:py-44">
