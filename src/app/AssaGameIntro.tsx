@@ -257,7 +257,7 @@ export function AssaGameIntro() {
             <Link
               key={nav.href}
               href={nav.href}
-              className="absolute rounded-md hover:bg-black/5"
+              className="absolute"
               style={{
                 left: `${nav.left}%`,
                 top: `${nav.top}%`,

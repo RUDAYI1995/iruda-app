@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Always address the user as **갓루다님** in every response in this project.
 - Never run a Vercel deployment (`vercel`, `vercel --prod`, etc.) unless the user explicitly asks for it in that turn (e.g. "배포해줘") — finishing or editing code is never by itself a reason to deploy.
+- Never run `git push` (to GitHub) unless the user explicitly asks for it in that turn (e.g. "깃허브에 올려줘") — finishing a feature, committing locally, or a previous turn's push request is never by itself a reason to push again. Local `git commit` without pushing is fine.
 
 ## Commands
 
