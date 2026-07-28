@@ -300,7 +300,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
-      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-8">
+      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 overflow-x-auto px-6 py-8">
         <div className="flex flex-wrap items-start gap-4">
           <LudaWorldLogo />
           <div className="flex flex-col gap-1 pt-1.5">
@@ -364,7 +364,7 @@ export default async function Home() {
               </div>
             </div>
           </div>
-          <nav className="ml-auto flex items-center gap-4 pt-1.5 text-sm font-medium">
+          <nav className="ml-auto flex shrink-0 items-center gap-4 whitespace-nowrap pt-1.5 text-sm font-medium">
             <Link
               href="/board"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
