@@ -58,6 +58,10 @@ const PAGES: Record<string, { title: string; desc: string }> = {
     title: "이벤트",
     desc: "마일리지 혜택 / 올해의 모험왕 / 여행 상상력 풍부상 / 안전체크단, 4가지 이벤트를 만나보는 페이지예요.",
   },
+  shop: {
+    title: "마일리지 상점",
+    desc: "아싸게임과 활동으로 모은 마일리지로 아이템과 혜택을 교환하는 상점이에요.",
+  },
 };
 
 export default async function ComingSoonPage({
