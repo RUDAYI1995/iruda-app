@@ -77,6 +77,8 @@ model User {
   groupChatMembers    GroupChatMember[]
   groupMessages       GroupMessage[]
   createdGroupChats   GroupChat[]           @relation("GroupChatCreator")
+  createdCheckpoints  QuestCheckpoint[]
+  checkpointVerifications QuestCheckpointVerification[]
 }
 
 model PersonalityProfile {
@@ -369,4 +371,36 @@ model SiteVisit {
   createdAt DateTime @default(now())
 
   @@unique([visitorId, dateKey])
+}
+
+// GPS 사진 인증 퀘스트 — 여행 코스에 들르는 지점을 등록하고, 실제로 그 위치에서
+// 사진을 찍어 인증하면(GPS 거리 확인) 점수(QuestCompletion)를 지급함
+model QuestCheckpoint {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  lat          Float
+  lng          Float
+  radiusMeters Int      @default(300)
+  createdById  String
+  createdBy    User     @relation(fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+
+  verifications QuestCheckpointVerification[]
+}
+
+model QuestCheckpointVerification {
+  id             String          @id @default(cuid())
+  checkpointId   String
+  checkpoint     QuestCheckpoint @relation(fields: [checkpointId], references: [id])
+  userId         String
+  user           User            @relation(fields: [userId], references: [id])
+  photoDataUrl   String
+  lat            Float
+  lng            Float
+  distanceMeters Float
+  verified       Boolean
+  createdAt      DateTime        @default(now())
+
+  @@unique([checkpointId, userId])
 }

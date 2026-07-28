@@ -46,6 +46,17 @@ html[data-font="original"] body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* 세 번째 페이지부터(첫 페이지 인트로 이미지, 보드게임 화면 제외) 본문 글자는
+   최소 24pt, 소제목(h2/h3)은 36pt 이상이 되도록 함 */
+html[data-large-text="true"] :is(p, li, label) {
+  font-size: max(32px, 1em) !important;
+  line-height: 1.5 !important;
+}
+html[data-large-text="true"] :is(h2, h3) {
+  font-size: 48px !important;
+  line-height: 1.3 !important;
+}
+
 @keyframes assa-start-bounce {
   0%,
   100% {

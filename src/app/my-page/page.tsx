@@ -46,6 +46,21 @@ export default async function MyPageIntroPage() {
         </div>
       </div>
 
+      <Link
+        href="/quest"
+        className="flex items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/30"
+      >
+        <div className="text-4xl">📍</div>
+        <div>
+          <h3 className="font-bold text-amber-900 dark:text-amber-200">
+            여행 인증 퀘스트 (GPS)
+          </h3>
+          <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+            여행 코스 지점에 실제로 도착해서 사진을 찍으면 GPS로 확인 후 마일리지를 드려요.
+          </p>
+        </div>
+      </Link>
+
       <div className="flex justify-center gap-3">
         {session?.user ? (
           <Link
