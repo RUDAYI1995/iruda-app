@@ -7,6 +7,18 @@ const IMAGE_WIDTH = 1023;
 const IMAGE_HEIGHT = 1537;
 const BG_COLOR = "#fcf2e4";
 
+// Vercel의 서버리스 환경에는 시스템 폰트가 전혀 없어서(한글은 물론 숫자도 렌더링 안 됨),
+// SVG에 폰트를 직접 base64로 심어서 어떤 환경에서도 동일하게 렌더링되도록 함.
+// Noto Sans KR(OFL 오픈소스 라이선스) 사용 — 재배포 가능.
+let cachedFontBase64: string | null = null;
+async function getFontBase64() {
+  if (cachedFontBase64) return cachedFontBase64;
+  const fontPath = path.join(process.cwd(), "src", "assets", "fonts", "NotoSansKR-Bold.ttf");
+  const fontBuffer = await fs.readFile(fontPath);
+  cachedFontBase64 = fontBuffer.toString("base64");
+  return cachedFontBase64;
+}
+
 // 원본 이미지에서 숫자 텍스트만 차지하는 실제 픽셀 영역을 직접 측정한 값.
 // 아이콘/설명 문구(위쪽 줄)는 절대 침범하지 않음 — 숫자 칸만 딱 맞게 덮어씌움.
 const STAT_SLOTS = [
@@ -53,7 +65,7 @@ function escapeXml(text: string) {
 }
 
 export async function GET() {
-  const values = await getLiveStats();
+  const [values, fontBase64] = await Promise.all([getLiveStats(), getFontBase64()]);
 
   const rects = STAT_SLOTS.map((slot, i) => {
     const cx = slot.x + slot.width / 2;
@@ -63,12 +75,21 @@ export async function GET() {
 
     return `
       <rect x="${slot.x}" y="${slot.y}" width="${slot.width}" height="${slot.height}" fill="${BG_COLOR}" />
-      <text x="${cx}" y="${cy}" font-family="sans-serif" font-weight="800" font-size="${fontSize}" fill="${slot.color}" text-anchor="middle" dominant-baseline="central">${label}</text>
+      <text x="${cx}" y="${cy}" font-family="StatFont" font-weight="700" font-size="${fontSize}" fill="${slot.color}" text-anchor="middle" dominant-baseline="central">${label}</text>
     `;
   }).join("\n");
 
   const svg = `
     <svg width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>
+          @font-face {
+            font-family: "StatFont";
+            src: url(data:font/ttf;base64,${fontBase64}) format("truetype");
+            font-weight: 700;
+          }
+        </style>
+      </defs>
       ${rects}
     </svg>
   `;
