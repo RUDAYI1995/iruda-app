@@ -247,10 +247,10 @@ export function AssaGameIntro() {
 
           {/* 원본 이미지 위 헤더 메뉴 자리에 보이지 않는 클릭 영역만 얹어서 각자 페이지로 이동 */}
           {[
-            { href: "/game-guide", left: 39.1, top: 1.69, width: 8.3, height: 1.82 },
-            { href: "/how-to-play", left: 47.2, top: 1.69, width: 11.2, height: 1.82 },
-            { href: "/board", left: 59.1, top: 1.69, width: 7.3, height: 1.82 },
-            { href: "/dashboard", left: 66.3, top: 1.69, width: 9.0, height: 1.82 },
+            { href: "/game-guide", left: 39.3, top: 1.69, width: 7.9, height: 1.82 },
+            { href: "/how-to-play", left: 47.4, top: 1.69, width: 10.75, height: 1.82 },
+            { href: "/community", left: 59.4, top: 1.69, width: 6.75, height: 1.82 },
+            { href: "/my-page", left: 66.5, top: 1.69, width: 8.6, height: 1.82 },
             { href: "/login", left: 82.1, top: 1.04, width: 8.8, height: 2.73 },
             { href: "/signup", left: 90.6, top: 0.91, width: 8.9, height: 2.86 },
           ].map((nav) => (
