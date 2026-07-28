@@ -17,10 +17,13 @@ export const authConfig = {
   },
   providers: [],
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.isOperator = (user as { isOperator?: boolean }).isOperator ?? false;
+      }
+      if (trigger === "update" && session?.name) {
+        token.name = session.name;
       }
       return token;
     },

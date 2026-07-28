@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 function useRefreshTick(intervalMs: number) {
   const [tick, setTick] = useState(0);
@@ -53,6 +54,30 @@ const PROPERTY_NAMES = [
 const PROPERTY_PRICES = [
   200, 220, 240, 260, 280, 300, 300, 280, 260, 240, 320, 340, 360, 380, 100, 120,
 ];
+
+// 칸을 클릭하면 보여줄 귀여운 카드(이모지+그라데이션으로 표현한 미니 일러스트)
+const TILE_ART: Record<string, { emoji: string; gradient: string; desc: string }> = {
+  출발: { emoji: "🏁", gradient: "from-amber-200 to-amber-400", desc: "모든 여행의 시작점이에요!" },
+  "마음 충전": { emoji: "🔋", gradient: "from-lime-200 to-lime-400", desc: "잠시 쉬면서 마음을 충전해요." },
+  "심표 공간": { emoji: "😴", gradient: "from-indigo-200 to-indigo-400", desc: "쉿, 조용히 낮잠 자는 공간이에요." },
+  "응원 공간": { emoji: "📣", gradient: "from-rose-200 to-rose-400", desc: "서로에게 응원의 한마디를 건네요." },
+  "꿈의 도서관": { emoji: "📚", gradient: "from-sky-200 to-sky-400", desc: "포근한 담요를 덮고 책을 읽어요." },
+  "고양이 카페": { emoji: "☕", gradient: "from-orange-200 to-orange-400", desc: "고양이와 함께 마시는 따뜻한 커피 한 잔." },
+  "작은 공방": { emoji: "🎨", gradient: "from-fuchsia-200 to-fuchsia-400", desc: "나만의 작품을 만드는 아기자기한 공방." },
+  "고요한 산책길": { emoji: "🌳", gradient: "from-emerald-200 to-emerald-400", desc: "새소리를 들으며 천천히 걷는 산책길." },
+  "나눔 마켓": { emoji: "🎁", gradient: "from-pink-200 to-pink-400", desc: "따뜻한 물건을 나누는 작은 마켓." },
+  "별빛 캠핑장": { emoji: "🏕️", gradient: "from-violet-200 to-violet-400", desc: "별을 보며 하룻밤 캠핑을 즐겨요." },
+  "숲속 오두막": { emoji: "🛖", gradient: "from-teal-200 to-teal-400", desc: "숲 한가운데 아늑한 오두막." },
+  "아기자기 공방": { emoji: "🧵", gradient: "from-rose-200 to-fuchsia-300", desc: "손끝에서 태어나는 소소한 소품들." },
+  "음악이 흐르는 길": { emoji: "🎵", gradient: "from-blue-200 to-indigo-300", desc: "발걸음마다 음악이 흘러나오는 골목." },
+  "행복 나눔 장터": { emoji: "🛍️", gradient: "from-yellow-200 to-orange-300", desc: "웃음이 넘치는 작은 장터예요." },
+  "꽃길 마을": { emoji: "🌸", gradient: "from-pink-200 to-rose-300", desc: "꽃잎이 흩날리는 예쁜 마을길." },
+  "동네 빵집": { emoji: "🥐", gradient: "from-amber-200 to-yellow-300", desc: "갓 구운 빵 냄새가 솔솔 나는 빵집." },
+  "조용한 미술관": { emoji: "🖼️", gradient: "from-slate-200 to-zinc-300", desc: "말없이 그림을 감상하는 미술관." },
+  "따뜻한 책방": { emoji: "📖", gradient: "from-amber-200 to-orange-300", desc: "따뜻한 조명 아래 작은 책방." },
+  "바닷가 산책": { emoji: "🏖️", gradient: "from-cyan-200 to-blue-300", desc: "파도 소리를 들으며 걷는 바닷가." },
+  "기차 여행": { emoji: "🚃", gradient: "from-red-200 to-rose-300", desc: "창밖 풍경을 보며 떠나는 기차 여행." },
+};
 
 function buildTiles(): Tile[] {
   const tiles: Tile[] = [];
@@ -151,17 +176,28 @@ const TOKEN_OFFSETS = [
 interface GameState {
   players: PlayerState[];
   ownerOf: Record<number, number>;
-  currentPlayer: number;
+  turnOrder: number[];
+  turnPos: number;
   lastDice: number | null;
   winner: number | null;
   log: string[];
 }
 
-function initialGameState(): GameState {
+function shuffledOrder(): number[] {
+  const arr = [0, 1, 2, 3];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function initialGameState(order: number[]): GameState {
   return {
     players: initialPlayers(),
     ownerOf: {},
-    currentPlayer: 0,
+    turnOrder: order,
+    turnPos: 0,
     lastDice: null,
     winner: null,
     log: [],
@@ -170,32 +206,51 @@ function initialGameState(): GameState {
 
 export function AssaGameIntro() {
   const tiles = useMemo(() => buildTiles(), []);
+  const { data: session, update: updateSession } = useSession();
   const [gameStarted, setGameStarted] = useState(false);
-  const [state, setState] = useState<GameState>(initialGameState);
-  const [autoPlay, setAutoPlay] = useState(true);
+  const [myPlayer, setMyPlayer] = useState<number | null>(null);
+  const [state, setState] = useState<GameState>(() => initialGameState(shuffledOrder()));
+  const [selectedTile, setSelectedTile] = useState<number | null>(null);
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const refreshTick = useRefreshTick(5000);
 
-  const { players, ownerOf, currentPlayer, lastDice, winner, log } = state;
+  const { players, ownerOf, turnOrder, turnPos, lastDice, winner, log } = state;
+  const currentPlayer = turnOrder[turnPos];
 
   function resetGame() {
-    setState(initialGameState());
+    setState(initialGameState(shuffledOrder()));
   }
 
-  useEffect(() => {
-    if (!gameStarted || !autoPlay || winner !== null) return;
-    const interval = setInterval(() => rollDice(), 1200);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameStarted, autoPlay, winner, currentPlayer]);
+  async function chooseCharacter(idx: number) {
+    setMyPlayer(idx);
+    if (session?.user) {
+      try {
+        await fetch("/api/profile/nickname", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: PLAYER_DEFS[idx].name }),
+        });
+        await updateSession({ name: PLAYER_DEFS[idx].name });
+      } catch {
+        // 닉네임 갱신 실패해도 게임 진행에는 지장 없음
+      }
+    }
+  }
 
   function rollDice() {
+    if (!session?.user) {
+      setShowSignupPrompt(true);
+      return;
+    }
+
     const dice = 1 + Math.floor(Math.random() * 6);
 
     setState((prev) => {
       if (prev.winner !== null) return prev;
 
+      const cp = prev.turnOrder[prev.turnPos];
       const players = prev.players.map((p) => ({ ...p, owned: [...p.owned] }));
-      const player = players[prev.currentPlayer];
+      const player = players[cp];
       player.totalSteps += dice;
       player.money += dice * MONEY_PER_STEP;
 
@@ -205,21 +260,20 @@ export function AssaGameIntro() {
       let ownerOf = prev.ownerOf;
       if (tile.type === "property" && ownerOf[landedIndex] === undefined) {
         player.owned.push(landedIndex);
-        ownerOf = { ...ownerOf, [landedIndex]: prev.currentPlayer };
+        ownerOf = { ...ownerOf, [landedIndex]: cp };
       }
 
       const laps = Math.floor(player.totalSteps / TOTAL_TILES);
-      const playerName = PLAYER_DEFS[prev.currentPlayer].name;
+      const playerName = PLAYER_DEFS[cp].name;
       const log = [
         `${playerName}: 주사위 ${dice} → ${tile.label}${tile.type === "property" ? ` (₩${tile.price})` : ""}`,
         ...prev.log,
       ].slice(0, 8);
 
-      const winner = laps >= LAPS_TO_WIN ? prev.currentPlayer : null;
-      const currentPlayer =
-        winner === null ? (prev.currentPlayer + 1) % PLAYER_DEFS.length : prev.currentPlayer;
+      const winner = laps >= LAPS_TO_WIN ? cp : null;
+      const turnPos = winner === null ? (prev.turnPos + 1) % prev.turnOrder.length : prev.turnPos;
 
-      return { players, ownerOf, currentPlayer, lastDice: dice, winner, log };
+      return { players, ownerOf, turnOrder: prev.turnOrder, turnPos, lastDice: dice, winner, log };
     });
   }
 
@@ -279,7 +333,43 @@ export function AssaGameIntro() {
         </section>
       )}
 
-      {gameStarted && (
+      {gameStarted && myPlayer === null && (
+        <section
+          className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-12"
+          style={{
+            background:
+              "linear-gradient(180deg, #bfe6a8 0%, #d9edc2 20%, #e8dcc0 45%, #c9a876 100%)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setGameStarted(false)}
+            className="self-start rounded-full border border-zinc-400 bg-white/80 px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-white"
+          >
+            ← 이전 화면으로
+          </button>
+          <h2 className="text-2xl font-extrabold text-amber-900">내 캐릭터를 골라주세요 🐾</h2>
+          <p className="-mt-4 text-sm text-amber-800">
+            선택한 고양이의 이름이 내 닉네임이 돼요!
+          </p>
+          <div className="grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
+            {PLAYER_DEFS.map((p, pi) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => chooseCharacter(pi)}
+                className={`flex flex-col items-center gap-2 rounded-2xl border-4 bg-white/90 p-4 shadow-md transition-transform hover:scale-105 ${p.ring}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.img} alt={p.name} className="h-20 w-20 rounded-full object-cover object-top" />
+                <span className={`font-bold ${p.text}`}>{p.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {gameStarted && myPlayer !== null && (
         <section
           className="flex flex-1 flex-col items-center gap-4 px-4 pb-10 pt-6"
           style={{
@@ -304,7 +394,10 @@ export function AssaGameIntro() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.img} alt={p.name} className="h-7 w-7 rounded-full object-cover object-top" />
-                <span className={`text-sm font-bold ${p.text}`}>{p.name}</span>
+                <span className={`text-sm font-bold ${p.text}`}>
+                  {p.name}
+                  {myPlayer === pi && " (나)"}
+                </span>
                 <span className="ml-auto text-xs font-bold text-amber-700">
                   🪙{players[pi].money}
                 </span>
@@ -350,18 +443,9 @@ export function AssaGameIntro() {
               >
                 🎲 주사위 던지기
               </button>
-              <label className="flex items-center justify-between rounded-xl bg-white p-2 text-sm">
-                <span className="text-zinc-600">자동 진행 중...</span>
-                <button
-                  type="button"
-                  onClick={() => setAutoPlay((v) => !v)}
-                  className={`h-6 w-11 rounded-full transition-colors ${autoPlay ? "bg-green-500" : "bg-zinc-300"}`}
-                >
-                  <span
-                    className={`block h-5 w-5 translate-y-0.5 rounded-full bg-white shadow transition-transform ${autoPlay ? "translate-x-5" : "translate-x-0.5"}`}
-                  />
-                </button>
-              </label>
+              <p className="text-center text-xs text-zinc-500">
+                순서대로 직접 주사위를 눌러 진행해요.
+              </p>
             </div>
 
             {/* 중앙: 보드 */}
@@ -370,8 +454,10 @@ export function AssaGameIntro() {
                 {tiles.map((tile, idx) => {
                   const ownerId = ownerOf[idx];
                   return (
-                    <div
+                    <button
                       key={idx}
+                      type="button"
+                      onClick={() => setSelectedTile(idx)}
                       className={`absolute flex flex-col items-center justify-center border p-0.5 text-center ${
                         tile.type === "corner"
                           ? "border-green-700/40 bg-green-200 font-bold"
@@ -419,7 +505,7 @@ export function AssaGameIntro() {
                           </div>
                         );
                       })}
-                    </div>
+                    </button>
                   );
                 })}
 
@@ -528,6 +614,79 @@ export function AssaGameIntro() {
           >
             건너뛰기 → 루다월드 홈으로
           </Link>
+
+          {selectedTile !== null && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onClick={() => setSelectedTile(null)}
+            >
+              <div
+                className="w-full max-w-xs rounded-3xl bg-white p-6 text-center shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {(() => {
+                  const tile = tiles[selectedTile];
+                  const art = TILE_ART[tile.label];
+                  return (
+                    <>
+                      <div
+                        className={`mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-b text-5xl shadow-inner ${art?.gradient ?? "from-zinc-200 to-zinc-300"}`}
+                      >
+                        {art?.emoji ?? "🐾"}
+                      </div>
+                      <p className="text-lg font-extrabold text-amber-900">{tile.label}</p>
+                      {tile.price && (
+                        <p className="mt-1 text-sm font-bold text-amber-700">₩{tile.price}</p>
+                      )}
+                      <p className="mt-2 text-sm text-zinc-600">{art?.desc}</p>
+                    </>
+                  );
+                })()}
+                <button
+                  type="button"
+                  onClick={() => setSelectedTile(null)}
+                  className="mt-5 rounded-full bg-zinc-900 px-6 py-2 text-sm font-bold text-white hover:bg-zinc-700"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showSignupPrompt && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+              onClick={() => setShowSignupPrompt(false)}
+            >
+              <div
+                className="w-full max-w-xs rounded-3xl bg-white p-6 text-center shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-4xl">🔒</p>
+                <p className="mt-3 text-lg font-extrabold text-amber-900">
+                  회원가입이 필요해요
+                </p>
+                <p className="mt-2 text-sm text-zinc-600">
+                  주사위를 던지려면 먼저 루다월드에 가입해주세요!
+                </p>
+                <div className="mt-5 flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPrompt(false)}
+                    className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                  >
+                    닫기
+                  </button>
+                  <Link
+                    href="/signup"
+                    className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-bold text-white hover:bg-zinc-700"
+                  >
+                    회원가입 하러가기
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
     </div>

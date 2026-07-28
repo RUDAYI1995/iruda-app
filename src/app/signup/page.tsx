@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const schema = z.object({
-  name: z.string().min(1, "이름을 입력해주세요"),
+  name: z.string().min(1, "닉네임을 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   password: z.string().min(8, "비밀번호는 8자 이상이어야 해요"),
 });
@@ -50,7 +50,7 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              이름
+              닉네임
             </label>
             <input
               {...register("name")}
