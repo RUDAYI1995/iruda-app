@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
@@ -140,6 +140,85 @@ function buildTiles(): Tile[] {
   return tiles;
 }
 
+// board-game-bg.png(1130x1392) 위 20칸의 실제 픽셀 중심좌표를 %로 환산한 표.
+// buildTiles()의 idx 순서(우하단 코너부터 시계반대방향)와 1:1로 대응하도록 그리드 측정으로 좌표를 잡음.
+const TILE_POS: { left: number; top: number }[] = [
+  { left: 78.3, top: 59.6 }, // 0 우하단 코너
+  { left: 60.2, top: 60.0 }, // 1 꿈의 도서관
+  { left: 48.7, top: 60.0 }, // 2 고양이 카페
+  { left: 38.9, top: 60.0 }, // 3 작은 공방
+  { left: 29.2, top: 60.0 }, // 4 고요한 산책길
+  { left: 24.3, top: 59.6 }, // 5 좌하단 코너
+  { left: 24.3, top: 49.6 }, // 6 나눔 마켓
+  { left: 24.3, top: 42.7 }, // 7 별빛 캠핑장
+  { left: 24.3, top: 35.9 }, // 8 숲속 오두막
+  { left: 24.3, top: 29.1 }, // 9 아기자기 공방
+  { left: 24.3, top: 19.4 }, // 10 좌상단 코너
+  { left: 34.5, top: 19.4 }, // 11 음악이 흐르는 길
+  { left: 44.2, top: 19.4 }, // 12 행복 나눔 장터
+  { left: 54.0, top: 19.4 }, // 13 꽃길 마을
+  { left: 63.7, top: 19.4 }, // 14 동네 빵집
+  { left: 78.3, top: 19.4 }, // 15 우상단 코너
+  { left: 78.3, top: 29.1 }, // 16 조용한 미술관
+  { left: 78.3, top: 35.9 }, // 17 따뜻한 책방
+  { left: 78.3, top: 42.7 }, // 18 바닷가 산책
+  { left: 78.3, top: 49.6 }, // 19 기차 여행
+];
+
+const BOARD_IMG_W = 1130;
+const BOARD_IMG_H = 1392;
+
+// board-game-bg.png 안에 원래부터 그려져 있는 체스말 4개의 실제 픽셀 영역.
+// 새 그림을 만들지 않고, 이 영역만 창(overflow-hidden)으로 오려서 그대로 옮겨 움직이는 데 사용.
+const PIECE_BBOX = [
+  { left: 195, top: 165, width: 180, height: 225 }, // 초록 망토 (먼치)
+  { left: 795, top: 170, width: 155, height: 220 }, // 왕관/빨강 (치즈)
+  { left: 235, top: 565, width: 180, height: 220 }, // 핑크 드레스 (하다)
+  { left: 695, top: 565, width: 180, height: 245 }, // 보라 마법사 (삼색이)
+];
+
+// board-game-bg.png 안에 원래 있는 주사위 소품(왼쪽 장식)의 픽셀 영역.
+const DICE_PROP_BBOX = { left: 5, top: 388, width: 140, height: 115 };
+
+// 원본 이미지 중 한 영역(bbox)만 오려서 보드 위 다른 위치(left/top %)에 그대로 옮겨 보여주는 컴포넌트.
+// 새 이미지를 만들지 않고 같은 원본 파일(board-game-bg.png)을 창으로만 잘라서 재사용한다.
+function BoardSprite({
+  bbox,
+  left,
+  top,
+  className,
+  style,
+}: {
+  bbox: { left: number; top: number; width: number; height: number };
+  left: number;
+  top: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const widthPct = (bbox.width / BOARD_IMG_W) * 100;
+  const heightPct = (bbox.height / BOARD_IMG_H) * 100;
+  return (
+    <div
+      className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 overflow-hidden ${className ?? ""}`}
+      style={{ left: `${left}%`, top: `${top}%`, width: `${widthPct}%`, height: `${heightPct}%`, ...style }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/board-game-bg.png"
+        alt=""
+        draggable={false}
+        className="absolute max-w-none select-none"
+        style={{
+          width: `${(BOARD_IMG_W / bbox.width) * 100}%`,
+          height: `${(BOARD_IMG_H / bbox.height) * 100}%`,
+          left: `${-(bbox.left / bbox.width) * 100}%`,
+          top: `${-(bbox.top / bbox.height) * 100}%`,
+        }}
+      />
+    </div>
+  );
+}
+
 interface PlayerDef {
   id: number;
   name: string;
@@ -149,11 +228,12 @@ interface PlayerDef {
   text: string;
 }
 
+// 이름은 원본 보드 이미지의 하단 플레이어 카드에 적힌 이름 그대로 사용.
 const PLAYER_DEFS: PlayerDef[] = [
-  { id: 0, name: "초록냥", img: "/tokens/cat-green.png", ring: "border-green-500 bg-green-50", badge: "bg-green-600", text: "text-green-700" },
-  { id: 1, name: "파랑냥", img: "/tokens/cat-blue.png", ring: "border-blue-500 bg-blue-50", badge: "bg-blue-600", text: "text-blue-700" },
-  { id: 2, name: "핑크냥", img: "/tokens/cat-pink.png", ring: "border-pink-500 bg-pink-50", badge: "bg-pink-600", text: "text-pink-700" },
-  { id: 3, name: "보라냥", img: "/tokens/cat-purple.png", ring: "border-purple-500 bg-purple-50", badge: "bg-purple-600", text: "text-purple-700" },
+  { id: 0, name: "먼치(흰색이)", img: "/tokens/cat-green.png", ring: "border-green-500 bg-green-50", badge: "bg-green-600", text: "text-green-700" },
+  { id: 1, name: "치즈(치즈태비)", img: "/tokens/cat-blue.png", ring: "border-blue-500 bg-blue-50", badge: "bg-blue-600", text: "text-blue-700" },
+  { id: 2, name: "하다(헤드폰냥)", img: "/tokens/cat-pink.png", ring: "border-pink-500 bg-pink-50", badge: "bg-pink-600", text: "text-pink-700" },
+  { id: 3, name: "삼색이", img: "/tokens/cat-purple.png", ring: "border-purple-500 bg-purple-50", badge: "bg-purple-600", text: "text-purple-700" },
 ];
 
 interface PlayerState {
@@ -165,13 +245,6 @@ interface PlayerState {
 function initialPlayers(): PlayerState[] {
   return PLAYER_DEFS.map(() => ({ totalSteps: 0, money: 0, owned: [] }));
 }
-
-const TOKEN_OFFSETS = [
-  { top: "10%", left: "10%" },
-  { top: "10%", left: "55%" },
-  { top: "55%", left: "10%" },
-  { top: "55%", left: "55%" },
-];
 
 interface GameState {
   players: PlayerState[];
@@ -212,6 +285,11 @@ export function AssaGameIntro() {
   const [state, setState] = useState<GameState>(() => initialGameState(shuffledOrder()));
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
+  const [rolling, setRolling] = useState(false);
+  const [diceEntered, setDiceEntered] = useState(false);
+  const [diceSpinning, setDiceSpinning] = useState(false);
+  const [diceFace, setDiceFace] = useState<number | null>(null);
+  const [animPos, setAnimPos] = useState<Record<number, number>>({});
   const refreshTick = useRefreshTick(5000);
 
   const { players, ownerOf, turnOrder, turnPos, lastDice, winner, log } = state;
@@ -219,6 +297,11 @@ export function AssaGameIntro() {
 
   function resetGame() {
     setState(initialGameState(shuffledOrder()));
+    setAnimPos({});
+    setDiceFace(null);
+    setRolling(false);
+    setDiceEntered(false);
+    setDiceSpinning(false);
   }
 
   async function chooseCharacter(idx: number) {
@@ -237,14 +320,7 @@ export function AssaGameIntro() {
     }
   }
 
-  function rollDice() {
-    if (!session?.user) {
-      setShowSignupPrompt(true);
-      return;
-    }
-
-    const dice = 1 + Math.floor(Math.random() * 6);
-
+  function commitRoll(dice: number) {
     setState((prev) => {
       if (prev.winner !== null) return prev;
 
@@ -275,6 +351,60 @@ export function AssaGameIntro() {
 
       return { players, ownerOf, turnOrder: prev.turnOrder, turnPos, lastDice: dice, winner, log };
     });
+  }
+
+  function rollDice() {
+    if (!session?.user) {
+      setShowSignupPrompt(true);
+      return;
+    }
+    if (rolling || winner !== null) return;
+
+    const dice = 1 + Math.floor(Math.random() * 6);
+    const cp = currentPlayer;
+    const startSteps = players[cp].totalSteps;
+
+    // 1) 주사위가 화면 밖에서 맵 중앙으로 날아 들어오면서 실시간으로 구르는 연출
+    setRolling(true);
+    setDiceSpinning(true);
+    setDiceEntered(false);
+    setDiceFace(1 + Math.floor(Math.random() * 6));
+    requestAnimationFrame(() => requestAnimationFrame(() => setDiceEntered(true)));
+
+    let spinTicks = 0;
+    const spinTimer = setInterval(() => {
+      setDiceFace(1 + Math.floor(Math.random() * 6));
+      spinTicks++;
+      if (spinTicks >= 9) {
+        clearInterval(spinTimer);
+        // 2) 착지 + 실제 숫자로 확정
+        setDiceSpinning(false);
+        setDiceFace(dice);
+        commitRoll(dice);
+
+        // 3) 확정된 숫자만큼 원본 이미지 체스말이 한 칸씩 실제로 걸어서 이동
+        setTimeout(() => {
+          let step = 0;
+          const walkTimer = setInterval(() => {
+            step++;
+            setAnimPos((prev) => ({ ...prev, [cp]: (startSteps + step) % TOTAL_TILES }));
+            if (step >= dice) {
+              clearInterval(walkTimer);
+              setTimeout(() => {
+                setAnimPos((prev) => {
+                  const next = { ...prev };
+                  delete next[cp];
+                  return next;
+                });
+                setRolling(false);
+                setDiceEntered(false);
+                setDiceFace(null);
+              }, 350);
+            }
+          }, 260);
+        }, 300);
+      }
+    }, 90);
   }
 
   const winnerMileage =
@@ -385,203 +515,171 @@ export function AssaGameIntro() {
             ← 이전 화면으로
           </button>
 
-          {/* 상단 플레이어 배지 */}
-          <div className="grid w-full max-w-4xl grid-cols-2 gap-2 sm:grid-cols-4">
-            {PLAYER_DEFS.map((p, pi) => (
-              <div
-                key={p.id}
-                className={`flex items-center gap-2 rounded-full border-2 bg-white/90 px-3 py-1.5 ${p.ring}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.img} alt={p.name} className="h-7 w-7 rounded-full object-cover object-top" />
-                <span className={`text-sm font-bold ${p.text}`}>
-                  {p.name}
-                  {myPlayer === pi && " (나)"}
-                </span>
-                <span className="ml-auto text-xs font-bold text-amber-700">
-                  🪙{players[pi].money}
-                </span>
-              </div>
+          {/* 체스말 이미지를 그대로 배경으로 쓰고, 그 위에 실제 게임 로직만 얹기 */}
+          <div className="relative mx-auto w-full max-w-6xl" style={{ aspectRatio: "1130 / 1392" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/board-game-bg.png"
+              alt="아싸게임 보드"
+              className="h-full w-full select-none object-contain"
+              draggable={false}
+            />
+
+            {/* 20칸 클릭 영역 (칸 정보 미리보기) */}
+            {tiles.map((tile, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setSelectedTile(idx)}
+                aria-label={tile.label}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  left: `${TILE_POS[idx].left}%`,
+                  top: `${TILE_POS[idx].top}%`,
+                  width: "11%",
+                  height: "8%",
+                }}
+              />
             ))}
-          </div>
 
-          <div className="flex w-full max-w-4xl flex-col gap-4 lg:flex-row lg:items-start">
-            {/* 왼쪽: 게임 정보 패널 */}
-            <div className="order-2 flex flex-col gap-3 rounded-2xl border-4 border-amber-800/50 bg-[#fdf6e8] p-4 lg:order-1 lg:w-52 lg:shrink-0">
-              <h3 className="text-center font-bold text-amber-900">게임 정보</h3>
-              <div className="flex items-center justify-center gap-2 rounded-xl bg-white p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={PLAYER_DEFS[currentPlayer].img}
-                  alt={PLAYER_DEFS[currentPlayer].name}
-                  className="h-8 w-8 rounded-full object-cover object-top"
+            {/* 원본 이미지 안에 원래 있는 체스말 4개를 창으로 오려서 그대로 옮겨 움직임 — 새로 만든 그림 없음 */}
+            {PLAYER_DEFS.map((p, pi) => {
+              const pos = animPos[pi] !== undefined ? animPos[pi] : players[pi].totalSteps % TOTAL_TILES;
+              const isWalking = animPos[pi] !== undefined;
+              return (
+                <BoardSprite
+                  key={p.id}
+                  bbox={PIECE_BBOX[pi]}
+                  left={TILE_POS[pos].left + (pi % 2 === 0 ? -6.5 : 6.5)}
+                  top={TILE_POS[pos].top + (pi < 2 ? -6 : 6)}
+                  className={`z-10 drop-shadow-lg transition-all duration-200 ease-out ${isWalking ? "scale-110" : ""}`}
                 />
-                <div className="text-sm">
-                  <p className="text-zinc-500">현재 턴</p>
-                  <p className={`font-bold ${PLAYER_DEFS[currentPlayer].text}`}>
-                    {PLAYER_DEFS[currentPlayer].name}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-white p-2 text-sm">
-                <span className="text-zinc-500">주사위 숫자</span>
-                <span className="text-lg font-extrabold text-amber-900">
-                  {lastDice ?? "-"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-white p-2 text-sm">
-                <span className="text-zinc-500">이동 칸 수</span>
-                <span className="text-lg font-extrabold text-amber-900">
-                  {lastDice ?? 0}칸
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={rollDice}
-                disabled={winner !== null}
-                className="rounded-full bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-transform hover:scale-105 disabled:opacity-40"
-              >
-                🎲 주사위 던지기
-              </button>
-              <p className="text-center text-xs text-zinc-500">
-                순서대로 직접 주사위를 눌러 진행해요.
-              </p>
-            </div>
+              );
+            })}
 
-            {/* 중앙: 보드 */}
-            <div className="order-1 mx-auto aspect-square w-full max-w-[520px] lg:order-2">
-              <div className="relative h-full w-full rounded-2xl border-4 border-green-800/60 bg-[#f3e6c4] p-1 shadow-xl">
-                {tiles.map((tile, idx) => {
-                  const ownerId = ownerOf[idx];
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setSelectedTile(idx)}
-                      className={`absolute flex flex-col items-center justify-center border p-0.5 text-center ${
-                        tile.type === "corner"
-                          ? "border-green-700/40 bg-green-200 font-bold"
-                          : "border-green-700/20 bg-[#fbf4e2]"
-                      }`}
-                      style={{
-                        top: `${(tile.row / GRID) * 100}%`,
-                        left: `${(tile.col / GRID) * 100}%`,
-                        width: `${100 / GRID}%`,
-                        height: `${100 / GRID}%`,
-                      }}
-                    >
-                      <span className="text-[9px] leading-tight text-zinc-700 sm:text-[10px]">
-                        {tile.label}
-                      </span>
-                      {tile.price && (
-                        <span className="text-[8px] text-zinc-500 sm:text-[9px]">
-                          ₩{tile.price}
-                        </span>
-                      )}
-                      {ownerId !== undefined && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={PLAYER_DEFS[ownerId].img}
-                          alt=""
-                          className="mt-0.5 h-3 w-3 rounded-full object-cover object-top"
-                        />
-                      )}
+            {/* 원본 이미지 속 주사위 소품을 그대로 오려서, 밖에서 맵 중앙으로 날아들어와 구르게 함 — 새 그림/패널 없음 */}
+            {rolling && (
+              <>
+                <BoardSprite
+                  bbox={DICE_PROP_BBOX}
+                  left={diceEntered ? 51 : -15}
+                  top={diceEntered ? 71 : -15}
+                  className={`z-40 drop-shadow-2xl ${diceSpinning ? "assa-dice-spin" : "assa-dice-land"}`}
+                  style={{ transitionProperty: "left, top", transitionDuration: "550ms", transitionTimingFunction: "ease-out" }}
+                />
+                {diceEntered && diceFace !== null && (
+                  <span
+                    className="pointer-events-none absolute z-40 -translate-x-1/2 -translate-y-1/2 text-3xl font-extrabold text-pink-100"
+                    style={{
+                      left: "58%",
+                      top: "65%",
+                      textShadow:
+                        "-1.5px -1.5px 0 #831843, 1.5px -1.5px 0 #831843, -1.5px 1.5px 0 #831843, 1.5px 1.5px 0 #831843, 0 2px 6px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {diceFace}
+                  </span>
+                )}
+              </>
+            )}
 
-                      {PLAYER_DEFS.map((p, pi) => {
-                        const pos = players[pi].totalSteps % TOTAL_TILES;
-                        if (pos !== idx) return null;
-                        return (
-                          <div
-                            key={pi}
-                            className="absolute flex flex-col items-center"
-                            style={{ top: TOKEN_OFFSETS[pi].top, left: TOKEN_OFFSETS[pi].left }}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={p.img}
-                              alt={p.name}
-                              className="h-5 w-5 rounded-full object-cover object-top drop-shadow"
-                            />
-                          </div>
-                        );
-                      })}
-                    </button>
-                  );
-                })}
-
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="rounded-2xl bg-white/80 px-6 py-4 text-center shadow-inner">
-                    <p className="text-2xl font-extrabold text-amber-900">아싸게임</p>
-                    <p className="text-xs font-bold text-amber-700">
-                      {Math.min(
-                        Math.max(...players.map((p) => Math.floor(p.totalSteps / TOTAL_TILES))),
-                        LAPS_TO_WIN
-                      )}
-                      /{LAPS_TO_WIN} 바퀴
-                    </p>
-                    <p className="mt-1 text-[11px] text-amber-600">
-                      목표: 2바퀴를 먼저 돌아 마일리지를 가장 많이 모은 고양이가 승리!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 오른쪽: 소유지 & 마일리지 패널 */}
-            <div className="order-3 flex flex-col gap-2 rounded-2xl border-4 border-amber-800/50 bg-[#fdf6e8] p-4 lg:w-56 lg:shrink-0">
-              <h3 className="text-center font-bold text-amber-900">소유지 &amp; 마일리지</h3>
-              {PLAYER_DEFS.map((p, pi) => (
-                <div key={p.id} className="flex items-center gap-2 rounded-xl bg-white p-2 text-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.img} alt={p.name} className="h-6 w-6 rounded-full object-cover object-top" />
-                  <div>
-                    <p className={`font-bold ${p.text}`}>{p.name}</p>
-                    <p className="text-xs text-zinc-500">{players[pi].owned.length}개 지역 보유</p>
-                  </div>
-                  <span className="ml-auto font-bold text-amber-700">🪙{players[pi].money}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {winner !== null && (
-            <div className="flex flex-col items-center gap-3 rounded-2xl bg-amber-100 px-8 py-6 text-center shadow-lg">
-              <p className="text-xl font-extrabold text-amber-900">
-                🏆 {PLAYER_DEFS[winner].name} 승리!
-              </p>
-              <p className="text-sm text-amber-800">
-                보유한 땅 {players[winner].owned.length}곳 · 최종 마일리지 {winnerMileage}점
-              </p>
-              <button
-                type="button"
-                onClick={resetGame}
-                className="rounded-full bg-zinc-900 px-6 py-2 text-sm font-bold text-white hover:bg-zinc-700"
-              >
-                다시 하기
-              </button>
-            </div>
-          )}
-
-          {/* 하단 마일리지 요약 */}
-          <div className="flex w-full max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 rounded-xl bg-white/80 px-4 py-2 text-sm text-amber-800">
-              🪙 한 칸 이동할 때마다 마일리지 +{MONEY_PER_STEP}!
-            </div>
-            <div className="flex items-center gap-3 rounded-xl bg-white/80 px-4 py-2 text-sm">
-              <span className="text-zinc-600">
-                내 총 마일리지 🪙{players[currentPlayer].money}
+            {/* 현재 턴 표시 (이미지 위 placeholder 문구 자리) */}
+            <div
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2b2210] px-4 py-1.5"
+              style={{ left: "50%", top: "69.2%", width: "34%" }}
+            >
+              <span className="block truncate text-center text-xs font-bold text-amber-100 sm:text-sm">
+                현재 턴: {PLAYER_DEFS[currentPlayer].name}
+                {myPlayer === currentPlayer && " (나)"}
               </span>
-              <Link
-                href="/coming-soon/shop"
-                className="rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700"
-              >
-                상점 가기
-              </Link>
             </div>
+
+            {/* 주사위 굴리기 버튼 — 이미지에 그려진 버튼 위치에 그대로 클릭 영역만 얹기 */}
+            <button
+              type="button"
+              onClick={rollDice}
+              disabled={winner !== null || rolling}
+              className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full disabled:cursor-not-allowed"
+              style={{ left: "51%", top: "72.6%", width: "24%", height: "4.6%" }}
+              aria-label="주사위 굴리기"
+            >
+              {!rolling && lastDice !== null && (
+                <span className="absolute -right-3 -top-3 flex h-6 w-6 items-center justify-center rounded-full bg-pink-500 text-xs font-extrabold text-white shadow">
+                  {lastDice}
+                </span>
+              )}
+            </button>
+
+            {/* 4개 플레이어 카드의 동적 수치 (바퀴/마일리지/보유지) 덮어쓰기 */}
+            {PLAYER_DEFS.map((p, pi) => {
+              const laps = Math.min(Math.floor(players[pi].totalSteps / TOTAL_TILES), LAPS_TO_WIN);
+              const cardLeft = [20.5, 39.6, 57.3, 76.4][pi];
+              return (
+                <div
+                  key={p.id}
+                  className="absolute flex -translate-x-1/2 flex-col items-center gap-0.5"
+                  style={{ left: `${cardLeft}%`, top: "80.2%", width: "16%" }}
+                >
+                  <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white sm:text-xs">
+                    바퀴 {laps}/{LAPS_TO_WIN}
+                  </span>
+                  <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-200 sm:text-xs">
+                    🪙{players[pi].money}
+                  </span>
+                  <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white sm:text-xs">
+                    땅 {players[pi].owned.length}곳
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* 진행 기록 — 원본 이미지의 기록창 자리를 그대로 확대해서 스크롤 가능하게 */}
+            <div
+              className="absolute flex -translate-x-1/2 flex-col gap-1 overflow-y-auto rounded-xl bg-[#fdf6e8]/95 px-3 py-2 shadow-inner"
+              style={{ left: "50%", top: "87%", width: "72%", height: "12.5%" }}
+            >
+              {log.length === 0 ? (
+                <p className="text-xs text-zinc-600 sm:text-sm">주사위를 굴려 게임을 시작해보세요.</p>
+              ) : (
+                log.map((line, i) => (
+                  <p key={i} className="text-xs text-zinc-700 sm:text-sm">
+                    {line}
+                  </p>
+                ))
+              )}
+            </div>
+
+            {winner !== null && (
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/40 p-4"
+              >
+                <div className="flex flex-col items-center gap-3 rounded-2xl bg-amber-100 px-8 py-6 text-center shadow-lg">
+                  <p className="text-xl font-extrabold text-amber-900">
+                    🏆 {PLAYER_DEFS[winner].name} 승리!
+                  </p>
+                  <p className="text-sm text-amber-800">
+                    보유한 땅 {players[winner].owned.length}곳 · 최종 마일리지 {winnerMileage}점
+                  </p>
+                  <button
+                    type="button"
+                    onClick={resetGame}
+                    className="rounded-full bg-zinc-900 px-6 py-2 text-sm font-bold text-white hover:bg-zinc-700"
+                  >
+                    다시 하기
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* 하단 버튼 */}
-          <div className="flex gap-3">
+          {/* 하단 버튼 (이미지 밖 추가 기능) */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/coming-soon/shop"
+              className="rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700"
+            >
+              상점 가기
+            </Link>
             <Link
               href="/community"
               className="rounded-full border border-zinc-400 bg-white/90 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-white"
@@ -597,23 +695,13 @@ export function AssaGameIntro() {
             >
               🩷 응원하기
             </button>
+            <Link
+              href="/home"
+              className="text-sm text-zinc-500 underline hover:text-zinc-800"
+            >
+              건너뛰기 → 루다월드 홈으로
+            </Link>
           </div>
-
-          <div className="w-full max-w-4xl rounded-xl bg-white/70 p-3 text-xs text-zinc-600">
-            <p className="mb-1 font-bold">📜 진행 기록</p>
-            {log.length === 0 ? (
-              <p>주사위를 굴려 게임을 시작해보세요.</p>
-            ) : (
-              log.map((line, i) => <p key={i}>{line}</p>)
-            )}
-          </div>
-
-          <Link
-            href="/home"
-            className="text-sm text-zinc-500 underline hover:text-zinc-800"
-          >
-            건너뛰기 → 루다월드 홈으로
-          </Link>
 
           {selectedTile !== null && (
             <div
