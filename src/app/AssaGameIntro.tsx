@@ -253,9 +253,10 @@ export function AssaGameIntro() {
             { href: "/my-page", left: 66.5, top: 1.69, width: 8.6, height: 1.82 },
             { href: "/login", left: 82.1, top: 1.04, width: 8.8, height: 2.73 },
             { href: "/signup", left: 90.6, top: 0.91, width: 8.9, height: 2.86 },
-          ].map((nav) => (
+            { href: "/signup", left: 33.2, top: 95.8, width: 25.4, height: 2.15 },
+          ].map((nav, i) => (
             <Link
-              key={nav.href}
+              key={i}
               href={nav.href}
               className="absolute"
               style={{
