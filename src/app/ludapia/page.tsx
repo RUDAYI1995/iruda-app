@@ -70,7 +70,12 @@ export default function LudapiaPage() {
             <div id="log" className="log-body" />
           </div>
           <div className="chat-panel">
-            <h3>💬 채팅</h3>
+            <div className="chat-panel-header">
+              <h3>💬 채팅</h3>
+              <button id="botChatToggleBtn" type="button" className="bot-chat-toggle">
+                🤖 봇 채팅 OFF
+              </button>
+            </div>
             <div id="chatMessages" className="chat-body" />
             <div className="chat-input-row">
               <input id="chatInput" type="text" placeholder="메시지 입력..." />

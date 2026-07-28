@@ -293,6 +293,30 @@
   margin-left: 6px;
 }
 
+.chat-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.chat-panel-header h3 {
+  margin: 0;
+}
+.bot-chat-toggle {
+  background: #2e2839;
+  border: 1px solid #3a3348;
+  color: #9a8fae;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.bot-chat-toggle.on {
+  background: #3a6b4a;
+  border-color: #4a8a5f;
+  color: #d6f0dd;
+}
+
 /* ---------- 사이드바 ---------- */
 .ludapia-side {
   flex: 0 0 300px;

@@ -98,6 +98,18 @@ export function initLudapiaGame() {
   const chatMessagesEl = document.getElementById("chatMessages")!;
   const chatInputEl = document.getElementById("chatInput") as HTMLInputElement;
   const chatSendBtnEl = document.getElementById("chatSendBtn")!;
+  const botChatToggleBtnEl = document.getElementById("botChatToggleBtn")!;
+
+  // 봇 채팅은 기본적으로 꺼져 있음 — 유저가 직접 "봇 채팅 ON"을 누르기 전까지는
+  // 각 봇이 게임 시작 후 딱 한 번만 말하고, 그 뒤로는 DB에 채팅을 보내지 않음.
+  let botChatEnabled = false;
+  const botsSpokenOnce = new Set<number>();
+  function onBotChatToggleClick() {
+    botChatEnabled = !botChatEnabled;
+    botChatToggleBtnEl.textContent = botChatEnabled ? "🤖 봇 채팅 ON" : "🤖 봇 채팅 OFF";
+    botChatToggleBtnEl.classList.toggle("on", botChatEnabled);
+  }
+  botChatToggleBtnEl.addEventListener("click", onBotChatToggleClick);
 
   function escapeHtml(str: string) {
     const div = document.createElement("div");
@@ -863,6 +875,8 @@ export function initLudapiaGame() {
     if (phase !== "day") return;
     players.forEach((p) => {
       if (p.isHuman || !p.alive) return;
+      // 봇 채팅이 꺼져 있고, 이미 한 번 말한 봇이면 더 이상 진행하지 않음(계속 침묵)
+      if (!botChatEnabled && botsSpokenOnce.has(p.id)) return;
       if (!p._bubbleT || Date.now() > p._bubbleT) {
         p._bubbleT = Date.now() + 4000 + Math.random() * 4000;
         const candidates = players.filter((o) => o.alive && o.id !== p.id);
@@ -875,10 +889,13 @@ export function initLudapiaGame() {
           text = CALM_LINES[Math.floor(Math.random() * CALM_LINES.length)];
         }
         p.bubble = { text, until: Date.now() + 3200 };
-        if (Date.now() - lastBotChatSend >= 15000) {
+
+        const isFirstTimeEver = !botsSpokenOnce.has(p.id);
+        if (isFirstTimeEver || (botChatEnabled && Date.now() - lastBotChatSend >= 15000)) {
           lastBotChatSend = Date.now();
           sendBotChat(p, text);
         }
+        botsSpokenOnce.add(p.id);
       }
     });
   }
@@ -1303,6 +1320,7 @@ export function initLudapiaGame() {
     charMenuEl.removeEventListener("click", onCharMenuClick);
     chatMessagesEl.removeEventListener("click", onChatReportClick);
     chatSendBtnEl.removeEventListener("click", sendChat);
+    botChatToggleBtnEl.removeEventListener("click", onBotChatToggleClick);
     chatInputEl.removeEventListener("keydown", onChatInputKeydown);
     document.getElementById("introStartBtn")?.removeEventListener("click", onIntroStart);
     if (channel && sb) sb.removeChannel(channel);
