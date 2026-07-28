@@ -25,6 +25,8 @@ import { PetPettingButton } from "@/components/PetPettingButton";
 import { NaEnomButton } from "@/components/NaEnomButton";
 import { OnlineTravelButton } from "@/components/OnlineTravelButton";
 import { LudariaButton } from "@/components/LudariaButton";
+import { AssaWorldButton } from "@/components/AssaWorldButton";
+import { AssaDungeonButton } from "@/components/AssaDungeonButton";
 import { LudapiaButton } from "@/components/LudapiaButton";
 import { LudaWorldLogo } from "@/components/LudaWorldLogo";
 import { PromoTravelBanner } from "@/components/PromoTravelBanner";
@@ -321,6 +323,8 @@ export default async function Home() {
                   <DestinationWeatherButton />
                   <ShyCareButton />
                   <LudariaButton />
+                  <AssaWorldButton />
+                  <AssaDungeonButton />
                 </div>
                 <div className="flex gap-2">
                   <PetPettingButton />
