@@ -3,29 +3,15 @@ import fs from "fs/promises";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 
-const IMAGE_WIDTH = 1023;
-const IMAGE_HEIGHT = 1537;
 const BG_COLOR = "#fcf2e4";
-
-// Vercel의 서버리스 환경에는 시스템 폰트가 전혀 없어서(한글은 물론 숫자도 렌더링 안 됨),
-// SVG에 폰트를 직접 base64로 심어서 어떤 환경에서도 동일하게 렌더링되도록 함.
-// Noto Sans KR(OFL 오픈소스 라이선스) 사용 — 재배포 가능.
-let cachedFontBase64: string | null = null;
-async function getFontBase64() {
-  if (cachedFontBase64) return cachedFontBase64;
-  const fontPath = path.join(process.cwd(), "src", "assets", "fonts", "NotoSansKR-Bold.ttf");
-  const fontBuffer = await fs.readFile(fontPath);
-  cachedFontBase64 = fontBuffer.toString("base64");
-  return cachedFontBase64;
-}
 
 // 원본 이미지에서 숫자 텍스트만 차지하는 실제 픽셀 영역을 직접 측정한 값.
 // 아이콘/설명 문구(위쪽 줄)는 절대 침범하지 않음 — 숫자 칸만 딱 맞게 덮어씌움.
 const STAT_SLOTS = [
-  { x: 138, y: 643, width: 95, height: 45, color: "#2f6fd1", unit: "명" },
-  { x: 378, y: 640, width: 105, height: 36, color: "#e0435c", unit: "개" },
-  { x: 598, y: 640, width: 110, height: 36, color: "#f0862c", unit: "개" },
-  { x: 808, y: 638, width: 135, height: 38, color: "#3fae4a", unit: "명" },
+  { x: 138, y: 643, width: 95, height: 45, color: "blue", unit: "명" },
+  { x: 378, y: 640, width: 105, height: 36, color: "red", unit: "개" },
+  { x: 598, y: 640, width: 110, height: 36, color: "orange", unit: "개" },
+  { x: 808, y: 638, width: 135, height: 38, color: "green", unit: "명" },
 ];
 
 function todayStart() {
@@ -60,47 +46,70 @@ async function getLiveStats() {
   ];
 }
 
-function escapeXml(text: string) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// Vercel 서버리스 환경에는 폰트가 전혀 없어서(임베드된 폰트조차 sharp/librsvg가
+// 렌더링하지 못함) 실시간 텍스트 렌더링이 불가능함. 그래서 숫자/글자를 로컬에서
+// 미리 이미지로 그려둔 "글리프" PNG를 요청마다 나란히 합성하는 방식으로 대체함
+// — 텍스트 렌더링을 아예 하지 않으므로 어떤 서버 환경에서도 동일하게 나옴.
+const glyphCache = new Map<string, { buffer: Buffer; width: number; height: number }>();
+
+async function loadGlyph(color: string, char: string) {
+  const key = `${color}:${char}`;
+  const cached = glyphCache.get(key);
+  if (cached) return cached;
+
+  const filePath = path.join(process.cwd(), "public", "glyphs", color, `${char}.png`);
+  const buffer = await fs.readFile(filePath);
+  const metadata = await sharp(buffer).metadata();
+  const entry = { buffer, width: metadata.width ?? 1, height: metadata.height ?? 1 };
+  glyphCache.set(key, entry);
+  return entry;
 }
 
 export async function GET() {
-  const [values, fontBase64] = await Promise.all([getLiveStats(), getFontBase64()]);
-
-  const rects = STAT_SLOTS.map((slot, i) => {
-    const cx = slot.x + slot.width / 2;
-    const cy = slot.y + slot.height / 2;
-    const label = escapeXml(`${values[i].toLocaleString()}${slot.unit}`);
-    const fontSize = Math.round(slot.height * 0.75);
-
-    return `
-      <rect x="${slot.x}" y="${slot.y}" width="${slot.width}" height="${slot.height}" fill="${BG_COLOR}" />
-      <text x="${cx}" y="${cy}" font-family="StatFont" font-weight="700" font-size="${fontSize}" fill="${slot.color}" text-anchor="middle" dominant-baseline="central">${label}</text>
-    `;
-  }).join("\n");
-
-  const svg = `
-    <svg width="${IMAGE_WIDTH}" height="${IMAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <style>
-          @font-face {
-            font-family: "StatFont";
-            src: url(data:font/ttf;base64,${fontBase64}) format("truetype");
-            font-weight: 700;
-          }
-        </style>
-      </defs>
-      ${rects}
-    </svg>
-  `;
+  const values = await getLiveStats();
 
   const basePath = path.join(process.cwd(), "public", "assa-game-board-v2.png");
   const baseBuffer = await fs.readFile(basePath);
 
-  const output = await sharp(baseBuffer)
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .png()
-    .toBuffer();
+  const composites: { input: Buffer; left: number; top: number }[] = [];
+
+  for (let i = 0; i < STAT_SLOTS.length; i++) {
+    const slot = STAT_SLOTS[i];
+
+    const patch = await sharp({
+      create: { width: slot.width, height: slot.height, channels: 3, background: BG_COLOR },
+    })
+      .png()
+      .toBuffer();
+    composites.push({ input: patch, left: slot.x, top: slot.y });
+
+    const label = `${values[i]}${slot.unit}`;
+    const chars = Array.from(label);
+    const glyphs = await Promise.all(chars.map((c) => loadGlyph(slot.color, c)));
+
+    const targetHeight = Math.round(slot.height * 0.85);
+    const scaledGlyphs = await Promise.all(
+      glyphs.map(async (g) => {
+        const scale = targetHeight / g.height;
+        const width = Math.max(1, Math.round(g.width * scale));
+        const resized = await sharp(g.buffer).resize({ height: targetHeight }).toBuffer();
+        return { buffer: resized, width };
+      })
+    );
+
+    const gap = 2;
+    const totalWidth =
+      scaledGlyphs.reduce((sum, g) => sum + g.width, 0) + gap * (scaledGlyphs.length - 1);
+    let cursorX = slot.x + slot.width / 2 - totalWidth / 2;
+    const topY = slot.y + slot.height / 2 - targetHeight / 2;
+
+    for (const g of scaledGlyphs) {
+      composites.push({ input: g.buffer, left: Math.round(cursorX), top: Math.round(topY) });
+      cursorX += g.width + gap;
+    }
+  }
+
+  const output = await sharp(baseBuffer).composite(composites).png().toBuffer();
 
   return new Response(new Uint8Array(output), {
     headers: {
