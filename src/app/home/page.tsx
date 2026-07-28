@@ -13,6 +13,7 @@ import {
 } from "@/lib/weather/openMeteo";
 import { PinkHeartBurst } from "@/components/PinkHeartBurst";
 import { CheerButton } from "@/components/CheerButton";
+import { VisitTracker } from "@/components/VisitTracker";
 import { ScheduleBox } from "@/components/ScheduleBox";
 import { AttractionExplorer } from "@/components/AttractionExplorer";
 import { TravelGuidebookButton } from "@/components/TravelGuidebookButton";
@@ -695,6 +696,7 @@ export default async function Home() {
       </footer>
 
       <CheerButton />
+      <VisitTracker />
     </div>
   );
 }

@@ -360,3 +360,13 @@ model ChatReport {
 
   @@map("chat_reports")
 }
+
+// 첫 페이지 통계 카드 — "오늘 새로 여행 시작한 사람" 하루 1명당 1회만 집계하기 위한 방문 로그
+model SiteVisit {
+  id        String   @id @default(cuid())
+  visitorId String
+  dateKey   String
+  createdAt DateTime @default(now())
+
+  @@unique([visitorId, dateKey])
+}

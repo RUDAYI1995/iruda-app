@@ -1,7 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+
+function useRefreshTick(intervalMs: number) {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), intervalMs);
+    return () => clearInterval(interval);
+  }, [intervalMs]);
+
+  return tick;
+}
 
 const GRID = 6; // 6x6 outer square, perimeter = 4*(GRID-1) = 20 tiles
 const TOTAL_TILES = 4 * (GRID - 1);
@@ -160,6 +171,7 @@ export function AssaGameIntro() {
   const tiles = useMemo(() => buildTiles(), []);
   const [gameStarted, setGameStarted] = useState(false);
   const [state, setState] = useState<GameState>(initialGameState);
+  const refreshTick = useRefreshTick(5000);
 
   const { players, ownerOf, currentPlayer, lastDice, winner, log } = state;
 
@@ -212,7 +224,7 @@ export function AssaGameIntro() {
       {!gameStarted && (
         <section className="relative w-full" style={{ aspectRatio: "1023 / 1537" }}>
           <img
-            src="/assa-game-board-v2.png"
+            src={`/api/stats/board-image?t=${refreshTick}`}
             alt="루다월드 - 소심한 사람들을 위한 아싸게임"
             className="h-full w-full object-contain"
           />
