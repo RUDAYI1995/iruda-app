@@ -192,16 +192,16 @@ const FEATURE_GROUPS: {
         href: "/transit/domestic",
       },
       {
-        title: "해외 실시간 교통정보",
-        desc: "Google Maps Routes API(대중교통 경로)로 해외에서도 다음 교통편까지 남은 시간을 확인해요.",
-        status: "예정",
-        href: "/coming-soon/transit-overseas",
+        title: "해외 실시간 교통정보 추천",
+        desc: "목적지와 호텔을 알려주면 AI루다가 항공편부터 현지 교통까지 가는 길을 코스로 추천해줘요.",
+        status: "구현됨",
+        href: "/transit/overseas",
       },
       {
         title: "국내+해외 통합 교통정보",
-        desc: "현재 위치가 국내인지 해외인지 자동으로 구분해, 같은 화면에서 알맞은 실시간 교통정보를 이어서 보여줘요.",
-        status: "예정",
-        href: "/coming-soon/transit-combined",
+        desc: "집에서 공항까지, 공항에서 호텔까지 — 국내외 여정을 한 화면에서 이어서 확인해요.",
+        status: "구현됨",
+        href: "/transit/combined",
       },
     ],
   },
@@ -235,21 +235,21 @@ const FEATURE_GROUPS: {
     items: [
       {
         title: "실시간 여행게임 대전",
-        desc: "여행 중인 팀끼리 매칭돼 OX퀴즈·방문인증·거리 달리기·투표 등 낮 미션 5종과 밤 미션으로 대결해요.",
-        status: "예정",
-        href: "/coming-soon/games",
+        desc: "OX퀴즈·방문인증·거리 달리기·투표·표정짓기 5가지 미션으로 팀 대결을 해요.",
+        status: "구현됨",
+        href: "/games",
       },
       {
         title: "레벨성장",
         desc: "여행지를 방문할 때마다 경험치를 얻어요. 해외는 경험치를 더 많이, 국내는 적게 획득해요.",
-        status: "예정",
-        href: "/coming-soon/leveling",
+        status: "구현됨",
+        href: "/my-page",
       },
       {
         title: "이벤트",
         desc: "마일리지 혜택 / 올해의 모험왕 / 여행 상상력 풍부상 / 안전체크단, 4가지 이벤트를 만나보세요.",
         status: "예정",
-        href: "/coming-soon/events",
+        href: "/events",
       },
     ],
   },
@@ -480,27 +480,6 @@ export default async function Home() {
             </div>
           </div>
 
-          <h1 className="max-w-2xl text-4xl font-bold leading-tight tracking-tight text-zinc-900 drop-shadow-[0_2px_8px_rgba(255,255,255,0.8)] sm:text-5xl">
-            <span className="relative inline-block">
-              소심한
-              <svg
-                className="pointer-events-none absolute -inset-x-5 -inset-y-4 select-none"
-                viewBox="0 0 130 60"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d="M9,30 C7,13 35,4 65,5 C97,6 122,13 120,30 C123,46 92,55 63,54 C33,53 6,47 10,31"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>{" "}
-            사람들을 위한
-            <br />
-            수줍은 여행 플랫폼
-          </h1>
           <p className="max-w-xl rounded-2xl bg-white/40 px-4 py-2 text-lg leading-8 text-zinc-800 backdrop-blur-sm">
             낯선 사람과의 만남이 부담스러워도 괜찮아요. 성향이 맞는 소규모
             그룹, 언어가 통하는 데이가이드, 그리고 책임지고 안전을 지켜주는

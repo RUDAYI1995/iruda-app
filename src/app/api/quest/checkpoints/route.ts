@@ -21,6 +21,7 @@ export async function GET() {
       name: cp.name,
       description: cp.description,
       radiusMeters: cp.radiusMeters,
+      isOverseas: cp.isOverseas,
       createdByName: cp.createdBy.name,
       createdAt: cp.createdAt,
       verifiedByMe: session?.user?.id
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "로그인이 필요해요" }, { status: 401 });
   }
 
-  const { name, description, lat, lng } = await request.json();
+  const { name, description, lat, lng, isOverseas } = await request.json();
 
   if (typeof name !== "string" || !name.trim()) {
     return NextResponse.json({ error: "코스 이름을 입력해주세요" }, { status: 400 });
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       description: typeof description === "string" ? description.trim() : null,
       lat,
       lng,
+      isOverseas: Boolean(isOverseas),
       createdById: session.user.id,
     },
   });

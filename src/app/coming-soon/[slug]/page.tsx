@@ -34,34 +34,6 @@ const PAGES: Record<string, { title: string; desc: string }> = {
     title: "원격 여행 안전 서비스",
     desc: "담당 가이드가 책임지고 여행자의 안전을 원격으로 모니터링·지원하는 서비스예요.",
   },
-  "transit-domestic": {
-    title: "국내 실시간 교통정보",
-    desc: "공공데이터포털 버스도착정보 API로 국내 여행 중 다음 버스까지 남은 시간을 확인하는 기능이에요.",
-  },
-  "transit-overseas": {
-    title: "해외 실시간 교통정보",
-    desc: "Google Maps Routes API로 해외에서도 다음 교통편까지 남은 시간을 확인하는 기능이에요.",
-  },
-  "transit-combined": {
-    title: "국내+해외 통합 교통정보",
-    desc: "현재 위치가 국내인지 해외인지 자동으로 구분해 알맞은 실시간 교통정보를 이어서 보여주는 기능이에요.",
-  },
-  games: {
-    title: "실시간 여행게임 대전",
-    desc: "여행 중인 팀끼리 매칭돼 OX퀴즈·방문인증·거리 달리기·투표 등으로 대결하는 기능이에요.",
-  },
-  leveling: {
-    title: "레벨성장",
-    desc: "여행지를 방문할 때마다 경험치를 얻는 게임형 레벨 시스템이에요. 해외는 경험치를 더 많이 획득해요.",
-  },
-  events: {
-    title: "이벤트",
-    desc: "마일리지 혜택 / 올해의 모험왕 / 여행 상상력 풍부상 / 안전체크단, 4가지 이벤트를 만나보는 페이지예요.",
-  },
-  shop: {
-    title: "마일리지 상점",
-    desc: "아싸게임과 활동으로 모은 마일리지로 아이템과 혜택을 교환하는 상점이에요.",
-  },
 };
 
 export default async function ComingSoonPage({

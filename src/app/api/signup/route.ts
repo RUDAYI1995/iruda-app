@@ -7,6 +7,7 @@ const signupSchema = z.object({
   name: z.string().min(1, "이름을 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   password: z.string().min(8, "비밀번호는 8자 이상이어야 해요"),
+  gender: z.enum(["MALE", "FEMALE"], { message: "성별을 선택해주세요" }),
 });
 
 export async function POST(request: Request) {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, gender } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.create({
-    data: { name, email, passwordHash },
+    data: { name, email, passwordHash, gender },
   });
 
   return NextResponse.json({ ok: true });

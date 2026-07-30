@@ -7,6 +7,7 @@ import { FontToggle } from "@/components/FontToggle";
 import { BackgroundMusic } from "@/components/BackgroundMusic";
 import { RouteFontScale } from "@/components/RouteFontScale";
 import { AiRudaWidget } from "@/components/AiRudaWidget";
+import { LevelBadge } from "@/components/LevelBadge";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default function RootLayout({
         <BackgroundMusic />
         <RouteFontScale />
         <AiRudaWidget />
+        <LevelBadge />
       </body>
     </html>
   );

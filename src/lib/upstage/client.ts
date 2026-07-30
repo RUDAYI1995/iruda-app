@@ -36,6 +36,37 @@ export async function chatComplete(
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
+type VisionContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+// 이미지(표정 사진 등)를 함께 보내는 멀티모달 채팅 — solar-pro2는 vision 입력을 지원함
+export async function chatCompleteVision(
+  messages: { role: "system" | "user" | "assistant"; content: string | VisionContentPart[] }[]
+): Promise<string> {
+  const apiKey = requireApiKey();
+
+  const res = await fetch(`${BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "solar-pro2",
+      messages,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Upstage Vision API 오류 (${res.status}): ${text}`);
+  }
+
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 export async function embedText(input: string | string[]): Promise<number[][]> {
   const apiKey = requireApiKey();
 

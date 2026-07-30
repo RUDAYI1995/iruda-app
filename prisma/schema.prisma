@@ -13,6 +13,11 @@ enum Role {
   BOTH
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 enum BroadCategory {
   CONFORMIST // 동조형
   SMALL_TALK // 스몰톡형
@@ -54,6 +59,9 @@ model User {
   passwordHash String
   name         String
   role         Role     @default(TRAVELER)
+  gender       Gender?
+  exp          Float    @default(0)
+  mileage      Int      @default(0)
   phoneVerified Boolean @default(false)
   isOperator    Boolean  @default(false)
   createdAt    DateTime @default(now())
@@ -79,6 +87,50 @@ model User {
   createdGroupChats   GroupChat[]           @relation("GroupChatCreator")
   createdCheckpoints  QuestCheckpoint[]
   checkpointVerifications QuestCheckpointVerification[]
+  inventoryItems      InventoryItem[]
+}
+
+// 해외 교통정보 추천을 조회할 때 같은 날짜/도시로 떠나는 다른 유저를 찾기 위한 기록
+model TransitPlan {
+  id         String   @id @default(cuid())
+  userId     String
+  city       String
+  hotel      String
+  travelDate String // "YYYY-MM-DD"
+  travelTime String // "HH:mm"
+  createdAt  DateTime @default(now())
+}
+
+// 실시간 여행게임 대전의 승리 기록 — 이벤트 랭킹(예: 최고의 연극상) 집계와 EXP/마일리지 지급 이력에 사용
+model GameWinLog {
+  id        String   @id @default(cuid())
+  userId    String
+  gameType  String // 예: "FACE_OFF"
+  createdAt DateTime @default(now())
+}
+
+// 이벤트 랭킹보드에서 부정행위가 적발된 유저를 제외 처리 — eventKey별로 제외
+model EventDisqualification {
+  id          String   @id @default(cuid())
+  eventKey    String
+  userId      String
+  reason      String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@unique([eventKey, userId])
+}
+
+// 상점 아이템 카탈로그는 코드(src/lib/shopItems.ts)에 정적으로 정의 — itemId로 참조만 함
+model InventoryItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  itemId    String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId])
 }
 
 model PersonalityProfile {
@@ -382,6 +434,7 @@ model QuestCheckpoint {
   lat          Float
   lng          Float
   radiusMeters Int      @default(300)
+  isOverseas   Boolean  @default(false)
   createdById  String
   createdBy    User     @relation(fields: [createdById], references: [id])
   createdAt    DateTime @default(now())
