@@ -3,7 +3,7 @@ export function LudaWorldLogo() {
     <div className="relative shrink-0" style={{ width: 100, height: 28 }}>
       <div
         className="pointer-events-none absolute top-0 select-none whitespace-nowrap"
-        style={{ left: -48 }}
+        style={{ left: 0 }}
       >
         <span className="absolute left-0 top-[20px] text-4xl font-extrabold tracking-tight text-sky-100 dark:text-sky-950">
           루다월드

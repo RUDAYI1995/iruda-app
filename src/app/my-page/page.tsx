@@ -2,6 +2,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { LevelPanel } from "@/components/LevelPanel";
+import { PartyPanel } from "@/components/PartyPanel";
+import { CarePlanPanel } from "@/components/CarePlanPanel";
 
 export default async function MyPageIntroPage() {
   const session = await auth();
@@ -43,6 +45,8 @@ export default async function MyPageIntroPage() {
       {session?.user && (
         <div className="grid gap-4">
           <LevelPanel />
+          <PartyPanel />
+          <CarePlanPanel />
         </div>
       )}
 

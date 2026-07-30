@@ -23,10 +23,10 @@ export function PromoTravelBanner({
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-1.5">
-        <span className="w-fit rounded-full bg-rose-500 px-1.5 py-0.5 text-[8px] font-bold text-white">
+        <span className="w-fit rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
           여행특가
         </span>
-        <span className="line-clamp-1 text-[9px] font-semibold leading-tight text-white drop-shadow">
+        <span className="line-clamp-2 text-[12px] font-bold leading-tight text-white drop-shadow">
           {title}
         </span>
       </div>

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { JoinButton } from "./join-button";
 import { Icebreaker } from "./icebreaker";
 import { StartChatButton } from "@/components/StartChatButton";
+import { UserActionMenu } from "@/components/UserActionMenu";
 
 export default async function MeetupDetailPage({
   params,
@@ -60,7 +61,11 @@ export default async function MeetupDetailPage({
                   key={m.id}
                   className="flex items-center justify-between rounded-xl bg-white px-4 py-2 text-sm dark:bg-zinc-950"
                 >
-                  <span className="text-zinc-800 dark:text-zinc-200">{m.user.name}</span>
+                  <UserActionMenu
+                    userId={m.userId}
+                    name={m.user.name}
+                    className="text-zinc-800 hover:underline dark:text-zinc-200"
+                  />
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       궁합 {Math.round(m.matchScore)}점

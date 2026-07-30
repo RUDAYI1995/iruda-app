@@ -88,6 +88,113 @@ model User {
   createdCheckpoints  QuestCheckpoint[]
   checkpointVerifications QuestCheckpointVerification[]
   inventoryItems      InventoryItem[]
+
+  partiesLed          Party[]        @relation("PartyLeader")
+  partyMembership     PartyMember?
+  sentPartyInvites     PartyInvite[] @relation("PartyInviteFrom")
+  receivedPartyInvites PartyInvite[] @relation("PartyInviteTo")
+  friendsOf           Friendship[]  @relation("FriendshipUser")
+  friendedBy          Friendship[]  @relation("FriendshipFriend")
+  pushSubscriptions   PushSubscription[]
+  carePlans           CarePlan[]
+  scheduledNotificationsReceived ScheduledNotification[] @relation("ScheduledNotificationRecipient")
+  scheduledNotificationsCreated  ScheduledNotification[] @relation("ScheduledNotificationCreator")
+}
+
+// 루다알림제 — 지정한 시각에 발송되는 예약 알림. 파티장이 특정 파티원에게 보내는 알림과,
+// 누구나(파티 소속 여부 무관) 스스로 설정하는 개인 알림 둘 다 이 모델을 씀.
+model ScheduledNotification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("ScheduledNotificationRecipient", fields: [userId], references: [id])
+  createdById String
+  createdBy   User     @relation("ScheduledNotificationCreator", fields: [createdById], references: [id])
+  title       String
+  body        String
+  sendAt      DateTime
+  sent        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// 소심케어제 — 유저가 고민과 케어 종료일을 지정하면 AI루다가 단계별 케어 계획을 만들고,
+// 종료일까지 하루 3번(cron) 알림으로 그날의 케어 단계를 보내줌.
+model CarePlan {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  topic        String // heart / travel / relationship / courage
+  concern      String // 유저가 적은 고민 내용
+  untilDate    String // "YYYY-MM-DD" — 케어 필요 날짜(종료일)
+  steps        Json // AI가 생성한 단계별 케어 문구 배열 (하루 1단계)
+  currentStep  Int      @default(0)
+  sentToday    Int      @default(0)
+  lastSentDate String? // "YYYY-MM-DD" — 마지막으로 알림을 보낸 날짜(하루 3회 카운트 리셋 기준)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+// 루다알림제 — 브라우저 Web Push 구독 정보. 기기(엔드포인트)별로 하나씩 저장됨.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
+// 루다월드 전역에서 통하는 파티 시스템 — 정모/일정등록 등 어디서든 같은 파티 개념을 씀.
+// 한 사람은 동시에 하나의 파티에만 속함(PartyMember.userId가 @unique).
+model Party {
+  id          String    @id @default(cuid())
+  leaderId    String
+  leader      User      @relation("PartyLeader", fields: [leaderId], references: [id])
+  createdAt   DateTime  @default(now())
+
+  // 파티장이 채워두는 간단한 여행 일정표 — "여행준비 알림 보내기"가 이걸 참고해서 요약함
+  destination String?
+  departureAt DateTime?
+  notes       String?
+
+  members  PartyMember[]
+  invites  PartyInvite[]
+}
+
+model PartyMember {
+  id       String   @id @default(cuid())
+  partyId  String
+  party    Party    @relation(fields: [partyId], references: [id])
+  userId   String   @unique
+  user     User     @relation(fields: [userId], references: [id])
+  joinedAt DateTime @default(now())
+}
+
+// 파티장이 비파티원인 특정 유저에게 보내는 파티 제안. 대상이 수락/거절할 때까지 PENDING.
+model PartyInvite {
+  id         String   @id @default(cuid())
+  partyId    String
+  party      Party    @relation(fields: [partyId], references: [id])
+  fromUserId String
+  fromUser   User     @relation("PartyInviteFrom", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User     @relation("PartyInviteTo", fields: [toUserId], references: [id])
+  status     String   @default("PENDING") // PENDING / ACCEPTED / DECLINED
+  createdAt  DateTime @default(now())
+
+  @@unique([partyId, toUserId])
+}
+
+// 친구 추가 — 즉시 성립(양방향으로 두 행 생성)
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("FriendshipUser", fields: [userId], references: [id])
+  friendId  String
+  friend    User     @relation("FriendshipFriend", fields: [friendId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
 }
 
 // 해외 교통정보 추천을 조회할 때 같은 날짜/도시로 떠나는 다른 유저를 찾기 위한 기록

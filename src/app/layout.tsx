@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -8,6 +9,7 @@ import { BackgroundMusic } from "@/components/BackgroundMusic";
 import { RouteFontScale } from "@/components/RouteFontScale";
 import { AiRudaWidget } from "@/components/AiRudaWidget";
 import { LevelBadge } from "@/components/LevelBadge";
+import { LudiaLoadingScreen } from "@/components/LudiaLoadingScreen";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +47,9 @@ export default function RootLayout({
         <RouteFontScale />
         <AiRudaWidget />
         <LevelBadge />
+        <Suspense fallback={null}>
+          <LudiaLoadingScreen />
+        </Suspense>
       </body>
     </html>
   );

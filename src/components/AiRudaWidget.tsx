@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LudaAlertButton } from "@/components/LudaAlertButton";
 
 interface ChatEntry {
   role: "user" | "ai";
@@ -14,6 +15,7 @@ export function AiRudaWidget() {
   const [history, setHistory] = useState<ChatEntry[]>([
     { role: "ai", text: "닝겐, 뭘 도와줄까냥? 🐾" },
   ]);
+  const [extraOpen, setExtraOpen] = useState(false);
 
   async function sendMessage() {
     const text = input.trim();
@@ -100,6 +102,20 @@ export function AiRudaWidget() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ai-ruda.png" alt="AI루다" className="h-full w-full object-cover object-top" />
       </button>
+
+      <div className="mt-2 flex flex-col items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setExtraOpen((v) => !v)}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-indigo-300 bg-white text-sm font-bold text-indigo-500 shadow transition-transform hover:scale-110 dark:border-indigo-800 dark:bg-zinc-950 dark:text-indigo-300"
+          aria-expanded={extraOpen}
+          aria-label="루다알림제 더보기"
+        >
+          +
+        </button>
+
+        {extraOpen && <LudaAlertButton />}
+      </div>
     </div>
   );
 }

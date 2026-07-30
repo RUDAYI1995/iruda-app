@@ -269,9 +269,24 @@ function StatusBadge({ status }: { status: Feature["status"] }) {
   );
 }
 
-const SEARCH_ITEMS = FEATURE_GROUPS.flatMap((g) =>
-  g.items.map((f) => ({ title: f.title, href: f.href }))
-);
+const HOME_ONLY_SEARCH_ITEMS = [
+  { title: "여행 가이드북", elementId: "feature-guidebook" },
+  { title: "동물동행제", elementId: "feature-animal-companion" },
+  { title: "오늘 컨디션", elementId: "feature-mood" },
+  { title: "여행지 날씨", elementId: "feature-weather" },
+  { title: "소심케어제", elementId: "feature-shy-care" },
+  { title: "루다리아", elementId: "feature-ludaria" },
+  { title: "아싸세상", elementId: "feature-assa-world" },
+  { title: "아싸던전", elementId: "feature-assa-dungeon" },
+  { title: "쓰담쓰담", elementId: "feature-pet-petting" },
+  { title: "네이노옴", elementId: "feature-na-enom" },
+  { title: "위대한 모험", elementId: "feature-online-travel" },
+];
+const SEARCH_ITEMS = [
+  ...FEATURE_GROUPS.flatMap((g) => g.items.map((f) => ({ title: f.title, href: f.href }))),
+  { title: "루다피아", href: "/ludapia" },
+  ...HOME_ONLY_SEARCH_ITEMS,
+];
 const HOURGLASS_CATEGORIES = FEATURE_GROUPS.map((g) => ({
   slug: g.slug,
   label: g.category,
@@ -302,10 +317,10 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
-      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 overflow-x-auto px-6 py-8">
+      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 overflow-x-auto px-6 pb-0 pt-8">
         <div className="flex flex-wrap items-start gap-4">
           <LudaWorldLogo />
-          <div className="flex flex-col gap-1 pt-1.5">
+          <div className="ml-8 flex flex-col gap-1 pt-1.5">
             <div className="w-[180px]">
               <SiteSearchBar items={SEARCH_ITEMS} />
             </div>
@@ -314,23 +329,23 @@ export default async function Home() {
           <div className="flex flex-col gap-2">
             <div className="flex gap-4">
               <div className="flex flex-col gap-2">
-                <TravelGuidebookButton />
-                <AnimalCompanionButton />
+                <div id="feature-guidebook"><TravelGuidebookButton /></div>
+                <div id="feature-animal-companion"><AnimalCompanionButton /></div>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                  <TodayMoodButton />
-                  <DestinationWeatherButton />
-                  <ShyCareButton />
-                  <LudariaButton />
-                  <AssaWorldButton />
-                  <AssaDungeonButton />
+                  <div id="feature-mood"><TodayMoodButton /></div>
+                  <div id="feature-weather"><DestinationWeatherButton /></div>
+                  <div id="feature-shy-care"><ShyCareButton /></div>
+                  <div id="feature-ludaria"><LudariaButton /></div>
+                  <div id="feature-assa-world"><AssaWorldButton /></div>
+                  <div id="feature-assa-dungeon"><AssaDungeonButton /></div>
                 </div>
                 <div className="flex gap-2">
-                  <PetPettingButton />
-                  <NaEnomButton />
-                  <OnlineTravelButton />
-                  <LudapiaButton />
+                  <div id="feature-pet-petting"><PetPettingButton /></div>
+                  <div id="feature-na-enom"><NaEnomButton /></div>
+                  <div id="feature-online-travel"><OnlineTravelButton /></div>
+                  <div id="feature-ludapia"><LudapiaButton /></div>
                 </div>
               </div>
             </div>
@@ -369,6 +384,12 @@ export default async function Home() {
             </div>
           </div>
           <nav className="ml-auto flex shrink-0 items-center gap-4 whitespace-nowrap pt-1.5 text-sm font-medium">
+            <Link
+              href="/my-page"
+              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              마이페이지
+            </Link>
             <Link
               href="/board"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
@@ -440,69 +461,11 @@ export default async function Home() {
         </div>
       </header>
 
-      <section className="relative flex flex-col items-center gap-6 overflow-hidden px-6 py-32 text-center sm:py-44">
+      <section className="relative w-full overflow-hidden">
         <HeroLandscape condition={heroCondition} />
-        <div className="absolute inset-0 z-[1] bg-gradient-to-b from-white/0 via-white/10 to-zinc-50 dark:to-black" />
-
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          <div className="mb-2 flex flex-col items-center">
-            {/* 구름처럼 뭉글뭉글한 하늘색 말풍선 */}
-            <div className="relative mb-4">
-              <div className="relative rounded-[2rem] bg-sky-100 px-5 py-3 text-center text-sm font-bold leading-snug text-sky-950 shadow-xl">
-                당신을 위해 만들었어
-                <br />
-                좋은 말 할 때 일루 와
-              </div>
-              {/* 뭉게뭉게 구름 테두리 장식 */}
-              <div className="absolute -left-2 top-1 h-6 w-6 rounded-full bg-sky-100 shadow-md" />
-              <div className="absolute -left-4 top-4 h-5 w-5 rounded-full bg-sky-100 shadow-md" />
-              <div className="absolute -right-2 top-0 h-7 w-7 rounded-full bg-sky-100 shadow-md" />
-              <div className="absolute -right-3 bottom-1 h-5 w-5 rounded-full bg-sky-100 shadow-md" />
-              <div className="absolute -bottom-2 left-6 h-4 w-4 rounded-full bg-sky-100 shadow-md" />
-              {/* 구름 꼬리 (말풍선 -> 캐릭터) */}
-              <div className="absolute left-1/2 top-full mt-1 h-3 w-3 -translate-x-1/2 rounded-full bg-sky-100 shadow-md" />
-              <div className="absolute left-1/2 top-full mt-5 h-2 w-2 -translate-x-1/2 rounded-full bg-sky-100 shadow-md" />
-            </div>
-
-            {/* 버럭 화내며 할퀴려는 고양이 */}
-            <div className="relative">
-              {/* 할퀸 자국 */}
-              <div className="absolute -right-3 top-2 h-16 w-16 rotate-12 opacity-80">
-                <div className="absolute left-2 top-0 h-full w-0.5 -rotate-12 bg-white/90" />
-                <div className="absolute left-5 top-0 h-full w-0.5 -rotate-12 bg-white/90" />
-                <div className="absolute left-8 top-0 h-full w-0.5 -rotate-12 bg-white/90" />
-              </div>
-              <div className="animate-angry-shake relative flex h-32 w-32 items-center justify-center rounded-full bg-white text-7xl shadow-2xl sm:h-36 sm:w-36">
-                😾
-                <span className="absolute -right-2 -top-2 text-3xl">💢</span>
-                <span className="absolute -left-3 bottom-0 text-3xl">🐾</span>
-              </div>
-            </div>
-          </div>
-
-          <p className="max-w-xl rounded-2xl bg-white/40 px-4 py-2 text-lg leading-8 text-zinc-800 backdrop-blur-sm">
-            낯선 사람과의 만남이 부담스러워도 괜찮아요. 성향이 맞는 소규모
-            그룹, 언어가 통하는 데이가이드, 그리고 책임지고 안전을 지켜주는
-            원격 여행 안전 서비스까지 — 여행은 훨씬 편안해져요.
-          </p>
-          <div className="flex gap-4">
-            <Link
-              href={session?.user ? "/dashboard" : "/signup"}
-              className="rounded-full bg-white px-6 py-3 text-base font-medium text-sky-900 transition-colors hover:bg-sky-50"
-            >
-              지금 시작하기
-            </Link>
-            <Link
-              href="/guides"
-              className="rounded-full border border-white/60 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"
-            >
-              가이드 둘러보기
-            </Link>
-          </div>
-        </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-6xl flex-col items-stretch gap-8 px-6 py-20 lg:flex-row">
+      <section className="mx-auto flex w-full max-w-6xl flex-col items-stretch gap-8 px-6 pb-20 pt-0 lg:flex-row">
         <AdventureBanner />
 
         <div

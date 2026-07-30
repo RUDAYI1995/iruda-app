@@ -2,7 +2,7 @@ import type { SimpleCondition } from "@/lib/weather/openMeteo";
 
 export function HeroLandscape({ condition: _condition = "clear" }: { condition?: SimpleCondition }) {
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden">
+    <div className="w-full" style={{ aspectRatio: "1672 / 941" }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/hero-world-panorama.png"

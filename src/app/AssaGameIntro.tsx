@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
+import { DiceFace } from "@/components/DiceFace";
 
 function useRefreshTick(intervalMs: number) {
   const [tick, setTick] = useState(0);
@@ -30,15 +31,16 @@ interface Tile {
   price?: number;
 }
 
-const CORNER_LABELS = ["출발해라냥", "마음 충전", "심표 공간", "응원 공간"];
+// public/board-catworld.png(고양이판) 실제 그림에 그려진 칸 이름/가격 그대로 사용
+const CORNER_LABELS = ["출발해라냥", "심콩 방문", "꿈의 도서관", "응원 광장"];
 
 const PROPERTY_NAMES = [
-  "꿈의 도서관",
   "고양이 카페",
   "작은 공방",
   "고요한 산책길",
+  "루다 온천",
   "나눔 마켓",
-  "별빛 캠핑장",
+  "별빛 캠프장",
   "숲속 오두막",
   "아기자기 공방",
   "음악이 흐르는 길",
@@ -52,7 +54,7 @@ const PROPERTY_NAMES = [
 ];
 
 const PROPERTY_PRICES = [
-  200, 220, 240, 260, 280, 300, 300, 280, 260, 240, 320, 340, 360, 380, 100, 120,
+  220, 240, 260, 300, 280, 280, 280, 280, 260, 240, 320, 340, 360, 360, 100, 120,
 ];
 
 
@@ -226,6 +228,21 @@ export function AssaGameIntro() {
   const [myPlayer, setMyPlayer] = useState<number | null>(null);
   const [state, setState] = useState<GameState>(() => initialGameState(shuffledOrder()));
   const [sceneTile, setSceneTile] = useState<number | null>(null);
+  interface RecruitPost {
+    meetupId: string;
+    title: string;
+    body: string;
+    location: string;
+    photoUrl: string;
+  }
+  const [recruitPosts, setRecruitPosts] = useState<RecruitPost[] | null>(null);
+  const [recruitLoading, setRecruitLoading] = useState(false);
+  const [recruitJoinMessages, setRecruitJoinMessages] = useState<Record<string, string>>({});
+  const [hostTileIdx, setHostTileIdx] = useState<number | null>(null);
+  const [hostTitle, setHostTitle] = useState("");
+  const [hostBody, setHostBody] = useState("");
+  const [hostSubmitting, setHostSubmitting] = useState(false);
+  const [hostResultMessage, setHostResultMessage] = useState<string | null>(null);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [testLoggingIn, setTestLoggingIn] = useState(false);
   const [rolling, setRolling] = useState(false);
@@ -236,8 +253,18 @@ export function AssaGameIntro() {
   const [startFlying, setStartFlying] = useState(false);
   const [startEntered, setStartEntered] = useState(false);
   const [customNickname, setCustomNickname] = useState("");
+  const [nicknamePrefilled, setNicknamePrefilled] = useState(false);
   const [drawingTurn, setDrawingTurn] = useState(false);
   const refreshTick = useRefreshTick(5000);
+
+  // 이미 닉네임을 정한 적 있는 유저는 매번 다시 안 적어도 그 닉네임이 그대로 이어지도록,
+  // 캐릭터 선택 화면 입력칸을 세션에 저장된 이름으로 미리 채워둠.
+  useEffect(() => {
+    if (!nicknamePrefilled && session?.user?.name) {
+      setCustomNickname(session.user.name);
+      setNicknamePrefilled(true);
+    }
+  }, [session?.user?.name, nicknamePrefilled]);
 
   const { players, ownerOf, turnOrder, turnPos, lastDice, winner, log } = state;
   const currentPlayer = turnOrder[turnPos];
@@ -285,7 +312,7 @@ export function AssaGameIntro() {
 
   async function chooseCharacter(idx: number) {
     setMyPlayer(idx);
-    const nickname = customNickname.trim() || PLAYER_DEFS[idx].name;
+    const nickname = customNickname.trim() || session?.user?.name || PLAYER_DEFS[idx].name;
     if (session?.user) {
       try {
         await fetch("/api/profile/nickname", {
@@ -403,6 +430,68 @@ export function AssaGameIntro() {
     winner !== null
       ? players[winner].owned.reduce((sum, idx) => sum + (tiles[idx].price ?? 0), 0)
       : 0;
+
+  // "닝겐 날 간택하라냥!" — 지금 칸 테마에 맞는 정모 모집글 4개를 AI루다가 즉석에서 써서 별도 창으로 띄움
+  async function handleChooseMe(tileIdx: number) {
+    setSceneTile(null);
+    setRecruitLoading(true);
+    setRecruitJoinMessages({});
+    try {
+      const res = await fetch("/api/games/board/recruit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tileLabel: tiles[tileIdx].label }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRecruitPosts(data.posts);
+      }
+    } finally {
+      setRecruitLoading(false);
+    }
+  }
+
+  // "닝겐 날 따르라냥!" — 반대로 유저 자신이 이 칸 테마에 맞는 파티 모집글을 직접 써서 정모를 여는 창
+  function handleFollowMe(tileIdx: number) {
+    setSceneTile(null);
+    setHostTileIdx(tileIdx);
+    setHostTitle("");
+    setHostBody("");
+    setHostResultMessage(null);
+  }
+
+  async function handleSubmitHost() {
+    if (hostTileIdx === null || !hostTitle.trim() || !hostBody.trim()) return;
+    setHostSubmitting(true);
+    setHostResultMessage(null);
+    try {
+      const res = await fetch("/api/games/board/host", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tileLabel: tiles[hostTileIdx].label,
+          title: hostTitle,
+          body: hostBody,
+        }),
+      });
+      const data = await res.json();
+      setHostResultMessage(
+        res.ok ? "🎉 정모를 열었어요! 다른 여행자들이 참여할 수 있어요." : `❌ ${data.error}`
+      );
+    } finally {
+      setHostSubmitting(false);
+    }
+  }
+
+  async function handleJoinRecruit(meetupId: string) {
+    setRecruitJoinMessages((prev) => ({ ...prev, [meetupId]: "" }));
+    const res = await fetch(`/api/meetups/${meetupId}/join`, { method: "POST" });
+    const data = await res.json();
+    setRecruitJoinMessages((prev) => ({
+      ...prev,
+      [meetupId]: res.ok ? `🎉 참여 완료! (성향 궁합 ${data.matchScore}점)` : `❌ ${data.error}`,
+    }));
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -573,7 +662,7 @@ export function AssaGameIntro() {
           <div className="relative mx-auto w-full max-w-3xl" style={{ aspectRatio: "1 / 1" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/board-scenic.png"
+              src="/board-catworld.png"
               alt="아싸게임 보드"
               className="h-full w-full select-none object-contain"
               draggable={false}
@@ -638,8 +727,8 @@ export function AssaGameIntro() {
               );
             })}
 
-            {/* 원본 주사위 그림(그대로 복사해 둔 이미지)이 밖에서 맵 중앙으로 날아들어와 구름.
-                주사위 그림과 실제 숫자를 겹치지 않게 분리해서, 숫자는 주사위 위쪽에 별도 배지로 표시 */}
+            {/* 실제 굴린 값에 맞는 눈금을 그리는 주사위 — 밖에서 맵 중앙으로 날아들어와 구름.
+                (예전엔 눈 3개짜리 고정 그림을 써서 항상 3처럼 보이는 버그가 있었음) */}
             {rolling && (
               <div
                 className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 z-40"
@@ -654,8 +743,7 @@ export function AssaGameIntro() {
                 }}
               >
                 <div className={`h-full w-full drop-shadow-2xl ${diceSpinning ? "assa-dice-spin" : "assa-dice-land"}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/tokens/dice.png" alt="" className="h-full w-full" />
+                  <DiceFace value={diceFace ?? 1} className="h-full w-full" />
                 </div>
                 {!diceSpinning && diceFace !== null && (
                   <div
@@ -828,14 +916,15 @@ export function AssaGameIntro() {
                         <div className="mt-4 flex flex-col gap-2">
                           <button
                             type="button"
-                            onClick={() => setSceneTile(null)}
-                            className="rounded-2xl border-2 border-pink-300 bg-pink-50 px-4 py-3 text-sm font-bold text-pink-700 hover:bg-pink-100"
+                            disabled={recruitLoading}
+                            onClick={() => handleChooseMe(sceneTile)}
+                            className="rounded-2xl border-2 border-pink-300 bg-pink-50 px-4 py-3 text-sm font-bold text-pink-700 hover:bg-pink-100 disabled:opacity-50"
                           >
-                            닝겐 날 간택하라냥! 🐾
+                            {recruitLoading ? "AI루다가 모집글 쓰는 중..." : "닝겐 날 간택하라냥! 🐾"}
                           </button>
                           <button
                             type="button"
-                            onClick={() => setSceneTile(null)}
+                            onClick={() => handleFollowMe(sceneTile)}
                             className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-100"
                           >
                             닝겐 날 따르라냥! 🐾
@@ -853,6 +942,121 @@ export function AssaGameIntro() {
                     </>
                   );
                 })()}
+              </div>
+            </div>
+          )}
+
+          {/* "닝겐 날 간택하라냥!"을 누르면 뜨는 별도 창 — AI루다가 이 칸 테마에 맞게 쓴 정모 모집글 4개(실제 테마 사진 포함) + 각각 참여하기 */}
+          {recruitPosts && (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+              onClick={() => setRecruitPosts(null)}
+            >
+              <div
+                className="flex max-h-[85vh] w-full max-w-md flex-col overflow-y-auto rounded-3xl bg-white shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col gap-4 p-5">
+                  <p className="text-center text-sm font-bold text-pink-500">
+                    🐾 AI루다가 찾아온 정모 4개
+                  </p>
+                  {recruitPosts.map((post) => (
+                    <div
+                      key={post.meetupId}
+                      className="overflow-hidden rounded-2xl border border-zinc-200"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.photoUrl}
+                        alt={post.title}
+                        className="h-36 w-full object-cover"
+                      />
+                      <div className="p-4">
+                        <p className="mb-1 text-xs font-bold text-pink-500">📍 {post.location}</p>
+                        <p className="font-extrabold text-amber-900">{post.title}</p>
+                        <p className="mt-1 text-sm leading-6 text-zinc-700">{post.body}</p>
+                        <button
+                          type="button"
+                          onClick={() => handleJoinRecruit(post.meetupId)}
+                          className="mt-3 w-full rounded-xl bg-pink-500 px-4 py-2 text-sm font-bold text-white hover:bg-pink-600"
+                        >
+                          이 정모 참여하기
+                        </button>
+                        {recruitJoinMessages[post.meetupId] && (
+                          <p className="mt-2 text-center text-xs font-medium text-zinc-700">
+                            {recruitJoinMessages[post.meetupId]}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setRecruitPosts(null)}
+                    className="w-full rounded-full bg-zinc-900 px-6 py-2 text-sm font-bold text-white hover:bg-zinc-700"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* "닝겐 날 따르라냥!"을 누르면 뜨는 별도 창 — 유저가 직접 이 칸 테마에 맞는 파티 모집글을 써서 정모를 염 */}
+          {hostTileIdx !== null && (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+              onClick={() => setHostTileIdx(null)}
+            >
+              <div
+                className="flex w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={TILE_IMG(hostTileIdx)}
+                  alt={tiles[hostTileIdx].label}
+                  className="h-40 w-full object-cover"
+                />
+                <div className="flex flex-col gap-3 p-5">
+                  <p className="text-xs font-bold text-emerald-600">
+                    📍 {tiles[hostTileIdx].label} — 이 장소에 어울리는 정모를 직접 열어보세요!
+                  </p>
+                  <input
+                    value={hostTitle}
+                    onChange={(e) => setHostTitle(e.target.value)}
+                    placeholder={`예: ${tiles[hostTileIdx].label}에서 같이 놀 사람~`}
+                    className="rounded-xl border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    value={hostBody}
+                    onChange={(e) => setHostBody(e.target.value)}
+                    placeholder="어떤 분위기로 모일지 자유롭게 적어주세요"
+                    rows={4}
+                    className="rounded-xl border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    disabled={hostSubmitting || !hostTitle.trim() || !hostBody.trim()}
+                    onClick={handleSubmitHost}
+                    className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-600 disabled:opacity-50"
+                  >
+                    {hostSubmitting ? "여는 중..." : "이 내용으로 정모 열기"}
+                  </button>
+                  {hostResultMessage && (
+                    <p className="text-center text-sm font-medium text-zinc-700">
+                      {hostResultMessage}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setHostTileIdx(null)}
+                    className="rounded-full bg-zinc-900 px-6 py-2 text-sm font-bold text-white hover:bg-zinc-700"
+                  >
+                    닫기
+                  </button>
+                </div>
               </div>
             </div>
           )}

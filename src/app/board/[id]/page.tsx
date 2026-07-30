@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { StartChatButton } from "@/components/StartChatButton";
+import { UserActionMenu } from "@/components/UserActionMenu";
 import { CommentForm } from "./comment-form";
 
 export default async function PostDetailPage({
@@ -34,8 +35,13 @@ export default async function PostDetailPage({
         <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
           {post.title}
         </h1>
-        <p className="mb-6 text-xs text-zinc-500 dark:text-zinc-400">
-          {post.author.name} · {new Date(post.createdAt).toLocaleString("ko-KR")}
+        <p className="mb-6 flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <UserActionMenu
+            userId={post.authorId}
+            name={post.author.name}
+            className="font-medium text-zinc-700 hover:underline dark:text-zinc-300"
+          />
+          <span>· {new Date(post.createdAt).toLocaleString("ko-KR")}</span>
         </p>
 
         <div className="mb-6 rounded-2xl border border-zinc-200 bg-white p-5 text-sm leading-6 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
@@ -58,7 +64,7 @@ export default async function PostDetailPage({
               className="rounded-xl bg-white px-4 py-2 text-sm dark:bg-zinc-950"
             >
               <p className="mb-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                {c.author.name}
+                <UserActionMenu userId={c.authorId} name={c.author.name} />
               </p>
               <p className="text-zinc-800 dark:text-zinc-200">{c.body}</p>
             </div>

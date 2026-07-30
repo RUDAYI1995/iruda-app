@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/cron/shycare-notify", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/shycare-notify", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/shycare-notify", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/scheduled-notify", "schedule": "*/15 * * * *" }
+  ]
+}

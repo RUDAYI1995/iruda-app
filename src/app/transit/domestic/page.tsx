@@ -75,8 +75,12 @@ export default function DomesticTransitPage() {
         <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
           국내 실시간 교통정보
         </h1>
-        <p className="mb-8 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">
           정류소를 검색하면 버스별 실시간 도착 예정 시간을 확인할 수 있어요.
+        </p>
+        <p className="mb-8 text-xs text-amber-600 dark:text-amber-500">
+          ⚠️ 서울은 이 공공데이터(국토교통부 전국 버스정류소 정보) 대상 지역이 아니라서 지원되지
+          않아요. 부산·대전·수원 등 다른 도시로 검색해주세요.
         </p>
 
         <div className="mb-6 flex gap-2">

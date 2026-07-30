@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 const schema = z.object({
   name: z.string().min(1, "닉네임을 입력해주세요"),
@@ -19,6 +20,7 @@ type FormValues = z.infer<typeof schema>;
 export default function SignupPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [testLoggingIn, setTestLoggingIn] = useState(false);
   const {
     register,
     handleSubmit,
@@ -40,6 +42,24 @@ export default function SignupPage() {
     }
 
     router.push("/login");
+  };
+
+  const handleTestLogin = async () => {
+    setServerError(null);
+    setTestLoggingIn(true);
+    const res = await signIn("credentials", {
+      testLogin: "1",
+      redirect: false,
+    });
+    setTestLoggingIn(false);
+
+    if (res?.error) {
+      setServerError("테스트버전 로그인에 실패했어요");
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   };
 
   return (
@@ -121,6 +141,21 @@ export default function SignupPage() {
             {isSubmitting ? "가입 중..." : "가입하기"}
           </button>
         </form>
+
+        <div className="mt-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          <span className="text-xs text-zinc-400">또는</span>
+          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleTestLogin}
+          disabled={testLoggingIn}
+          className="mt-4 w-full rounded-full border border-amber-300 bg-amber-50 px-6 py-2.5 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/50"
+        >
+          {testLoggingIn ? "테스트 계정으로 접속 중..." : "🧪 테스트버전 로그인 (회원가입 없이 체험하기)"}
+        </button>
 
         <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
           이미 계정이 있으신가요?{" "}
