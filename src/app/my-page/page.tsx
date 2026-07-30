@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { LevelPanel } from "@/components/LevelPanel";
 
 export default async function MyPageIntroPage() {
   const session = await auth();
@@ -37,14 +38,13 @@ export default async function MyPageIntroPage() {
             참여한 정모와 가이드 예약을 한눈에 모아봐요.
           </p>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 text-center dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="mb-2 text-3xl">🏅</div>
-          <h3 className="font-bold text-zinc-900 dark:text-zinc-50">레벨·마일리지</h3>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            아싸게임과 활동으로 모은 마일리지를 확인해요.
-          </p>
-        </div>
       </div>
+
+      {session?.user && (
+        <div className="grid gap-4">
+          <LevelPanel />
+        </div>
+      )}
 
       <Link
         href="/quest"

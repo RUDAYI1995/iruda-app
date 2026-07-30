@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { haversineDistanceMeters } from "@/lib/geo";
+import { addExp, EXP_SOURCES } from "@/lib/leveling";
+import { addMileage, MILEAGE_SOURCES } from "@/lib/currency";
 
 export async function POST(
   request: Request,
@@ -61,10 +63,20 @@ export async function POST(
     update: { photoDataUrl, lat, lng, distanceMeters, verified },
   });
 
-  if (verified) {
+  if (verified && !existing?.verified) {
     await prisma.questCompletion.create({
       data: { userId: session.user.id, questType: "GPS_CHECKPOINT" },
     });
+    await addExp(
+      session.user.id,
+      EXP_SOURCES.MISSION +
+        (checkpoint.isOverseas ? EXP_SOURCES.VISIT_OVERSEAS : EXP_SOURCES.VISIT_DOMESTIC)
+    );
+    await addMileage(
+      session.user.id,
+      MILEAGE_SOURCES.MISSION +
+        (checkpoint.isOverseas ? MILEAGE_SOURCES.VISIT_OVERSEAS : MILEAGE_SOURCES.VISIT_DOMESTIC)
+    );
   }
 
   return NextResponse.json({

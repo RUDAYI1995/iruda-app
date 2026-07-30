@@ -707,17 +707,25 @@ export function initLudapiaGame() {
   }
 
   let gameEnded = false;
+  function rewardHumanIfWinner(humanWon: boolean) {
+    if (!humanWon) return;
+    fetch("/api/ludapia/win", { method: "POST" }).catch(() => {});
+  }
   function checkWin() {
+    if (gameEnded) return;
     const alive = players.filter((p) => p.alive);
     const mafiaAlive = alive.filter((p) => p.role === "mafia").length;
     const others = alive.length - mafiaAlive;
     const phaseEl = document.getElementById("phase");
+    const human = players.find((p) => p.isHuman);
     if (mafiaAlive === 0) {
       if (phaseEl) phaseEl.textContent = "🎉 시민 승리!";
       gameEnded = true;
+      rewardHumanIfWinner(human?.role !== "mafia");
     } else if (mafiaAlive >= others) {
       if (phaseEl) phaseEl.textContent = "💀 마피아 승리!";
       gameEnded = true;
+      rewardHumanIfWinner(human?.role === "mafia");
     }
   }
 

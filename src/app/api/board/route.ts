@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { addExp, EXP_SOURCES } from "@/lib/leveling";
+import { addMileage, MILEAGE_SOURCES } from "@/lib/currency";
 
 const schema = z.object({
   title: z.string().min(1),
@@ -23,6 +25,9 @@ export async function POST(request: Request) {
   const post = await prisma.post.create({
     data: { ...parsed.data, authorId: session.user.id },
   });
+
+  await addExp(session.user.id, EXP_SOURCES.BOARD_POST);
+  await addMileage(session.user.id, MILEAGE_SOURCES.BOARD_POST);
 
   return NextResponse.json({ ok: true, id: post.id });
 }

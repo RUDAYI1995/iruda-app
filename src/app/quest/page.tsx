@@ -8,6 +8,7 @@ interface Checkpoint {
   name: string;
   description: string | null;
   radiusMeters: number;
+  isOverseas: boolean;
   createdByName: string;
   verifiedByMe: boolean;
 }
@@ -54,6 +55,7 @@ export default function QuestPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [locationSet, setLocationSet] = useState<{ lat: number; lng: number } | null>(null);
+  const [isOverseas, setIsOverseas] = useState(false);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
@@ -85,7 +87,13 @@ export default function QuestPage() {
     const res = await fetch("/api/quest/checkpoints", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, lat: locationSet.lat, lng: locationSet.lng }),
+      body: JSON.stringify({
+        name,
+        description,
+        lat: locationSet.lat,
+        lng: locationSet.lng,
+        isOverseas,
+      }),
     });
     const data = await res.json();
     setCreating(false);
@@ -96,6 +104,7 @@ export default function QuestPage() {
     setName("");
     setDescription("");
     setLocationSet(null);
+    setIsOverseas(false);
     setMessage("✅ 여행 코스 지점이 추가됐어요!");
     loadCheckpoints();
   }
@@ -177,6 +186,14 @@ export default function QuestPage() {
           >
             📍 {locationSet ? "현재 위치 설정됨" : "현재 위치로 설정"}
           </button>
+          <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <input
+              type="checkbox"
+              checked={isOverseas}
+              onChange={(e) => setIsOverseas(e.target.checked)}
+            />
+            해외 지점이에요 (해외 방문 EXP 지급)
+          </label>
           <button
             type="button"
             onClick={handleCreate}
@@ -208,7 +225,8 @@ export default function QuestPage() {
             >
               <div>
                 <p className="font-bold text-zinc-900 dark:text-zinc-50">
-                  {cp.name} {cp.verifiedByMe && <span className="ml-1 text-green-600">✅</span>}
+                  {cp.isOverseas ? "🌏" : "🇰🇷"} {cp.name}{" "}
+                  {cp.verifiedByMe && <span className="ml-1 text-green-600">✅</span>}
                 </p>
                 {cp.description && (
                   <p className="text-sm text-zinc-500">{cp.description}</p>

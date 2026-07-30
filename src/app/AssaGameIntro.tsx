@@ -675,7 +675,7 @@ export function AssaGameIntro() {
           {/* 하단 버튼 (이미지 밖 추가 기능) */}
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/coming-soon/shop"
+              href="/shop"
               className="rounded-full bg-amber-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-700"
             >
               상점 가기

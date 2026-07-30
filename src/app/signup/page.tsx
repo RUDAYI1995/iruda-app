@@ -11,6 +11,7 @@ const schema = z.object({
   name: z.string().min(1, "닉네임을 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   password: z.string().min(8, "비밀번호는 8자 이상이어야 해요"),
+  gender: z.enum(["MALE", "FEMALE"], { message: "성별을 선택해주세요" }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -86,6 +87,25 @@ export default function SignupPage() {
             />
             {errors.password && (
               <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              성별
+            </label>
+            <div className="flex gap-4 text-sm text-zinc-700 dark:text-zinc-300">
+              <label className="flex items-center gap-1.5">
+                <input type="radio" value="MALE" {...register("gender")} />
+                남성
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="radio" value="FEMALE" {...register("gender")} />
+                여성
+              </label>
+            </div>
+            {errors.gender && (
+              <p className="mt-1 text-xs text-red-500">{errors.gender.message}</p>
             )}
           </div>
 
