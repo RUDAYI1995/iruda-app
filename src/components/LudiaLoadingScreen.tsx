@@ -52,9 +52,14 @@ export function LudiaLoadingScreen() {
       window.addEventListener("load", finishLoading);
     }
 
+    // 안전장치: 이미지 하나가 계속 안 뜨는 등 'load' 이벤트가 영영 안 오는 경우에도
+    // 로딩화면이 화면을 영구적으로 가리며 앱을 못 쓰게 되는 일이 없도록 강제 종료
+    const safetyTimer = setTimeout(finishLoading, 4000);
+
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
       window.removeEventListener("load", finishLoading);
+      clearTimeout(safetyTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
