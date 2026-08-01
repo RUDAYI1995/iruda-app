@@ -11,6 +11,7 @@ import { AiRudaWidget } from "@/components/AiRudaWidget";
 import { LevelBadge } from "@/components/LevelBadge";
 import { LudiaLoadingScreen } from "@/components/LudiaLoadingScreen";
 import { PartyInviteModal } from "@/components/PartyInviteModal";
+import { MobileBackButton } from "@/components/MobileBackButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
         </Script>
         <Providers>
           {children}
+          <MobileBackButton />
           <FontToggle />
           <BackgroundMusic />
           <RouteFontScale />

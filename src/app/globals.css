@@ -15,6 +15,12 @@
 
 html {
   font-size: 114%;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 html[data-font="original"] {

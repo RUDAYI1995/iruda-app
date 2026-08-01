@@ -319,17 +319,17 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
-      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 overflow-x-auto px-6 pb-0 pt-8">
-        <div className="flex flex-wrap items-start gap-4">
+      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 pb-0 pt-8">
+        <div className="flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:flex-wrap md:overflow-x-auto">
           <LudaWorldLogo />
-          <div className="ml-8 flex flex-col gap-1 pt-1.5">
+          <div className="flex min-w-0 flex-col gap-1 pt-1.5 md:ml-8">
             <div className="w-[180px]">
               <SiteSearchBar items={SEARCH_ITEMS} />
             </div>
             <PopularSearchTicker />
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-4">
+          <div className="flex min-w-0 w-full flex-col gap-2 md:w-auto">
+            <div className="w-full min-w-0 -mx-6 flex gap-4 overflow-x-auto px-6 md:mx-0 md:w-auto md:overflow-visible md:px-0">
               <div className="flex flex-col gap-2">
                 <div id="feature-guidebook"><TravelGuidebookButton /></div>
                 <div id="feature-animal-companion"><AnimalCompanionButton /></div>
@@ -352,32 +352,32 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              <div className="h-[64px] w-[140px]">
+            <div className="w-full min-w-0 -mx-6 flex gap-2 overflow-x-auto px-6 md:mx-0 md:w-auto md:overflow-visible md:px-0">
+              <div className="h-[64px] w-[140px] shrink-0">
                 <PromoTravelBanner />
               </div>
-              <div className="h-[64px] w-[140px]">
+              <div className="h-[64px] w-[140px] shrink-0">
                 <PromoTravelBanner
                   image="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80"
                   alt="스위스 융프라우 여행특가"
                   title="스위스 융프라우 · 지금 예약하면 특가"
                 />
               </div>
-              <div className="h-[64px] w-[140px]">
+              <div className="h-[64px] w-[140px] shrink-0">
                 <PromoTravelBanner
                   image="https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=800&q=80"
                   alt="일본 교토 여행특가"
                   title="일본 교토 · 지금 예약하면 특가"
                 />
               </div>
-              <div className="h-[64px] w-[140px]">
+              <div className="h-[64px] w-[140px] shrink-0">
                 <PromoTravelBanner
                   image="https://images.unsplash.com/photo-1573790387438-4da905039392?auto=format&fit=crop&w=800&q=80"
                   alt="인도네시아 발리 여행특가"
                   title="인도네시아 발리 · 지금 예약하면 특가"
                 />
               </div>
-              <div className="h-[64px] w-[140px]">
+              <div className="h-[64px] w-[140px] shrink-0">
                 <PromoTravelBanner
                   image="https://images.unsplash.com/photo-1507699622108-4be3abd695ad?auto=format&fit=crop&w=800&q=80"
                   alt="뉴질랜드 여행특가"
@@ -386,7 +386,7 @@ export default async function Home() {
               </div>
             </div>
           </div>
-          <nav className="ml-auto flex shrink-0 items-center gap-4 whitespace-nowrap pt-1.5 text-sm font-medium">
+          <nav className="-mx-6 flex w-full min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-6 pt-1.5 text-sm font-medium md:ml-auto md:w-auto md:overflow-visible md:px-0">
             <Link
               href="/my-page"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"

@@ -29,7 +29,7 @@ export function LevelBadge() {
   return (
     <Link
       href="/my-page"
-      className="fixed left-4 top-4 z-50 flex flex-col gap-1 rounded-xl border border-amber-300 bg-white/90 px-3 py-2 text-xs shadow-md backdrop-blur transition-transform hover:scale-105 dark:border-amber-700 dark:bg-zinc-900/90"
+      className="fixed left-4 top-4 z-50 hidden flex-col gap-1 rounded-xl border border-amber-300 bg-white/90 px-3 py-2 text-xs shadow-md backdrop-blur transition-transform hover:scale-105 dark:border-amber-700 dark:bg-zinc-900/90 md:flex"
       title="마이페이지에서 레벨 자세히 보기"
     >
       <span className="font-bold text-amber-800 dark:text-amber-300">
