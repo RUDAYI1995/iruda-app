@@ -811,19 +811,27 @@ export function AssaGameIntro() {
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={rollDice}
-              disabled={winner !== null || rolling}
-              className="relative rounded-full bg-green-600 px-8 py-3 text-base font-bold text-white shadow-md transition-transform hover:scale-105 disabled:opacity-40"
-            >
-              🎲 주사위 굴리기
-              {!rolling && lastDice !== null && (
-                <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-pink-500 text-xs font-extrabold text-white shadow">
-                  {lastDice}
-                </span>
-              )}
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={rollDice}
+                disabled={winner !== null || rolling}
+                className="relative rounded-full bg-green-600 px-8 py-3 text-base font-bold text-white shadow-md transition-transform hover:scale-105 disabled:opacity-40"
+              >
+                🎲 주사위 굴리기
+                {!rolling && lastDice !== null && (
+                  <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-pink-500 text-xs font-extrabold text-white shadow">
+                    {lastDice}
+                  </span>
+                )}
+              </button>
+              <Link
+                href="/home"
+                className="rounded-full bg-pink-600 px-8 py-3 text-base font-bold text-white shadow-md transition-transform hover:scale-105 hover:bg-pink-700"
+              >
+                🏠 건너뛰기 → 루다월드 홈으로
+              </Link>
+            </div>
 
             <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
               {PLAYER_DEFS.map((p, pi) => {
@@ -879,12 +887,6 @@ export function AssaGameIntro() {
             >
               🩷 응원하기
             </button>
-            <Link
-              href="/home"
-              className="text-sm text-zinc-500 underline hover:text-zinc-800"
-            >
-              건너뛰기 → 루다월드 홈으로
-            </Link>
           </div>
 
           {/* 말이 칸에 도착하면(자동) 또는 칸을 클릭하면, 그 칸을 확대한 큰 팝업 + 선택지 2칸이 뜸 */}
@@ -905,7 +907,7 @@ export function AssaGameIntro() {
                       <img
                         src={TILE_IMG(sceneTile)}
                         alt={tile.label}
-                        className="h-64 w-full object-cover"
+                        className="max-h-[60vh] w-full bg-zinc-100 object-contain"
                       />
                       <div className="p-5 text-center">
                         <p className="text-xl font-extrabold text-amber-900">{tile.label}</p>
@@ -1017,7 +1019,7 @@ export function AssaGameIntro() {
                 <img
                   src={TILE_IMG(hostTileIdx)}
                   alt={tiles[hostTileIdx].label}
-                  className="h-40 w-full object-cover"
+                  className="max-h-[50vh] w-full bg-zinc-100 object-contain"
                 />
                 <div className="flex flex-col gap-3 p-5">
                   <p className="text-xs font-bold text-emerald-600">

@@ -3,15 +3,22 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { computeGroupScore, MIN_GROUP_SCORE, type MatchableProfile } from "@/lib/matching/meetup";
 import type { AxisScores } from "@/lib/matching/scoring";
+import { bumpCloseness } from "@/lib/closeness";
 
-function toMatchable(profile: {
-  broadCategory: string;
-  axisScores: unknown;
-  interests: string;
-  pace: string;
-  languages: string;
-  interestEmbedding: string | null;
-}): MatchableProfile {
+function toMatchable(
+  profile: {
+    broadCategory: string;
+    axisScores: unknown;
+    interests: string;
+    pace: string;
+    languages: string;
+    interestEmbedding: string | null;
+  },
+  extras?: {
+    moodKey?: string | null;
+    animalCompanion?: MatchableProfile["animalCompanion"];
+  }
+): MatchableProfile {
   return {
     broadCategory: profile.broadCategory,
     axisScores: profile.axisScores as AxisScores,
@@ -19,6 +26,8 @@ function toMatchable(profile: {
     pace: profile.pace,
     languages: JSON.parse(profile.languages),
     interestEmbedding: profile.interestEmbedding ? JSON.parse(profile.interestEmbedding) : null,
+    moodKey: extras?.moodKey ?? null,
+    animalCompanion: extras?.animalCompanion ?? null,
   };
 }
 
@@ -42,10 +51,20 @@ export async function POST(
       { status: 400 }
     );
   }
+  const [myMood, myAnimalCompanion] = await Promise.all([
+    prisma.userMood.findUnique({ where: { userId: session.user.id } }),
+    prisma.animalCompanionRequest.findUnique({ where: { userId: session.user.id } }),
+  ]);
 
   const meetup = await prisma.meetup.findUnique({
     where: { id: meetupId },
-    include: { members: { include: { user: { include: { personalityProfile: true } } } } },
+    include: {
+      members: {
+        include: {
+          user: { include: { personalityProfile: true, mood: true, animalCompanionRequest: true } },
+        },
+      },
+    },
   });
   if (!meetup) {
     return NextResponse.json({ error: "정모를 찾을 수 없어요" }, { status: 404 });
@@ -59,13 +78,11 @@ export async function POST(
     return NextResponse.json({ error: "정원이 다 찼어요" }, { status: 409 });
   }
 
-  const existingProfiles = meetup.members
-    .map((m) => m.user.personalityProfile)
-    .filter((p): p is NonNullable<typeof p> => p !== null);
+  const existingMembers = meetup.members.filter((m) => m.user.personalityProfile !== null);
 
   if (
-    existingProfiles.length > 0 &&
-    existingProfiles[0].broadCategory !== myProfile.broadCategory
+    existingMembers.length > 0 &&
+    existingMembers[0].user.personalityProfile!.broadCategory !== myProfile.broadCategory
   ) {
     return NextResponse.json(
       { error: "이 정모는 나와 다른 대분류 유형끼리 모인 그룹이에요" },
@@ -74,11 +91,16 @@ export async function POST(
   }
 
   const groupScore = computeGroupScore(
-    toMatchable(myProfile),
-    existingProfiles.map(toMatchable)
+    toMatchable(myProfile, { moodKey: myMood?.moodKey, animalCompanion: myAnimalCompanion }),
+    existingMembers.map((m) =>
+      toMatchable(m.user.personalityProfile!, {
+        moodKey: m.user.mood?.moodKey,
+        animalCompanion: m.user.animalCompanionRequest,
+      })
+    )
   );
 
-  if (existingProfiles.length > 0 && groupScore < MIN_GROUP_SCORE) {
+  if (existingMembers.length > 0 && groupScore < MIN_GROUP_SCORE) {
     return NextResponse.json(
       {
         error: `성향 궁합 점수(${Math.round(groupScore)}점)가 기준(${MIN_GROUP_SCORE}점) 미만이라 참여할 수 없어요`,
@@ -94,6 +116,9 @@ export async function POST(
       matchScore: groupScore,
     },
   });
+
+  const myUserId = session.user.id;
+  await Promise.all(meetup.members.map((m) => bumpCloseness(myUserId, m.userId, 15)));
 
   return NextResponse.json({ ok: true, matchScore: Math.round(groupScore) });
 }

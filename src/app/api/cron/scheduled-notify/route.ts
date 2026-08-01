@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push";
+import { extractItems, type DetectedItem } from "@/lib/notificationItems";
 
 function checkAuthorized(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -28,7 +29,9 @@ async function handle(request: Request) {
 
   for (const n of due) {
     try {
-      await sendPushToUser(n.userId, { title: n.title, body: n.body, url: "/home" });
+      const items = (n.items as DetectedItem[] | null) ?? extractItems(n.body);
+      const body = items.length > 0 ? `${n.body} ${items.map((i) => i.emoji).join(" ")}` : n.body;
+      await sendPushToUser(n.userId, { title: n.title, body, url: "/notifications" });
     } catch (error) {
       console.error("예약 알림 발송 실패", n.id, error);
     }

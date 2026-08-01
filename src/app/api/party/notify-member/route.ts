@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { resolveItems } from "@/lib/notificationItemsAI";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "같은 파티원에게만 보낼 수 있어요" }, { status: 400 });
   }
 
+  const items = await resolveItems(message.trim());
+
   const notification = await prisma.scheduledNotification.create({
     data: {
       userId: targetUserId,
@@ -38,6 +41,7 @@ export async function POST(request: Request) {
       title: "📣 파티장의 알림",
       body: message.trim(),
       sendAt: sendAtDate,
+      items,
     },
   });
 

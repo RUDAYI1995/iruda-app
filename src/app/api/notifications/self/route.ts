@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { resolveItems } from "@/lib/notificationItemsAI";
 
 export async function GET() {
   const session = await auth();
@@ -20,6 +21,7 @@ export async function GET() {
       body: n.body,
       sendAt: n.sendAt,
       isSelf: n.createdById === session.user!.id,
+      items: n.items ?? [],
     })),
   });
 }
@@ -39,6 +41,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "알림 시각이 올바르지 않아요" }, { status: 400 });
   }
 
+  const items = await resolveItems(message.trim());
+
   const notification = await prisma.scheduledNotification.create({
     data: {
       userId: session.user.id,
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
       title: "⏰ 내 알림",
       body: message.trim(),
       sendAt: sendAtDate,
+      items,
     },
   });
 

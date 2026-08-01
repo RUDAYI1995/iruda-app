@@ -28,6 +28,7 @@ import { LudariaButton } from "@/components/LudariaButton";
 import { AssaWorldButton } from "@/components/AssaWorldButton";
 import { AssaDungeonButton } from "@/components/AssaDungeonButton";
 import { LudapiaButton } from "@/components/LudapiaButton";
+import { RudaVoteButton } from "@/components/RudaVoteButton";
 import { LudaWorldLogo } from "@/components/LudaWorldLogo";
 import { PromoTravelBanner } from "@/components/PromoTravelBanner";
 import {
@@ -285,6 +286,7 @@ const HOME_ONLY_SEARCH_ITEMS = [
 const SEARCH_ITEMS = [
   ...FEATURE_GROUPS.flatMap((g) => g.items.map((f) => ({ title: f.title, href: f.href }))),
   { title: "루다피아", href: "/ludapia" },
+  { title: "루다투표제", href: "/ruda-vote" },
   ...HOME_ONLY_SEARCH_ITEMS,
 ];
 const HOURGLASS_CATEGORIES = FEATURE_GROUPS.map((g) => ({
@@ -346,6 +348,7 @@ export default async function Home() {
                   <div id="feature-na-enom"><NaEnomButton /></div>
                   <div id="feature-online-travel"><OnlineTravelButton /></div>
                   <div id="feature-ludapia"><LudapiaButton /></div>
+                  <div id="feature-ruda-vote"><RudaVoteButton /></div>
                 </div>
               </div>
             </div>

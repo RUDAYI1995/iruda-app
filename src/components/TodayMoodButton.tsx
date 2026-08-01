@@ -1,57 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Mood = {
-  key: string;
-  emoji: string;
-  bg: string;
-  label: string;
-};
-
-const MOODS: Mood[] = [
-  {
-    key: "sensitive",
-    emoji: "⚡",
-    bg: "bg-gradient-to-br from-zinc-700 to-zinc-900",
-    label: "나 오늘 예민하니까 건들지마",
-  },
-  {
-    key: "shoo",
-    emoji: "🥶",
-    bg: "bg-gradient-to-br from-cyan-400 to-blue-600",
-    label: "훠이훠이 저리가~",
-  },
-  {
-    key: "calm",
-    emoji: "🌾",
-    bg: "bg-gradient-to-br from-lime-300 to-emerald-400",
-    label: "기분 소소~",
-  },
-  {
-    key: "happy",
-    emoji: "🌊",
-    bg: "bg-gradient-to-br from-sky-300 to-pink-300",
-    label: "너무 행복해~",
-  },
-];
+import { MOODS, type Mood } from "@/lib/moods";
 
 export function TodayMoodButton() {
   const [open, setOpen] = useState(false);
   const [mood, setMood] = useState<Mood | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("todayMood");
-    if (saved) {
-      const found = MOODS.find((m) => m.key === saved);
-      if (found) setMood(found);
-    }
+    fetch("/api/mood")
+      .then((res) => res.json())
+      .then((data) => {
+        const found = MOODS.find((m) => m.key === data.moodKey);
+        if (found) setMood(found);
+      })
+      .catch(() => {});
   }, []);
 
   const choose = (m: Mood) => {
     setMood(m);
-    localStorage.setItem("todayMood", m.key);
     setOpen(false);
+    fetch("/api/mood", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ moodKey: m.key }),
+    }).catch(() => {});
   };
 
   return (

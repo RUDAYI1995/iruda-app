@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TeamPicker, type UserHit } from "@/components/TeamPicker";
 import { CountdownCamera } from "@/components/CountdownCamera";
@@ -16,8 +16,6 @@ export default function FaceOffPage() {
   const [teamB, setTeamB] = useState<UserHit[]>([]);
   const [photoA, setPhotoA] = useState<string | null>(null);
   const [photoB, setPhotoB] = useState<string | null>(null);
-  const [votesA, setVotesA] = useState(0);
-  const [votesB, setVotesB] = useState(0);
 
   const [settling, setSettling] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -25,6 +23,7 @@ export default function FaceOffPage() {
   const [pendingResult, setPendingResult] = useState<{ winnerLabel: string; message: string } | null>(
     null
   );
+  const [voteId, setVoteId] = useState<string | null>(null);
 
   async function getExpression() {
     setLoadingExpression(true);
@@ -45,19 +44,28 @@ export default function FaceOffPage() {
     setTeam((prev) => prev.filter((m) => m.id !== id));
   }
 
-  async function handleSettle(winner: "A" | "B") {
-    const winningTeam = winner === "A" ? teamA : teamB;
-    const winningName = winner === "A" ? teamNameA : teamNameB;
-    if (winningTeam.length === 0) {
-      setError("승리 팀에 팀원을 먼저 추가해주세요.");
+  async function submitToRudaVote() {
+    if (teamA.length === 0 || teamB.length === 0) {
+      setError("양 팀에 팀원을 먼저 추가해주세요.");
+      return;
+    }
+    if (!photoA || !photoB) {
+      setError("양 팀 사진을 먼저 찍어주세요.");
       return;
     }
     setSettling(true);
     setError(null);
-    const res = await fetch("/api/games/face-off/settle", {
+    const res = await fetch("/api/games/face-off/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ winningTeamUserIds: winningTeam.map((m) => m.id) }),
+      body: JSON.stringify({
+        teamNameA,
+        teamNameB,
+        photoA,
+        photoB,
+        teamAUserIds: teamA.map((m) => m.id),
+        teamBUserIds: teamB.map((m) => m.id),
+      }),
     });
     const data = await res.json();
     setSettling(false);
@@ -65,13 +73,28 @@ export default function FaceOffPage() {
       setError(data.error);
       return;
     }
-    setPendingResult({
-      winnerLabel: winningName,
-      message: `🏆 ${winningName} 승리! ${data.rewarded}명에게 EXP +0.2, 젤리 +10000 지급하고 "이번달 최고의 연극상" 순위에 반영했어요.`,
-    });
-    setVotesA(0);
-    setVotesB(0);
+    setVoteId(data.voteId);
   }
+
+  useEffect(() => {
+    if (!voteId) return;
+    const timer = setInterval(async () => {
+      const res = await fetch(`/api/ruda-vote/${voteId}`);
+      const data = await res.json();
+      if (data.status === "APPROVED" || data.status === "REJECTED") {
+        clearInterval(timer);
+        const winnerLabel = data.status === "APPROVED" ? teamNameA || teamNameB : "판정 종료";
+        setPendingResult({
+          winnerLabel,
+          message: "🗳️ 루다투표제 투표가 마감돼서 승리 팀에 EXP/젤리 지급과 랭킹 반영이 끝났어요!",
+        });
+        setVoteId(null);
+        setPhotoA(null);
+        setPhotoB(null);
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [voteId, teamNameA, teamNameB]);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-16">
@@ -126,51 +149,28 @@ export default function FaceOffPage() {
         <CountdownCamera label={`${teamNameB} 표정`} photo={photoB} onCaptured={setPhotoB} />
       </div>
 
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
-        <h3 className="mb-3 text-center font-bold text-amber-900 dark:text-amber-200">
-          🗳️ 참가자 판정 투표
-        </h3>
-        <div className="flex items-center justify-center gap-6">
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setVotesA((v) => v + 1)}
-              className="rounded-full bg-white px-6 py-3 text-lg font-bold shadow hover:scale-105 dark:bg-zinc-900"
-            >
-              {teamNameA}에 투표
-            </button>
-            <span className="text-2xl font-extrabold text-amber-800 dark:text-amber-300">
-              {votesA}
-            </span>
-          </div>
-          <span className="text-xl font-bold text-zinc-400">VS</span>
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setVotesB((v) => v + 1)}
-              className="rounded-full bg-white px-6 py-3 text-lg font-bold shadow hover:scale-105 dark:bg-zinc-900"
-            >
-              {teamNameB}에 투표
-            </button>
-            <span className="text-2xl font-extrabold text-amber-800 dark:text-amber-300">
-              {votesB}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-5 flex justify-center gap-3">
+      <div className="rounded-2xl border-2 border-red-400 bg-red-50 p-5 text-center dark:border-red-700 dark:bg-red-950/20">
+        <h3 className="mb-3 font-bold text-black dark:text-white">🗳️ 판정은 루다투표제에서!</h3>
+        <p className="mb-4 text-sm font-medium text-black dark:text-white">
+          양 팀 사진을 찍고 나면 루다투표제에 올라가요. 다른 유저 3명이 투표하면 자동으로 승리 팀이 확정되고
+          EXP/젤리가 지급돼요.
+        </p>
+        {voteId ? (
+          <p className="font-bold text-black dark:text-white">🗳️ 투표 진행 중... 결과를 기다리는 중이에요.</p>
+        ) : (
           <button
             type="button"
-            disabled={settling || votesA === votesB}
-            onClick={() => handleSettle(votesA > votesB ? "A" : "B")}
-            className="rounded-full bg-amber-600 px-8 py-3 text-base font-bold text-white shadow-md transition-transform hover:scale-105 disabled:opacity-40"
+            disabled={settling}
+            onClick={submitToRudaVote}
+            className="rounded-full bg-red-500 px-8 py-3 text-base font-bold text-white shadow-md transition-transform hover:scale-105 disabled:opacity-40"
           >
-            {settling
-              ? "정산 중..."
-              : votesA === votesB
-                ? "투표가 동점이에요"
-                : `투표 마감하고 ${votesA > votesB ? teamNameA : teamNameB} 승리 확정`}
+            {settling ? "올리는 중..." : "🗳️ 루다투표제에 올리기"}
           </button>
+        )}
+        <div className="mt-3">
+          <Link href="/ruda-vote" className="text-xs font-semibold text-black underline dark:text-white">
+            루다투표제 바로가기 →
+          </Link>
         </div>
       </div>
 

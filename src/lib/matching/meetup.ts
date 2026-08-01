@@ -1,6 +1,13 @@
 import type { AxisScores } from "./scoring";
 import { cosineSimilarity } from "@/lib/upstage/client";
 
+export interface AnimalCompanionFlags {
+  soloTravel: boolean;
+  soloRental: boolean;
+  groupTravel: boolean;
+  groupRental: boolean;
+}
+
 export interface MatchableProfile {
   broadCategory: string;
   axisScores: AxisScores;
@@ -9,6 +16,10 @@ export interface MatchableProfile {
   languages: string[];
   /** Upstage 임베딩 벡터 (성향테스트 제출 시 생성). 없으면 자카드 유사도만 사용 */
   interestEmbedding?: number[] | null;
+  /** 오늘의 컨디션 키 — 둘 다 있으면 매칭 시 비슷한 컨디션끼리 우대 */
+  moodKey?: string | null;
+  /** 동물동행제 체크 항목 — 둘 다 있으면 비슷하게 체크한 사람끼리 우대 */
+  animalCompanion?: AnimalCompanionFlags | null;
 }
 
 export function axisSimilarity(a: AxisScores, b: AxisScores): number {
@@ -58,12 +69,32 @@ function languageOverlap(a: string[], b: string[]): number {
   return a.length === 0 ? 0 : (overlap / a.length) * 100;
 }
 
+// 둘 다 오늘의 컨디션을 체크했으면 반영, 아니면 중립(50)
+function moodSimilarity(a?: string | null, b?: string | null): number {
+  if (!a || !b) return 50;
+  return a === b ? 100 : 30;
+}
+
+// 둘 다 동물동행제를 체크했으면 4개 체크박스 자카드 유사도로 반영, 아니면 중립(50)
+function animalCompanionSimilarity(a?: AnimalCompanionFlags | null, b?: AnimalCompanionFlags | null): number {
+  if (!a || !b) return 50;
+  const keys: (keyof AnimalCompanionFlags)[] = ["soloTravel", "soloRental", "groupTravel", "groupRental"];
+  const aFlags = keys.filter((k) => a[k]);
+  const bFlags = keys.filter((k) => b[k]);
+  if (aFlags.length === 0 && bFlags.length === 0) return 100;
+  const intersection = aFlags.filter((k) => bFlags.includes(k)).length;
+  const union = new Set([...aFlags, ...bFlags]).size;
+  return union === 0 ? 100 : (intersection / union) * 100;
+}
+
 export function computePairScore(a: MatchableProfile, b: MatchableProfile): number {
   return (
-    0.35 * axisSimilarity(a.axisScores, b.axisScores) +
-    0.3 * interestSimilarity(a, b) +
-    0.2 * paceSimilarity(a.pace, b.pace) +
-    0.15 * languageOverlap(a.languages, b.languages)
+    0.28 * axisSimilarity(a.axisScores, b.axisScores) +
+    0.24 * interestSimilarity(a, b) +
+    0.16 * paceSimilarity(a.pace, b.pace) +
+    0.12 * languageOverlap(a.languages, b.languages) +
+    0.1 * moodSimilarity(a.moodKey, b.moodKey) +
+    0.1 * animalCompanionSimilarity(a.animalCompanion, b.animalCompanion)
   );
 }
 

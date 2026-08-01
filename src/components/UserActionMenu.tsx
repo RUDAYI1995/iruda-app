@@ -11,9 +11,17 @@ type Profile = {
   exp: number;
   mileage: number;
   activity: { posts: number; meetupsJoined: number; gamesWon: number };
+  mood: { emoji: string; label: string } | null;
+  animalCompanion: {
+    soloTravel: boolean;
+    soloRental: boolean;
+    groupTravel: boolean;
+    groupRental: boolean;
+  } | null;
+  closeness: number | null;
 };
 
-type View = "menu" | "level" | "house" | "activity";
+type View = "menu" | "level" | "house" | "activity" | "closeness";
 
 export function UserActionMenu({
   userId,
@@ -124,12 +132,12 @@ export function UserActionMenu({
 
       {open && (
         <div
-          className="fixed inset-0 z-[250]"
+          className="fixed inset-0 z-[250] bg-black/30"
           onClick={close}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute left-1/2 top-1/2 w-72 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            className="fixed inset-y-0 right-0 w-80 max-w-[85vw] overflow-y-auto border-l border-zinc-200 bg-white p-4 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
           >
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{name}</p>
@@ -177,6 +185,15 @@ export function UserActionMenu({
                   className="rounded-xl px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
                 >
                   📜 활동이력보기
+                </button>
+                <button
+                  onClick={() => {
+                    setView("closeness");
+                    if (!profile) loadProfile();
+                  }}
+                  className="rounded-xl px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                >
+                  🧡 친목도 보기
                 </button>
                 {myInParty === false && (
                   <button
@@ -245,6 +262,29 @@ export function UserActionMenu({
                     <p>✍️ 작성한 게시글 {profile.activity.posts}개</p>
                     <p>🧭 참여한 정모 {profile.activity.meetupsJoined}개</p>
                     <p>🏆 게임 승리 {profile.activity.gamesWon}회</p>
+                  </div>
+                )}
+
+                {profile && view === "closeness" && (
+                  <div className="flex flex-col gap-2 rounded-xl bg-orange-50 p-3 text-xs text-orange-900 dark:bg-orange-950/20 dark:text-orange-200">
+                    <p className="text-sm font-bold">🧡 나와의 친목도: {profile.closeness ?? 0}</p>
+                    <div className="rounded-lg bg-white/60 p-2 dark:bg-black/20">
+                      <p className="font-semibold">오늘 컨디션</p>
+                      <p>{profile.mood ? `${profile.mood.emoji} ${profile.mood.label}` : "아직 체크 안 함"}</p>
+                    </div>
+                    <div className="rounded-lg bg-white/60 p-2 dark:bg-black/20">
+                      <p className="font-semibold">🐾 동물동행제</p>
+                      {profile.animalCompanion ? (
+                        <ul className="mt-1 list-disc pl-4">
+                          {profile.animalCompanion.soloTravel && <li>혼자 여행 원함</li>}
+                          {profile.animalCompanion.soloRental && <li>혼자 여행 시 대여 필요</li>}
+                          {profile.animalCompanion.groupTravel && <li>동행 여행 원함</li>}
+                          {profile.animalCompanion.groupRental && <li>동행 여행 시 대여 필요</li>}
+                        </ul>
+                      ) : (
+                        <p>아직 체크 안 함</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

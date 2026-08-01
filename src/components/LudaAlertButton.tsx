@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { extractItems, type DetectedItem } from "@/lib/notificationItems";
+import { PackingBagReveal } from "@/components/PackingBagReveal";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -11,7 +13,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 type Status = "unsupported" | "checking" | "off" | "on" | "denied";
 
-type SelfReminder = { id: string; body: string; sendAt: string };
+type SelfReminder = { id: string; body: string; sendAt: string; items?: DetectedItem[] };
 
 export function LudaAlertButton() {
   const [open, setOpen] = useState(false);
@@ -177,7 +179,12 @@ export function LudaAlertButton() {
 
       {open && (
         <div className="absolute right-full top-0 mr-2 max-h-[80vh] w-72 overflow-y-auto rounded-2xl border border-indigo-200 bg-white p-4 text-sm shadow-xl dark:border-indigo-900 dark:bg-zinc-950">
-          <p className="mb-2 font-bold text-indigo-700 dark:text-indigo-300">🔔 루다알림제</p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="font-bold text-indigo-700 dark:text-indigo-300">🔔 루다알림제</p>
+            <a href="/notifications" className="text-[11px] font-medium text-indigo-500 hover:underline">
+              📬 받은 알림 보기
+            </a>
+          </div>
 
           {status === "unsupported" && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -253,10 +260,13 @@ export function LudaAlertButton() {
               <textarea
                 value={reminderText}
                 onChange={(e) => setReminderText(e.target.value)}
-                placeholder="예: 여권 챙기기, 약속 시간 확인하기"
+                placeholder="예: 여권, 칫솔, 노트북 챙기기"
                 rows={2}
                 className="rounded-lg border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               />
+              {extractItems(reminderText).length > 0 && (
+                <PackingBagReveal items={extractItems(reminderText)} />
+              )}
               <button
                 onClick={addReminder}
                 disabled={savingReminder || !reminderAt || !reminderText.trim()}
@@ -278,6 +288,11 @@ export function LudaAlertButton() {
                         {new Date(r.sendAt).toLocaleString("ko-KR")}
                       </p>
                       <p className="text-zinc-600 dark:text-zinc-400">{r.body}</p>
+                      {r.items && r.items.length > 0 && (
+                        <div className="mt-1">
+                          <PackingBagReveal items={r.items} />
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => deleteReminder(r.id)}

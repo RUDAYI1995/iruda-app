@@ -10,6 +10,7 @@ import { RouteFontScale } from "@/components/RouteFontScale";
 import { AiRudaWidget } from "@/components/AiRudaWidget";
 import { LevelBadge } from "@/components/LevelBadge";
 import { LudiaLoadingScreen } from "@/components/LudiaLoadingScreen";
+import { PartyInviteModal } from "@/components/PartyInviteModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,15 +42,18 @@ export default function RootLayout({
         <Script id="font-pref-init" strategy="beforeInteractive">
           {"try{if(localStorage.getItem('iruda-font-pref')==='original'){document.documentElement.dataset.font='original';}}catch(e){}"}
         </Script>
-        <Providers>{children}</Providers>
-        <FontToggle />
-        <BackgroundMusic />
-        <RouteFontScale />
-        <AiRudaWidget />
-        <LevelBadge />
-        <Suspense fallback={null}>
-          <LudiaLoadingScreen />
-        </Suspense>
+        <Providers>
+          {children}
+          <FontToggle />
+          <BackgroundMusic />
+          <RouteFontScale />
+          <AiRudaWidget />
+          <LevelBadge />
+          <PartyInviteModal />
+          <Suspense fallback={null}>
+            <LudiaLoadingScreen />
+          </Suspense>
+        </Providers>
       </body>
     </html>
   );

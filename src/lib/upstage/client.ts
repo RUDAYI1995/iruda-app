@@ -40,7 +40,9 @@ type VisionContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: { url: string } };
 
-// 이미지(표정 사진 등)를 함께 보내는 멀티모달 채팅 — solar-pro2는 vision 입력을 지원함
+// 이미지(표정 사진 등)를 함께 보내는 멀티모달 채팅 시도용.
+// 주의: 실제로 확인해보니 solar-pro2는 이미지 입력을 거부함("Image input is not allowed for this model").
+// 호출부는 반드시 try/catch로 감싸서 실패 시 사람이 판단하는 방식(투표 등)으로 대체할 것.
 export async function chatCompleteVision(
   messages: { role: "system" | "user" | "assistant"; content: string | VisionContentPart[] }[]
 ): Promise<string> {

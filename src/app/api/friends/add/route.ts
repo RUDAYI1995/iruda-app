@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { bumpCloseness } from "@/lib/closeness";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
     create: { userId: targetUserId, friendId: session.user.id },
     update: {},
   });
+
+  await bumpCloseness(session.user.id, targetUserId, 30);
 
   return NextResponse.json({ ok: true });
 }

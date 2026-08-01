@@ -746,3 +746,62 @@ html[data-large-text="true"] :is(h2, h3) {
   transform-origin: left center;
 }
 
+@keyframes bag-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-8deg) scale(1.05);
+  }
+  40% {
+    transform: rotate(7deg) scale(1.08);
+  }
+  60% {
+    transform: rotate(-5deg) scale(1.05);
+  }
+  80% {
+    transform: rotate(3deg) scale(1.02);
+  }
+}
+.animate-bag-wiggle {
+  animation: bag-wiggle 0.5s ease-in-out;
+}
+
+@keyframes item-pop-out {
+  0% {
+    transform: translateY(0) scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-14px) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-6px) scale(1);
+    opacity: 1;
+  }
+}
+.animate-item-pop-out {
+  animation: item-pop-out 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes walk-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(6deg);
+  }
+}
+.animate-walk-bob {
+  animation: walk-bob 0.38s ease-in-out;
+}
+

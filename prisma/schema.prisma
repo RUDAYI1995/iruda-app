@@ -99,6 +99,25 @@ model User {
   carePlans           CarePlan[]
   scheduledNotificationsReceived ScheduledNotification[] @relation("ScheduledNotificationRecipient")
   scheduledNotificationsCreated  ScheduledNotification[] @relation("ScheduledNotificationCreator")
+  nightMarketStall NightMarketStall?
+  rudaVotesRequested RudaVote[] @relation("RudaVoteRequester")
+  rudaVoteBallots    RudaVoteBallot[]
+  adventureMissionProgress AdventureMissionProgress[]
+  closenessFrom      Closeness[] @relation("ClosenessFrom")
+  mood               UserMood?
+}
+
+// 위대한 모험(루다대륙) 관광 야시장 — 대구시간(KST) 20:00~06:00에만 열리는 가상 시장.
+// 유저 한 명당 하나의 가상 점포를 만들고 꾸밀 수 있음.
+model NightMarketStall {
+  id          String   @id @default(cuid())
+  ownerId     String   @unique
+  owner       User     @relation(fields: [ownerId], references: [id])
+  name        String
+  emoji       String   @default("🏮")
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // 루다알림제 — 지정한 시각에 발송되는 예약 알림. 파티장이 특정 파티원에게 보내는 알림과,
@@ -114,6 +133,7 @@ model ScheduledNotification {
   sendAt      DateTime
   sent        Boolean  @default(false)
   createdAt   DateTime @default(now())
+  items       Json? // AI가 본문에서 찾아낸 {keyword, emoji} 목록 — 생성 시 한 번만 계산해서 저장
 }
 
 // 소심케어제 — 유저가 고민과 케어 종료일을 지정하면 AI루다가 단계별 케어 계획을 만들고,
@@ -530,6 +550,71 @@ model SiteVisit {
   createdAt DateTime @default(now())
 
   @@unique([visitorId, dateKey])
+}
+
+// 친목도 — 두 유저 사이의 친밀도 점수. userId→otherId 방향으로 한 행씩, 항상 양방향 대칭으로 갱신됨.
+// 루다투표제에서 부정투표(참가자와 친한 사람이 봐주기 투표하는 것) 방지에 사용.
+model Closeness {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("ClosenessFrom", fields: [userId], references: [id])
+  otherId   String
+  score     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, otherId])
+}
+
+// 오늘의 컨디션 — 다른 유저도 참고할 수 있도록 서버에 저장(기존엔 localStorage에만 있었음)
+model UserMood {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  moodKey   String
+  updatedAt DateTime @updatedAt
+}
+
+// 루다투표제 — AI가 판단하기 애매한 인증(사진 등)을 사람 투표로 넘겨서 결정하는 시스템.
+// 위대한 모험 사진 미션(kind="MISSION")과 표정짓기 게임 판정(kind="FACE_OFF") 둘 다 여기서 처리됨.
+model RudaVote {
+  id           String   @id @default(cuid())
+  kind         String // "MISSION" | "FACE_OFF"
+  label        String // 투표 카드에 보여줄 제목
+  photoAUrl    String
+  photoBUrl    String? // FACE_OFF에서 두 번째 사진(팀B)에 사용
+  requesterId  String
+  requester    User     @relation("RudaVoteRequester", fields: [requesterId], references: [id])
+  contextJson  Json // 판정 완료 후 원래 기능에 결과를 반영하기 위한 부가 정보
+  status       String   @default("OPEN") // OPEN / APPROVED / REJECTED
+  createdAt    DateTime @default(now())
+  resolvedAt   DateTime?
+
+  ballots RudaVoteBallot[]
+}
+
+model RudaVoteBallot {
+  id        String   @id @default(cuid())
+  voteId    String
+  vote      RudaVote @relation(fields: [voteId], references: [id])
+  voterId   String
+  voter     User     @relation(fields: [voterId], references: [id])
+  choice    String // MISSION: "APPROVE"/"REJECT"  ·  FACE_OFF: "A"/"B"
+  createdAt DateTime @default(now())
+
+  @@unique([voteId, voterId])
+}
+
+// 위대한 모험 사진/GPS 미션 진행도 — 유저별로 미션당 몇 번 인증했는지 저장(투표 결과 반영 포함)
+model AdventureMissionProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  zoneSlug      String
+  missionIndex  Int
+  count         Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, zoneSlug, missionIndex])
 }
 
 // GPS 사진 인증 퀘스트 — 여행 코스에 들르는 지점을 등록하고, 실제로 그 위치에서

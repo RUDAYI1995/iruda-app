@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { extractItems } from "@/lib/notificationItems";
+import { PackingBagReveal } from "@/components/PackingBagReveal";
 
 type PartyInfo = {
   id: string;
@@ -278,6 +280,9 @@ export function PartyPanel() {
                 rows={2}
                 className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               />
+              {extractItems(targetMessage).length > 0 && (
+                <PackingBagReveal items={extractItems(targetMessage)} />
+              )}
               <button
                 onClick={sendTargetNotification}
                 disabled={sendingTarget || !targetUserId || !targetSendAt || !targetMessage.trim()}
