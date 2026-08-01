@@ -54,7 +54,8 @@ export default function RudaVotePage() {
           AI가 판단하기 애매한 건, 다 같이 투표로 정해요
         </h1>
         <p className="mt-3 text-sm font-medium text-black dark:text-white">
-          위대한 모험 사진 미션 인증, 표정짓기 대결 판정 등이 여기 올라와요. 3표가 모이면 다수결로 즉시 확정돼요.
+          위대한 모험(🎉 파티전용 퀘스트) 사진 미션, 아싸던전(🧍 솔플 퀘스트) 현실 미션 인증, 표정짓기 대결 판정 등이
+          여기 올라와요. 3표가 모이면 다수결로 즉시 확정돼요.
         </p>
       </div>
 

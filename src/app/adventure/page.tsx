@@ -14,7 +14,7 @@ export default function AdventurePage() {
       <div className="mb-6 flex w-full max-w-[95vw] items-center justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-indigo-500">
-            위대한 모험
+            위대한 모험 · 🎉 파티전용 퀘스트
           </p>
           <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-50">
             🗺️ 루다대륙

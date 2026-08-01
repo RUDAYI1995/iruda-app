@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canVote } from "@/lib/closeness";
+import { addExp, EXP_SOURCES } from "@/lib/leveling";
+import { addMileage } from "@/lib/currency";
+import { DUNGEON_CLEAR_MILEAGE } from "@/lib/assaDungeon";
 
 function participantsOf(vote: { kind: string; requesterId: string; contextJson: unknown }): string[] {
   if (vote.kind === "FACE_OFF") {
@@ -63,22 +66,36 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const reject = tally.REJECT ?? 0;
     const approved = approve > reject;
     if (approved) {
-      await prisma.adventureMissionProgress.upsert({
-        where: {
-          userId_zoneSlug_missionIndex: {
+      if (typeof context.zoneSlug === "string") {
+        await prisma.adventureMissionProgress.upsert({
+          where: {
+            userId_zoneSlug_missionIndex: {
+              userId: vote.requesterId,
+              zoneSlug: context.zoneSlug as string,
+              missionIndex: context.missionIndex as number,
+            },
+          },
+          update: { count: { increment: 1 } },
+          create: {
             userId: vote.requesterId,
             zoneSlug: context.zoneSlug as string,
             missionIndex: context.missionIndex as number,
+            count: 1,
           },
-        },
-        update: { count: { increment: 1 } },
-        create: {
-          userId: vote.requesterId,
-          zoneSlug: context.zoneSlug as string,
-          missionIndex: context.missionIndex as number,
-          count: 1,
-        },
-      });
+        });
+      } else if (typeof context.stageIndex === "number") {
+        const stageIndex = context.stageIndex as number;
+        const already = await prisma.dungeonStageProgress.findUnique({
+          where: { userId_stageIndex: { userId: vote.requesterId, stageIndex } },
+        });
+        if (!already) {
+          await prisma.dungeonStageProgress.create({
+            data: { userId: vote.requesterId, stageIndex },
+          });
+          await addMileage(vote.requesterId, DUNGEON_CLEAR_MILEAGE);
+          await addExp(vote.requesterId, EXP_SOURCES.MISSION);
+        }
+      }
     }
     await prisma.rudaVote.update({
       where: { id },
