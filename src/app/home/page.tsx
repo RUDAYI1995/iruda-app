@@ -322,6 +322,82 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 pb-0 pt-8">
+        <nav className="-mx-6 flex w-full min-w-0 items-center justify-end gap-4 overflow-x-auto whitespace-nowrap px-6 text-sm font-medium md:mx-0 md:w-auto md:self-end md:overflow-visible md:px-0">
+          <Link
+            href="/my-page"
+            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            마이페이지
+          </Link>
+          <Link
+            href="/board"
+            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            게시판
+          </Link>
+          <Link
+            href="/meetups"
+            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            정모
+          </Link>
+          <Link
+            href="/group-chats"
+            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            단체채팅
+          </Link>
+          <Link
+            href="/matching-test"
+            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            항공휴게소
+          </Link>
+          {session?.user ? (
+            <>
+              <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+                환영해요, {session.user.name}님
+                {(session.user as { isOperator?: boolean }).isOperator && (
+                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                    운영자 공동계정
+                  </span>
+                )}
+              </span>
+              <Link
+                href="/dashboard"
+                className="rounded-full bg-zinc-900 px-4 py-2 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                대시보드
+              </Link>
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/home" });
+                }}
+              >
+                <button className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+                  로그아웃
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                로그인
+              </Link>
+              <Link
+                href="/signup"
+                className="ml-1 rounded-full bg-zinc-900 px-4 py-2 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                가입하기
+              </Link>
+            </>
+          )}
+        </nav>
+
         <div className="relative flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:flex-nowrap md:overflow-x-auto">
           <HomeHeroCarousel />
           <div id="hero-logo-anchor" className="pl-1">
@@ -392,81 +468,6 @@ export default async function Home() {
               <LevelBadgeInline />
             </div>
           </div>
-          <nav className="-mx-6 flex w-full min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-6 pt-1.5 text-sm font-medium md:ml-auto md:w-auto md:overflow-visible md:px-0">
-            <Link
-              href="/my-page"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              마이페이지
-            </Link>
-            <Link
-              href="/board"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              게시판
-            </Link>
-            <Link
-              href="/meetups"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              정모
-            </Link>
-            <Link
-              href="/group-chats"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              단체채팅
-            </Link>
-            <Link
-              href="/matching-test"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              항공휴게소
-            </Link>
-            {session?.user ? (
-              <>
-                <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
-                  환영해요, {session.user.name}님
-                  {(session.user as { isOperator?: boolean }).isOperator && (
-                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                      운영자 공동계정
-                    </span>
-                  )}
-                </span>
-                <Link
-                  href="/dashboard"
-                  className="rounded-full bg-zinc-900 px-4 py-2 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                >
-                  대시보드
-                </Link>
-                <form
-                  action={async () => {
-                    "use server";
-                    await signOut({ redirectTo: "/home" });
-                  }}
-                >
-                  <button className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
-                    로그아웃
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-                >
-                  로그인
-                </Link>
-                <Link
-                  href="/signup"
-                  className="ml-1 rounded-full bg-zinc-900 px-4 py-2 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                >
-                  가입하기
-                </Link>
-              </>
-            )}
-          </nav>
         </div>
       </header>
 
