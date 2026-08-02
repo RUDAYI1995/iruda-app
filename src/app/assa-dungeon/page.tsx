@@ -113,9 +113,11 @@ export default function AssaDungeonPage() {
         className="relative overflow-hidden rounded-3xl border border-slate-700 shadow-2xl"
         style={{
           backgroundImage: "url(/assa-dungeon-bg.png)",
-          backgroundSize: "cover",
+          backgroundSize: "contain",
+          backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
-          minHeight: "260px",
+          backgroundColor: "#000",
+          aspectRatio: "1536 / 1024",
         }}
       >
         <div className="flex h-full flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6">

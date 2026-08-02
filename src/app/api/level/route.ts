@@ -20,6 +20,7 @@ export async function GET() {
     loggedIn: true,
     ...progress,
     title: titleForLevel(progress.level, user.gender),
+    gender: user.gender,
     needsGender: !user.gender,
     mileage: user.mileage,
   });
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   const { gender } = await request.json();
-  if (gender !== "MALE" && gender !== "FEMALE") {
+  if (gender !== "MALE" && gender !== "FEMALE" && gender !== "LGBTQ") {
     return NextResponse.json({ error: "성별을 선택해주세요" }, { status: 400 });
   }
 

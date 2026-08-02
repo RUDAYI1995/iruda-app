@@ -10,8 +10,15 @@ interface LevelInfo {
   currentFloor?: number;
   nextFloor?: number;
   ratio?: number;
+  gender?: "MALE" | "FEMALE" | "LGBTQ" | null;
   needsGender?: boolean;
 }
+
+const GENDER_OPTIONS: { value: "MALE" | "FEMALE" | "LGBTQ"; label: string }[] = [
+  { value: "MALE", label: "남성" },
+  { value: "FEMALE", label: "여성" },
+  { value: "LGBTQ", label: "성소수자" },
+];
 
 export function LevelPanel() {
   const [info, setInfo] = useState<LevelInfo | null>(null);
@@ -26,7 +33,7 @@ export function LevelPanel() {
 
   useEffect(load, []);
 
-  async function setGender(gender: "MALE" | "FEMALE") {
+  async function setGender(gender: "MALE" | "FEMALE" | "LGBTQ") {
     setSaving(true);
     await fetch("/api/level", {
       method: "POST",
@@ -55,31 +62,30 @@ export function LevelPanel() {
         EXP {info.exp?.toFixed(1)} / {info.nextFloor === info.currentFloor ? "MAX" : info.nextFloor}
       </p>
 
-      {info.needsGender && (
-        <div className="mt-3 rounded-xl bg-white p-3 dark:bg-zinc-900">
-          <p className="mb-2 text-sm text-zinc-700 dark:text-zinc-300">
-            1레벨 타이틀 표시를 위해 성별을 선택해주세요.
-          </p>
-          <div className="flex gap-2">
+      <div className="mt-3 rounded-xl bg-white p-3 dark:bg-zinc-900">
+        <p className="mb-2 text-sm text-zinc-700 dark:text-zinc-300">
+          {info.needsGender
+            ? "1레벨 타이틀 표시를 위해 성별을 선택해주세요."
+            : "성별 설정"}
+        </p>
+        <div className="flex gap-2">
+          {GENDER_OPTIONS.map((opt) => (
             <button
+              key={opt.value}
               type="button"
               disabled={saving}
-              onClick={() => setGender("MALE")}
-              className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              onClick={() => setGender(opt.value)}
+              className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                info.gender === opt.value
+                  ? "border-amber-500 bg-amber-500 text-white"
+                  : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              }`}
             >
-              남성
+              {opt.label}
             </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => setGender("FEMALE")}
-              className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            >
-              여성
-            </button>
-          </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

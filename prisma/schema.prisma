@@ -16,6 +16,7 @@ enum Role {
 enum Gender {
   MALE
   FEMALE
+  LGBTQ
 }
 
 enum BroadCategory {
@@ -66,6 +67,9 @@ model User {
   isOperator    Boolean  @default(false)
   createdAt    DateTime @default(now())
 
+  // 파티가 없거나 파티장이 아닌 개인이 다트 던지기 등으로 정한 개인 여행목표지
+  personalDestination String?
+
   personalityProfile PersonalityProfile?
   guideProfile        GuideProfile?
   meetupMembers       MeetupMember[]
@@ -106,6 +110,9 @@ model User {
   closenessFrom      Closeness[] @relation("ClosenessFrom")
   mood               UserMood?
   dungeonStagesCleared DungeonStageProgress[]
+  ludariaListings LudariaListing[]
+  assaWorldPosts  AssaWorldPost[]
+  allianceJoins   AllianceJoin[]
 }
 
 // 위대한 모험(루다대륙) 관광 야시장 — 대구시간(KST) 20:00~06:00에만 열리는 가상 시장.
@@ -553,6 +560,47 @@ model SiteVisit {
   @@unique([visitorId, dateKey])
 }
 
+// 아싸세상 — 유저가 혼자서 24시간을 어떻게 알차게 보냈는지 사진+글로 자랑하는 게시판.
+// "투표제 신청하기"로 올리면 루다투표제(RudaVote, kind="MISSION")에도 같이 올라가서
+// 다른 유저들이 진짜 알차게 보냈는지 투표로 판단해줌.
+model AssaWorldPost {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  imageUrl    String
+  content     String
+  voteId      String?
+  createdAt   DateTime @default(now())
+}
+
+// 루다리아 — 여행 다녀온 유저가 직접 현지 물건을 올리는 마켓. 미리 만들어둔 나라 말고도
+// 유저가 검색창에 어떤 나라든 직접 입력해서 그 나라로 글을 올릴 수 있음(countryName은 자유 입력).
+model LudariaListing {
+  id          String   @id @default(cuid())
+  countryName String
+  title       String
+  price       Int
+  condition   String // "신규상품" | "중고상품"
+  category    String // "먹거리" | "면세점" | "여행상품"
+  description String
+  imageUrl    String?
+  sellerId    String
+  seller      User     @relation(fields: [sellerId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+// 루다연합 — 독재/인권탄압으로 고통받는 사람들 소식에 "동참하기"로 뜻을 모으는 캠페인.
+// 한 캠페인당 동참자가 100명이 되면 자동으로 루다투표제(국민투표제)에 정식 상정됨.
+model AllianceJoin {
+  id        String   @id @default(cuid())
+  causeId   String // src/lib/allianceCauses.ts에 정의된 고정 슬러그
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([causeId, userId])
+}
+
 // 아싸던전 — 혼자서도 깰 수 있는 스테이지형 미니 던전. 스테이지 하나당 1회만 클리어 보상 지급.
 model DungeonStageProgress {
   id          String   @id @default(cuid())
@@ -587,10 +635,11 @@ model UserMood {
 }
 
 // 루다투표제 — AI가 판단하기 애매한 인증(사진 등)을 사람 투표로 넘겨서 결정하는 시스템.
-// 위대한 모험 사진 미션(kind="MISSION")과 표정짓기 게임 판정(kind="FACE_OFF") 둘 다 여기서 처리됨.
+// 위대한 모험 사진 미션(kind="MISSION")과 표정짓기 게임 판정(kind="FACE_OFF"),
+// 루다연합 동참 100명 달성 시 자동 상정되는 국민투표제(kind="REFERENDUM") 모두 여기서 처리됨.
 model RudaVote {
   id           String   @id @default(cuid())
-  kind         String // "MISSION" | "FACE_OFF"
+  kind         String // "MISSION" | "FACE_OFF" | "REFERENDUM"
   label        String // 투표 카드에 보여줄 제목
   photoAUrl    String
   photoBUrl    String? // FACE_OFF에서 두 번째 사진(팀B)에 사용
@@ -598,6 +647,7 @@ model RudaVote {
   requester    User     @relation("RudaVoteRequester", fields: [requesterId], references: [id])
   contextJson  Json // 판정 완료 후 원래 기능에 결과를 반영하기 위한 부가 정보
   status       String   @default("OPEN") // OPEN / APPROVED / REJECTED
+  resolutionNote String? // REFERENDUM이 찬성으로 통과됐을 때 띄우는 공지문
   createdAt    DateTime @default(now())
   resolvedAt   DateTime?
 

@@ -7,7 +7,7 @@ const signupSchema = z.object({
   name: z.string().min(1, "이름을 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   password: z.string().min(8, "비밀번호는 8자 이상이어야 해요"),
-  gender: z.enum(["MALE", "FEMALE"], { message: "성별을 선택해주세요" }),
+  gender: z.enum(["MALE", "FEMALE", "LGBTQ"], { message: "성별을 선택해주세요" }),
 });
 
 export async function POST(request: Request) {

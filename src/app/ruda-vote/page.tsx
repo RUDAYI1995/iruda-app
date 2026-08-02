@@ -9,6 +9,8 @@ type VoteCard = {
   label: string;
   photoAUrl: string;
   photoBUrl: string | null;
+  status: string;
+  resolutionNote: string | null;
   myBallot: string | null;
   tally: Record<string, number>;
   totalVotes: number;
@@ -54,8 +56,9 @@ export default function RudaVotePage() {
           AI가 판단하기 애매한 건, 다 같이 투표로 정해요
         </h1>
         <p className="mt-3 text-sm font-medium text-black dark:text-white">
-          위대한 모험(🎉 파티전용 퀘스트) 사진 미션, 아싸던전(🧍 솔플 퀘스트) 현실 미션 인증, 표정짓기 대결 판정 등이
-          여기 올라와요. 3표가 모이면 다수결로 즉시 확정돼요.
+          위대한 모험(🎉 파티전용 퀘스트) 사진 미션, 아싸던전(🧍 솔플 퀘스트) 현실 미션 인증, 표정짓기 대결 판정,
+          루다연합 캠페인이 100명을 넘기면 자동 상정되는 국민투표제까지 여기서 처리돼요. 3표가 모이면 다수결로
+          즉시 확정돼요.
         </p>
       </div>
 
@@ -84,6 +87,11 @@ export default function RudaVotePage() {
             />
           )}
 
+          {v.kind === "REFERENDUM" && v.status === "APPROVED" ? (
+            <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50 p-4 text-center text-sm font-semibold text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-200">
+              📢 국민투표 통과! {v.resolutionNote}
+            </div>
+          ) : (
           <div className="flex items-center justify-center gap-3">
             {v.kind === "FACE_OFF" ? (
               <>
@@ -115,7 +123,7 @@ export default function RudaVotePage() {
                     v.myBallot === "APPROVE" ? "bg-red-400" : "bg-white hover:bg-red-100 dark:bg-zinc-900"
                   }`}
                 >
-                  ✅ 인정 ({v.tally.APPROVE ?? 0})
+                  {v.kind === "REFERENDUM" ? "🙆 찬성" : "✅ 인정"} ({v.tally.APPROVE ?? 0})
                 </button>
                 <button
                   disabled={castingId === v.id}
@@ -124,14 +132,17 @@ export default function RudaVotePage() {
                     v.myBallot === "REJECT" ? "bg-red-400" : "bg-white hover:bg-red-100 dark:bg-zinc-900"
                   }`}
                 >
-                  ❌ 반려 ({v.tally.REJECT ?? 0})
+                  {v.kind === "REFERENDUM" ? "🙅 반대" : "❌ 반려"} ({v.tally.REJECT ?? 0})
                 </button>
               </>
             )}
           </div>
-          <p className="mt-2 text-center text-xs font-semibold text-black dark:text-white">
-            {v.totalVotes}/3표 모임 · 3표가 되면 자동 확정
-          </p>
+          )}
+          {!(v.kind === "REFERENDUM" && v.status === "APPROVED") && (
+            <p className="mt-2 text-center text-xs font-semibold text-black dark:text-white">
+              {v.totalVotes}/3표 모임 · 3표가 되면 자동 확정
+            </p>
+          )}
         </div>
       ))}
 

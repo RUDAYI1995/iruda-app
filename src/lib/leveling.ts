@@ -50,7 +50,7 @@ const TIER_TITLES: Record<number, string> = {
   70: "해외마스터",
 };
 
-export function titleForLevel(level: number, gender: "MALE" | "FEMALE" | null): string {
+export function titleForLevel(level: number, gender: "MALE" | "FEMALE" | "LGBTQ" | null): string {
   if (level < 10) {
     const base = gender === "FEMALE" ? "집순이" : "집돌이";
     return level === 1 ? base : `${base} Lv.${level}`;

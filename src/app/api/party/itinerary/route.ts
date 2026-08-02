@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { logRudaAlert } from "@/lib/rudaAlertLog";
 
 export async function GET() {
   const session = await auth();
@@ -54,6 +55,14 @@ export async function PATCH(request: Request) {
       notes: typeof notes === "string" ? notes : undefined,
     },
   });
+
+  await logRudaAlert(
+    session.user.id,
+    "✈️ 파티 일정표 업데이트",
+    `파티 일정표가 저장됐어요 — 목적지: ${updated.destination ?? "미정"}${
+      updated.departureAt ? `, 출발: ${updated.departureAt.toLocaleString("ko-KR")}` : ""
+    }`
+  );
 
   return NextResponse.json({
     ok: true,

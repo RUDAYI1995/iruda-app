@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CloudBackground } from "@/components/CloudLayer";
 import { CabinExplorer } from "@/components/CabinExplorer";
 
@@ -16,6 +17,7 @@ function formatElapsed(seconds: number) {
 type Phase = "searching" | "ready-check" | "launching";
 
 export default function MatchingTestPage() {
+  const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
   const [foundCount, setFoundCount] = useState(1);
   const [phase, setPhase] = useState<Phase>("searching");
@@ -56,6 +58,12 @@ export default function MatchingTestPage() {
       return () => clearTimeout(t);
     }
   }, [phase, readyStates]);
+
+  useEffect(() => {
+    if (phase !== "launching") return;
+    const t = setTimeout(() => router.push("/home"), 3000);
+    return () => clearTimeout(t);
+  }, [phase, router]);
 
   const handleMeReady = () => {
     setReadyStates((rs) => rs.map((r, i) => (i === 0 ? true : r)));

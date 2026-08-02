@@ -12,7 +12,7 @@ const schema = z.object({
   name: z.string().min(1, "닉네임을 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   password: z.string().min(8, "비밀번호는 8자 이상이어야 해요"),
-  gender: z.enum(["MALE", "FEMALE"], { message: "성별을 선택해주세요" }),
+  gender: z.enum(["MALE", "FEMALE", "LGBTQ"], { message: "성별을 선택해주세요" }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -122,6 +122,10 @@ export default function SignupPage() {
               <label className="flex items-center gap-1.5">
                 <input type="radio" value="FEMALE" {...register("gender")} />
                 여성
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input type="radio" value="LGBTQ" {...register("gender")} />
+                성소수자
               </label>
             </div>
             {errors.gender && (

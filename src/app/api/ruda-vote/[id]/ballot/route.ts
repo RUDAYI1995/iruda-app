@@ -14,8 +14,14 @@ function participantsOf(vote: { kind: string; requesterId: string; contextJson: 
       ...((context.teamBUserIds as string[] | undefined) ?? []),
     ];
   }
+  // 국민투표제는 공개 정책 투표라 "참가자"가 따로 없음 — 100번째 동참자라고 투표에서 배제하지 않음
+  if (vote.kind === "REFERENDUM") return [];
   return [vote.requesterId];
 }
+
+const REFERENDUM_ANNOUNCEMENT =
+  "국민투표를 통해 찬성 의견이 모였습니다. 루다월드는 이를 공식정책으로 채택해, 해당 피해자를 보호하고 " +
+  "독재자나 범죄자를 제재하는 방안을 심사숙고하겠습니다.";
 
 const VOTE_THRESHOLD = 3; // 이 수만큼 투표가 모이면 다수결로 즉시 확정
 
@@ -100,6 +106,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await prisma.rudaVote.update({
       where: { id },
       data: { status: approved ? "APPROVED" : "REJECTED", resolvedAt: new Date() },
+    });
+    return NextResponse.json({ status: approved ? "APPROVED" : "REJECTED", totalVotes: ballots.length });
+  }
+
+  if (vote.kind === "REFERENDUM") {
+    const approve = tally.APPROVE ?? 0;
+    const reject = tally.REJECT ?? 0;
+    const approved = approve > reject;
+    await prisma.rudaVote.update({
+      where: { id },
+      data: {
+        status: approved ? "APPROVED" : "REJECTED",
+        resolvedAt: new Date(),
+        resolutionNote: approved ? REFERENDUM_ANNOUNCEMENT : null,
+      },
     });
     return NextResponse.json({ status: approved ? "APPROVED" : "REJECTED", totalVotes: ballots.length });
   }

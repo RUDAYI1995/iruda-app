@@ -5,10 +5,46 @@ import Link from "next/link";
 import "./ludapia.css";
 import { initLudapiaGame } from "./game";
 
+const BOARD_ASPECT = 900 / 560;
+
 export default function LudapiaPage() {
   useEffect(() => {
     const cleanup = initLudapiaGame();
     return cleanup;
+  }, []);
+
+  // 맵 전체가 스크롤 없이 한 화면에 다 들어오도록, 남은 세로 공간과 가로 공간을
+  // 실측해서 더 작게 맞는 쪽 기준으로 game-wrap의 실제 px 크기를 계산함
+  // (CSS의 aspect-ratio + max-width/max-height만으로는 flex 컬럼 안에서 정확히 맞아떨어지지 않아 JS로 보정)
+  useEffect(() => {
+    function fitBoard() {
+      const wrap = document.getElementById("gameWrap");
+      const main = wrap?.parentElement;
+      const hud = document.querySelector<HTMLElement>(".hud-bar");
+      if (!wrap || !main) return;
+
+      const mainStyle = getComputedStyle(main);
+      const gap = parseFloat(mainStyle.gap || "8") || 8;
+      const availWidth = main.clientWidth;
+      const availHeight = main.clientHeight - (hud?.offsetHeight ?? 0) - gap;
+
+      let w = availWidth;
+      let h = w / BOARD_ASPECT;
+      if (h > availHeight) {
+        h = availHeight;
+        w = h * BOARD_ASPECT;
+      }
+      wrap.style.width = `${Math.max(0, Math.floor(w))}px`;
+      wrap.style.height = `${Math.max(0, Math.floor(h))}px`;
+    }
+
+    fitBoard();
+    window.addEventListener("resize", fitBoard);
+    const t = setTimeout(fitBoard, 200);
+    return () => {
+      window.removeEventListener("resize", fitBoard);
+      clearTimeout(t);
+    };
   }, []);
 
   return (

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { LudaAlertButton } from "@/components/LudaAlertButton";
+import { GlobeDartModal } from "@/components/GlobeDartModal";
+import { BillSplitModal } from "@/components/BillSplitModal";
 
 interface ChatEntry {
   role: "user" | "ai";
@@ -16,6 +18,8 @@ export function AiRudaWidget() {
     { role: "ai", text: "닝겐, 뭘 도와줄까냥? 🐾" },
   ]);
   const [extraOpen, setExtraOpen] = useState(false);
+  const [globeOpen, setGlobeOpen] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
 
   async function sendMessage() {
     const text = input.trim();
@@ -114,8 +118,35 @@ export function AiRudaWidget() {
           +
         </button>
 
-        {extraOpen && <LudaAlertButton />}
+        {extraOpen && (
+          <>
+            <LudaAlertButton />
+
+            <button
+              type="button"
+              onClick={() => setGlobeOpen(true)}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-200 bg-white text-lg shadow transition-transform hover:scale-110 dark:border-blue-900 dark:bg-zinc-950"
+              title="다트 던지기로 여행지 뽑기"
+              aria-label="다트 던지기로 여행지 뽑기"
+            >
+              🌍
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setBillOpen(true)}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-white text-lg shadow transition-transform hover:scale-110 dark:border-emerald-900 dark:bg-zinc-950"
+              title="정산 계산기"
+              aria-label="정산 계산기"
+            >
+              🧾
+            </button>
+          </>
+        )}
       </div>
+
+      {globeOpen && <GlobeDartModal onClose={() => setGlobeOpen(false)} />}
+      {billOpen && <BillSplitModal onClose={() => setBillOpen(false)} />}
     </div>
   );
 }

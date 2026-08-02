@@ -34,6 +34,34 @@ const PAGES: Record<string, { title: string; desc: string }> = {
     title: "원격 여행 안전 서비스",
     desc: "담당 가이드가 책임지고 여행자의 안전을 원격으로 모니터링·지원하는 서비스예요.",
   },
+  "lgbt-travel": {
+    title: "LGBT와 친해지기 여행코스",
+    desc: "성별·성적지향과 상관없이 모두가 존중받으며 함께 다니는 여행 코스예요.",
+  },
+  "family-travel": {
+    title: "아이와 즐거운 안심여행",
+    desc: "아이를 동반한 가족이 안심하고 다닐 수 있도록 짜여진 여행 코스예요.",
+  },
+  "cool-summer-travel": {
+    title: "더위 뻥! 시원한 여행",
+    desc: "무더위를 피해 시원하게 즐길 수 있는 여행지·코스를 모아둔 기획전이에요.",
+  },
+  "ruda-alliance": {
+    title: "루다연합",
+    desc: "불공정·차별·억압·폭력에 반대하는 루다월드의 정의로운 유저 연합이에요.",
+  },
+  "sept-daegu-event": {
+    title: "9월 대구 특가 할인!",
+    desc: "매년 9월, 대구에서 열리는 루다월드 특별 할인 이벤트예요.",
+  },
+  "mood-travel": {
+    title: "나의 기분에 땡기는 여행",
+    desc: "오늘의 기분에 딱 맞는 여행지를 AI루다가 골라주는 기획전이에요.",
+  },
+  "transparent-voting": {
+    title: "선거지킴이 모여라!",
+    desc: "루다월드 랭킹·이벤트 투표가 100% 투명하게 진행되도록 지켜보는 감시단이에요.",
+  },
 };
 
 export default async function ComingSoonPage({

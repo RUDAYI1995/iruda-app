@@ -11,6 +11,7 @@ function participantsOf(vote: { kind: string; requesterId: string; contextJson: 
       ...((context.teamBUserIds as string[] | undefined) ?? []),
     ];
   }
+  if (vote.kind === "REFERENDUM") return [];
   return [vote.requesterId];
 }
 
@@ -21,14 +22,17 @@ export async function GET() {
   }
 
   const votes = await prisma.rudaVote.findMany({
-    where: { status: "OPEN" },
+    where: { OR: [{ status: "OPEN" }, { kind: "REFERENDUM", status: "APPROVED" }] },
     include: { ballots: true },
     orderBy: { createdAt: "desc" },
   });
 
   const myUserId = session.user.id;
   const eligible = await Promise.all(
-    votes.map(async (v) => ({ v, allowed: await canVote(myUserId, participantsOf(v)) }))
+    votes.map(async (v) => ({
+      v,
+      allowed: v.status === "OPEN" ? await canVote(myUserId, participantsOf(v)) : true,
+    }))
   );
 
   return NextResponse.json({
@@ -40,6 +44,8 @@ export async function GET() {
         label: v.label,
         photoAUrl: v.photoAUrl,
         photoBUrl: v.photoBUrl,
+        status: v.status,
+        resolutionNote: v.resolutionNote,
         createdAt: v.createdAt,
         myBallot: v.ballots.find((b) => b.voterId === session.user!.id)?.choice ?? null,
         tally: v.ballots.reduce<Record<string, number>>((acc, b) => {

@@ -29,6 +29,8 @@ import { AssaWorldButton } from "@/components/AssaWorldButton";
 import { AssaDungeonButton } from "@/components/AssaDungeonButton";
 import { LudapiaButton } from "@/components/LudapiaButton";
 import { RudaVoteButton } from "@/components/RudaVoteButton";
+import { LevelBadgeInline } from "@/components/LevelBadgeInline";
+import { HomeHeroCarousel } from "@/components/HomeHeroCarousel";
 import { LudaWorldLogo } from "@/components/LudaWorldLogo";
 import { PromoTravelBanner } from "@/components/PromoTravelBanner";
 import {
@@ -320,8 +322,11 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 pb-0 pt-8">
-        <div className="flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:flex-wrap md:overflow-x-auto">
-          <LudaWorldLogo />
+        <div className="relative flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:flex-wrap md:overflow-x-auto">
+          <HomeHeroCarousel />
+          <div id="hero-logo-anchor" className="pl-1">
+            <LudaWorldLogo />
+          </div>
           <div className="flex min-w-0 flex-col gap-1 pt-1.5 md:ml-8">
             <div className="w-[180px]">
               <SiteSearchBar items={SEARCH_ITEMS} />
@@ -353,7 +358,7 @@ export default async function Home() {
               </div>
             </div>
             <div className="w-full min-w-0 -mx-6 flex gap-2 overflow-x-auto px-6 md:mx-0 md:w-auto md:overflow-visible md:px-0">
-              <div className="h-[64px] w-[140px] shrink-0">
+              <div id="hero-promo-first" className="h-[64px] w-[140px] shrink-0">
                 <PromoTravelBanner />
               </div>
               <div className="h-[64px] w-[140px] shrink-0">
@@ -384,6 +389,7 @@ export default async function Home() {
                   title="뉴질랜드 · 지금 예약하면 특가"
                 />
               </div>
+              <LevelBadgeInline />
             </div>
           </div>
           <nav className="-mx-6 flex w-full min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-6 pt-1.5 text-sm font-medium md:ml-auto md:w-auto md:overflow-visible md:px-0">
@@ -415,7 +421,7 @@ export default async function Home() {
               href="/matching-test"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
             >
-              매칭 테스트
+              항공휴게소
             </Link>
             {session?.user ? (
               <>
@@ -464,7 +470,7 @@ export default async function Home() {
         </div>
       </header>
 
-      <section className="relative w-full overflow-hidden">
+      <section id="home-hero-section" className="relative w-full overflow-hidden">
         <HeroLandscape condition={heroCondition} />
       </section>
 

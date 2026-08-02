@@ -1,29 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-
-interface LevelInfo {
-  loggedIn: boolean;
-  level?: number;
-  title?: string;
-  exp?: number;
-  currentFloor?: number;
-  nextFloor?: number;
-  ratio?: number;
-  needsGender?: boolean;
-}
+import { usePathname } from "next/navigation";
+import { useLevelInfo, GENDER_LABELS } from "@/lib/useLevelInfo";
 
 export function LevelBadge() {
-  const [info, setInfo] = useState<LevelInfo | null>(null);
+  const info = useLevelInfo();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    fetch("/api/level")
-      .then((res) => res.json())
-      .then(setInfo)
-      .catch(() => {});
-  }, []);
-
+  // 홈 화면은 헤더 프로모션 배너 줄 안에 자체 레벨 뱃지(LevelBadgeInline)를 따로 두므로
+  // 전역 고정 뱃지는 거기서 숨김(안 그러면 루다월드 로고와 겹침)
+  if (pathname === "/home") return null;
   if (!info?.loggedIn) return null;
 
   return (
@@ -41,8 +28,12 @@ export function LevelBadge() {
           style={{ width: `${(info.ratio ?? 0) * 100}%` }}
         />
       </span>
-      {info.needsGender && (
+      {info.needsGender ? (
         <span className="text-[10px] text-red-500">⚠️ 성별 설정 필요</span>
+      ) : (
+        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+          성별: {GENDER_LABELS[info.gender as "MALE" | "FEMALE" | "LGBTQ"]}
+        </span>
       )}
     </Link>
   );

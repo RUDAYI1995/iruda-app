@@ -225,7 +225,7 @@ export function ShyCareButton() {
             ✕
           </button>
 
-          <div className="relative w-full max-w-[420px] overflow-hidden rounded-3xl shadow-2xl">
+          <div className="relative w-full max-w-[640px] overflow-hidden rounded-3xl shadow-2xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/shycare.png" alt="소심케어제" className="block w-full" />
 
