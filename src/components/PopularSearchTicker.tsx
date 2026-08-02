@@ -27,7 +27,11 @@ export function PopularSearchTicker() {
       <span className="font-medium text-zinc-700 dark:text-zinc-300">
         {index + 1}.
       </span>
-      <span key={index} style={{ animation: "ticker-fade 2.8s ease-in-out" }}>
+      <span
+        key={index}
+        className="inline-block w-[132px] truncate align-bottom"
+        style={{ animation: "ticker-fade 2.8s ease-in-out" }}
+      >
         {TRENDING[index]}
       </span>
     </div>

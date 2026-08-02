@@ -16,6 +16,7 @@ export function LudiaLoadingScreen() {
   const [fadingOut, setFadingOut] = useState(false);
   const doneRef = useRef(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const safetyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRouteRef = useRef(true);
   const currentKeyRef = useRef(pathname + "?" + searchParams.toString());
 
@@ -28,12 +29,18 @@ export function LudiaLoadingScreen() {
     tickRef.current = setInterval(() => {
       setProgress((p) => Math.min(90, p + 7));
     }, 120);
+
+    // 안전장치: pathname 변경 감지가 어떤 이유로든(같은 경로로 재이동, 감지 실패 등)
+    // 안 걸리는 경우에도 로딩화면이 영구히 화면을 가리지 않도록 매 이동마다 강제 종료 타이머를 둠
+    if (safetyRef.current) clearTimeout(safetyRef.current);
+    safetyRef.current = setTimeout(finishLoading, 4000);
   }
 
   function finishLoading() {
     if (doneRef.current) return;
     doneRef.current = true;
     if (tickRef.current) clearInterval(tickRef.current);
+    if (safetyRef.current) clearTimeout(safetyRef.current);
     setProgress(100);
     setFadingOut(true);
     setTimeout(() => setVisible(false), 350);
