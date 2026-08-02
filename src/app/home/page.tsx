@@ -322,7 +322,7 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 font-sans dark:bg-black">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 pb-0 pt-8">
-        <div className="relative flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:flex-wrap md:overflow-x-auto">
+        <div className="relative flex w-full min-w-0 flex-col items-start gap-4 md:flex-row md:flex-nowrap md:overflow-x-auto">
           <HomeHeroCarousel />
           <div id="hero-logo-anchor" className="pl-1">
             <LudaWorldLogo />
