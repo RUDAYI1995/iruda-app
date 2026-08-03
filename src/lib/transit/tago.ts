@@ -1,4 +1,20 @@
-const BASE_URL = "http://apis.data.go.kr/1613000";
+const BASE_URL = "https://apis.data.go.kr/1613000";
+
+// 외부 API가 응답이 없을 때 요청이 영원히 "검색 중..."에 멈춰있지 않도록 타임아웃을 둠
+async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("교통정보 서버 응답이 너무 늦어요. 잠시 후 다시 시도해주세요.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 // TAGO(국토교통부 전국 버스정류소 정보) API가 실제로 쓰는 도시코드표 그대로 사용.
 // ⚠️ 서울특별시는 이 API 자체에 포함되어 있지 않음 — 서울은 별도의 서울시 TOPIS API가 필요해서 여기 목록엔 없음.
@@ -79,7 +95,7 @@ export async function searchBusStops(
     nodeNm
   )}&numOfRows=20&pageNo=1&_type=json`;
 
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   const data = await res.json();
 
   const items = data?.response?.body?.items?.item;
@@ -100,7 +116,7 @@ export async function getArrivals(
   const serviceKey = requireApiKey();
   const url = `${BASE_URL}/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList?serviceKey=${serviceKey}&cityCode=${cityCode}&nodeId=${nodeId}&numOfRows=20&pageNo=1&_type=json`;
 
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   const data = await res.json();
 
   const items = data?.response?.body?.items?.item;
