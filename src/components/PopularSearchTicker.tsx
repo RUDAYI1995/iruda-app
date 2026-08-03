@@ -20,11 +20,11 @@ export function PopularSearchTicker() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-      <span className="rounded-full bg-rose-100 px-2 py-0.5 font-semibold text-rose-600 dark:bg-rose-900/40 dark:text-rose-300">
+    <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
+      <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 font-semibold text-rose-600 dark:bg-rose-900/40 dark:text-rose-300">
         인기검색어
       </span>
-      <span className="font-medium text-zinc-700 dark:text-zinc-300">
+      <span className="shrink-0 font-medium text-zinc-700 dark:text-zinc-300">
         {index + 1}.
       </span>
       <span
