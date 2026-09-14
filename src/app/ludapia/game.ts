@@ -241,7 +241,9 @@ export function initLudapiaGame() {
 
   const plaza = { x: W / 2, y: H / 2 + 20, r: 95 };
   const houseSpots = [
-    { x: 110, y: 120 },
+    // 원래 좌표(110,120)는 isometric 투영 시 화면 y좌표가 음수(-60)가 되어
+    // 경복궁 건물이 캔버스 위로 완전히 벗어나 안 보이던 버그 — 화면에 들어오는 좌표로 조정
+    { x: 340, y: 345 },
     { x: W - 110, y: 120 },
     { x: 100, y: H - 100 },
     { x: W - 100, y: H - 100 },
