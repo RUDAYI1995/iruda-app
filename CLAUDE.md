@@ -49,3 +49,7 @@ Next.js App Router project (`src/app`). Auth, matching, and AI logic all live un
 ## Product context
 
 `이루다/PRD.md` and `이루다/최종계획.txt` (one directory up from this app) are the living product spec — feature scope, matching algorithm formulas, data model rationale, and what's explicitly out of scope for now. Check them before assuming a feature request is new or before "completing" something that was deliberately left as a stub.
+
+## 칠곡 원정대 (three.js 미니게임) 목표
+
+칠곡 원정대 농촌 마을 작업의 **현재 목표와 기준 사진, 에셋 요청서, 구현 규칙**은 `docs/chilgok-expedition/GOAL-central-village.md` 에 있어요. 해당 게임 작업을 시작할 때 먼저 읽고, 끝나면 그 문서의 체크리스트를 갱신해요.
