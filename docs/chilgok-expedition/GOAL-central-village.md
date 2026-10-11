@@ -80,8 +80,9 @@
 - [ ] 걷기/성능/기존 맵 회귀 테스트(`zone_walk`, `cwalk`, `farm_test`, `regress2`) 통과 후 아티팩트 재게시
 - [ ] 비닐하우스 구조물 매핑 시트(아직 못 받음) 반영
 
-## 8. 코드/자료 위치 (⚠ 임시 폴더에 있어요)
+## 8. 코드/자료 위치
 
-- 게임 소스는 **세션 임시 작업 폴더**(`.../scratchpad/fixed/칠곡원정대/` 및 `sky/block_V.js` 등)에 있고, 이 저장소(iruda-app)에는 아직 들어 있지 않아요. 세션이 끝나면 사라질 수 있으니, 보관이 필요하면 저장소에 커밋하자고 말씀해 주세요.
-- 게시본(비공개 아티팩트): https://claude.ai/artifact/HR7JnGDdQ6z47NuSBGKDSX (V35 기준)
-- 중앙 마을 코드: `block_V.js`의 "중앙 마을" 블록(`houseFull`, `HD`, `ROWS`), 고정 3D 소품 `SOLID`/`PLANT`/`dispatch`, 배칭 `batchStatic`.
+이제 저장소 안에 모두 있어요 (`docs/chilgok-expedition/`). 자세한 구조와 다시 빌드하는 법은 `README.md`.
+
+- 게시본(비공개 아티팩트): https://claude.ai/artifact/HR7JnGDdQ6z47NuSBGKDSX (V37 기준)
+- 중앙 마을 코드: `src/sky/block_V.js`의 "중앙 마을" 블록(`houseFull`, `HD`, `ROWS`), 지붕 `hipBody`/`compoundTop`, 고정 3D 소품 `SOLID`/`PLANT`/`dispatch`, 배칭 `batchStatic`.

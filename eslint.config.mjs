@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 칠곡 원정대 미니게임(독립 three.js 프로젝트)은 Next 린트 대상이 아니에요
+    "docs/chilgok-expedition/**",
   ]),
 ]);
 

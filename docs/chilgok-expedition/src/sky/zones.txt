@@ -1,0 +1,150 @@
+      // =================== 구역 확장 (1구역 = 지금 마을, 위로 2~5구역, 아래로 6~10구역) ===================
+      var SPINE_X = -632, ZONE_H = 350;
+      var ZONES = [
+        { n:1,  zc:250,  name:"입구 마을",       sub:"돌담 골목과 논이 있는 마을" },
+        { n:2,  zc:600,  name:"장터 골목",       sub:"집이 빽빽한 장터 골목, 끝에 우물 마당",       segs:[[-632,600,-1230,600]], plaza:{ x:-1285, z:600, s:76, well:true, stalls:true }, kinds:["gaw","slate","thatch","gaw","slate"] },
+        { n:3,  zc:950,  name:"ㄱ자 골목",       sub:"모퉁이를 돌아 이어지는 골목",                 segs:[[-632,950,-1080,950],[-1080,950,-1080,1100],[-1080,1100,-1420,1100]], kinds:["thatch","gaw","thatch","slate"], tree:{ x:-1440, z:1100 } },
+        { n:4,  zc:1300, name:"갈림길 마을",     sub:"세 갈래로 나뉘는 골목",                       segs:[[-632,1300,-1350,1300],[-900,1300,-900,1140],[-1150,1300,-1150,1460]], kinds:["gaw","gaw","slate","thatch"] },
+        { n:5,  zc:1650, name:"과수원 마을",     sub:"감나무와 사과나무가 있는 골목",               segs:[[-632,1650,-1400,1650]], kinds:["thatch","gaw","thatch"], orchard:{ x0:-700, x1:-1380, z:1580, rows:2 }, onlySide:1 },
+        { n:6,  zc:-100, name:"정자 마당",       sub:"큰 나무와 정자가 있는 마당",                  segs:[[-632,-100,-1010,-100]], plaza:{ x:-1100, z:-100, s:150, pavilion:true, tree:true }, kinds:["gaw","thatch","gaw"] },
+        { n:7,  zc:-450, name:"구불 골목",       sub:"굽이굽이 이어지는 골목",                      segs:[[-632,-450,-850,-450],[-850,-450,-850,-370],[-850,-370,-1070,-370],[-1070,-370,-1070,-450],[-1070,-450,-1330,-450]], kinds:["slate","thatch","gaw","thatch"] },
+        { n:8,  zc:-800, name:"공동 마당",       sub:"골목이 네모로 둘러싸는 공동 마당",            segs:[[-632,-800,-780,-800],[-780,-800,-1100,-800],[-1100,-800,-1100,-690],[-1100,-690,-780,-690],[-780,-690,-780,-800],[-1100,-800,-1300,-800]], center:{ x:-940, z:-745, well:true }, kinds:["gaw","slate","thatch"] },
+        { n:9,  zc:-1150,name:"방앗간 골목",     sub:"방앗간과 창고가 늘어선 골목",                 segs:[[-632,-1150,-1450,-1150]], mills:true, kinds:["slate","gaw","slate"] },
+        { n:10, zc:-1500,name:"마을 끝",         sub:"개울을 건너 마을 끝 마당으로",                segs:[[-632,-1500,-1300,-1500]], stream:{ x:-1000 }, kinds:["gaw","thatch","gaw","slate"], tree:{ x:-1340, z:-1500 }, hall:true }
+      ];
+      function zoneOf(z){ for(var i = 0; i < ZONES.length; i++) if(Math.abs(z - ZONES[i].zc) < ZONE_H/2) return ZONES[i]; return z > 1825 ? { n:11, name:"북쪽 벼농사 들판", sub:"끝없이 펼쳐진 벼논" } : (z < -1675 ? { n:0, name:"남쪽 논농사 들판", sub:"길게 이어진 논" } : null); }
+      var zoneGroups = [];
+      var zrnd = function(seed){ var sd = seed; return function(){ sd = (sd*16807) % 2147483647; return sd/2147483647; }; };
+      var YARD = [["y_pumpkin", 3.2], ["y_sunflower", 9], ["y_wild", 4.6], ["y_veg", 4.2], ["y_jars", 5], ["y_firewood", 4], ["y_bicycle", 6], ["p_bush0", 4.4], ["p_bush1", 4.2], ["p_cosmos", 7]];
+      function gateAt(x, z, rotY){
+        var F = VA && VA.props.gate_open, S2 = VA && VA.props.gate_side; if(!F || !S2) return;
+        var h = 11.5, w = h*F.w/F.h, g = new THREE.Group(), mt = function(e){ return new THREE.MeshLambertMaterial({ map:pTex(e), transparent:true, alphaTest:0.5, side:THREE.DoubleSide, color:0xe8e2da }); };
+        var fm = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mt(F)); fm.position.set(0, h/2, 1.0); g.add(fm);
+        var bm = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mt(F)); bm.position.set(0, h/2, -1.0); g.add(bm);
+        var sw = h*S2.w/S2.h; [-1, 1].forEach(function(sd){ var sm = new THREE.Mesh(new THREE.PlaneGeometry(sw, h), mt(S2)); sm.rotation.y = Math.PI/2; sm.position.set(sd*w*0.46, h/2, 0); g.add(sm); });
+        g.position.set(x, 0, z); g.rotation.y = rotY || 0; CP.add(g);
+      }
+      function wallLine(a, c, b, vert){                          // 돌담 한 토막 (a~b 구간, 고정 좌표 c). vert 이면 z 방향으로 뻗어요
+        var len = b - a, mid = (a + b)/2; if(len < 2) return;
+        var g = new THREE.Group(), tex = VA ? vtex(VA.tiles.a_wall, len/11, 0.7, true) : null, rt = VA ? vtex(VA.tiles.r_gaw, len/9, 0.4, true) : null;
+        var body = new THREE.Mesh(new THREE.BoxGeometry(len, 7.6, 2.4), new THREE.MeshLambertMaterial({ color:tex ? 0xffffff : 0x8a8478, map:tex })); body.position.y = 3.8; body.castShadow = true; body.receiveShadow = true; g.add(body);
+        var capM = new THREE.MeshLambertMaterial({ color:rt ? 0xffffff : 0x4a4a52, map:rt });
+        [-1, 1].forEach(function(sd){ var cp = new THREE.Mesh(new THREE.BoxGeometry(len + 0.6, 0.5, 1.9), capM); cp.position.set(0, 8.15, sd*0.9); cp.rotation.x = sd*0.5; g.add(cp); });
+        var ridge = new THREE.Mesh(new THREE.BoxGeometry(len + 0.6, 0.45, 0.6), new THREE.MeshLambertMaterial({ color:0x34353a })); ridge.position.y = 8.75; g.add(ridge);
+        if(vert){ g.position.set(c, 0, mid); g.rotation.y = Math.PI/2; VIL_RECTS.push({ x:c, z:mid, hx:1.5, hz:len/2 + 0.5 }); }
+        else { g.position.set(mid, 0, c); VIL_RECTS.push({ x:mid, z:c, hx:len/2 + 0.5, hz:1.5 }); }
+        CP.add(g);
+      }
+      function wellAt(x, z){
+        var tex = VA ? vtex(VA.tiles.a_wall, 2, 0.4, true) : null, g = new THREE.Group();
+        var ring = new THREE.Mesh(new THREE.CylinderGeometry(4.4, 4.8, 3.2, 14), new THREE.MeshLambertMaterial({ color:tex ? 0xffffff : 0x8a8478, map:tex })); ring.position.y = 1.6; ring.castShadow = true; g.add(ring);
+        var wat = new THREE.Mesh(new THREE.CircleGeometry(3.4, 14), new THREE.MeshLambertMaterial({ color:0x2d6b78 })); wat.rotation.x = -Math.PI/2; wat.position.y = 3.15; g.add(wat);
+        var woodM = new THREE.MeshLambertMaterial({ color:0x6b4a32 });
+        [-1, 1].forEach(function(sd){ var pst = new THREE.Mesh(new THREE.BoxGeometry(0.7, 7.5, 0.7), woodM); pst.position.set(sd*3.9, 5.5, 0); g.add(pst); });
+        var roof = new THREE.Mesh(new THREE.ConeGeometry(6.6, 2.8, 4), new THREE.MeshLambertMaterial({ color:0x4a4a52 })); roof.rotation.y = Math.PI/4; roof.position.y = 10.4; g.add(roof);
+        g.position.set(x, 0, z); CP.add(g); VIL_RECTS.push({ x:x, z:z, hx:5.2, hz:5.2 });
+      }
+      function zoneBuild(Z){
+        var G = new THREE.Group(); G.name = "zone" + Z.n; V.add(G); var prev = CP; CP = G; zoneGroups.push({ G:G, zc:Z.zc });
+        var rn = zrnd(Z.n*977 + 13), segs = Z.segs, AH = 10;
+        function segHit(sg, x, z, hx, hz, pad){
+          var x0 = Math.min(sg[0], sg[2]) - pad, x1 = Math.max(sg[0], sg[2]) + pad, z0 = Math.min(sg[1], sg[3]) - pad, z1 = Math.max(sg[1], sg[3]) + pad;
+          return x + hx > x0 && x - hx < x1 && z + hz > z0 && z - hz < z1;
+        }
+        function free(x, z, hx, hz){
+          if(x - hx < -1990 || x + hx > -650) return false;
+          for(var i = 0; i < VIL_RECTS.length; i++){ var r = VIL_RECTS[i]; if(Math.abs(x - r.x) < hx + r.hx && Math.abs(z - r.z) < hz + r.hz) return false; }
+          for(i = 0; i < segs.length; i++) if(segHit(segs[i], x, z, hx, hz, AH + 6)) return false;
+          if(Z.plaza && Math.abs(x - Z.plaza.x) < Z.plaza.s/2 + hx && Math.abs(z - Z.plaza.z) < Z.plaza.s/2 + hz) return false;
+          if(Z.stream && Math.abs(x - Z.stream.x) < 16 + hx) return false;
+          return true;
+        }
+        // 골목 바닥(돌길) + 이음 모서리
+        segs.forEach(function(sg){
+          var vert = sg[0] === sg[2], a = vert ? Math.min(sg[1], sg[3]) : Math.min(sg[0], sg[2]), b = vert ? Math.max(sg[1], sg[3]) : Math.max(sg[0], sg[2]), len = b - a + 15;
+          var tex = VA ? vtex(VA.tiles.a_road, len/43, 1, true) : null;
+          var m = new THREE.Mesh(new THREE.PlaneGeometry(len, 17), new THREE.MeshLambertMaterial({ color:tex ? 0xffffff : 0x9a9488, map:tex, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3 }));
+          m.rotation.x = -Math.PI/2; var gp = new THREE.Group(); gp.add(m); gp.position.set(vert ? sg[0] : (a + b)/2, 0.07, vert ? (a + b)/2 : sg[1]); gp.rotation.y = vert ? Math.PI/2 : 0; G.add(gp);
+        });
+        if(Z.plaza){ var P = Z.plaza, pt = VA ? vtex(VA.tiles.a_road, P.s/43, P.s/43*0.6, true) : null;
+          var pm = new THREE.Mesh(new THREE.PlaneGeometry(P.s, P.s), new THREE.MeshLambertMaterial({ color:pt ? 0xffffff : 0x9a9488, map:pt, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3 })); pm.rotation.x = -Math.PI/2; pm.position.set(P.x, 0.07, P.z); G.add(pm);
+          if(P.well) wellAt(P.x, P.z);
+          if(P.stalls) for(var si = 0; si < 4; si++){ var sx = P.x + (si % 2 ? 22 : -22), sz = P.z + (si < 2 ? 22 : -22); card("p_pyeongsang", sx, sz, 6.5); card(si % 2 ? "y_jars" : "y_veg", sx + 5, sz + 3, 4.2); }
+          if(P.pavilion){ card("pavilion", P.x + 30, P.z - 25, 26); VIL_RECTS.push({ x:P.x + 30, z:P.z - 25, hx:9, hz:9 }); }
+          if(P.tree){ buildBigTree(P.x - 25, P.z + 28, 1.6); VIL_RECTS.push({ x:P.x - 25, z:P.z + 28, hx:5, hz:5 }); }
+        }
+        if(Z.center){ wellAt(Z.center.x, Z.center.z); for(var ci = 0; ci < 7; ci++) card(YARD[ci % 7][0], Z.center.x + (rn() - 0.5)*120, Z.center.z + (rn() - 0.5)*40, YARD[ci % 7][1]); }
+        if(Z.tree){ buildBigTree(Z.tree.x, Z.tree.z, 1.4); VIL_RECTS.push({ x:Z.tree.x, z:Z.tree.z, hx:5, hz:5 }); }
+        if(Z.stream){ var sx0 = Z.stream.x, sl = ZONE_H - 20, st = VA ? vtex(VA.tiles.t_gravel, 1, sl/26, true) : null;
+          var sm2 = new THREE.Mesh(new THREE.PlaneGeometry(26, sl), new THREE.MeshLambertMaterial({ color:st ? 0xffffff : 0x6a8f98, map:st, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 })); sm2.rotation.x = -Math.PI/2; sm2.position.set(sx0, 0.1, Z.zc); G.add(sm2);
+          var be = VA && VA.props.s_bridge_wood; if(be){ var bmm = new THREE.Mesh(new THREE.PlaneGeometry(27, 27*be.h/be.w), new THREE.MeshLambertMaterial({ map:pTex(be), transparent:true, alphaTest:0.3, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4 })); bmm.rotation.x = -Math.PI/2; bmm.rotation.z = Math.PI/2; bmm.position.set(sx0, 0.16, Z.zc); G.add(bmm); }
+          VIL_RECTS.push({ x:sx0, z:Z.zc - 92, hx:13, hz:78 }); VIL_RECTS.push({ x:sx0, z:Z.zc + 92, hx:13, hz:78 }); }
+        // 집, 담, 출입문, 마당
+        var gates = segs.map(function(){ return [[], []]; });
+        var houseList = [];
+        segs.forEach(function(sg, si){
+          var vert = sg[0] === sg[2], a = vert ? Math.min(sg[1], sg[3]) : Math.min(sg[0], sg[2]), b = vert ? Math.max(sg[1], sg[3]) : Math.max(sg[0], sg[2]), c0 = vert ? sg[0] : sg[1];
+          [-1, 1].forEach(function(side, sidx){
+            if(Z.onlySide && side !== Z.onlySide) return;
+            for(var p = a + 62; p < b - 40; p += 96 + rn()*16){
+              var sc = 0.86 + rn()*0.3, kind = Z.kinds[Math.floor(rn()*Z.kinds.length)], hx = 17*sc, hz = 12.5*sc, off = 52 + (rn() - 0.5)*6;
+              var hxw = vert ? c0 + side*off : p, hzw = vert ? p : c0 + side*off, rot = vert ? (side > 0 ? -Math.PI/2 : Math.PI/2) : (side > 0 ? Math.PI : 0);
+              var rx = vert ? hz : hx, rz = vert ? hx : hz;
+              if(!free(hxw, hzw, rx + 1, rz + 1)) continue;
+              if(Z.mills && side < 0 && !vert){ var mk = rn() < 0.5 ? "mill" : "hall"; boxBuilding(mk, hxw, hzw, 28, 20, 11, mk, 1); VIL_RECTS.push({ x:hxw, z:hzw, hx:15, hz:11.5 }); }
+              else { houseArt(kind, hxw, hzw, rot, sc); VIL_RECTS.push({ x:hxw, z:hzw, hx:rx, hz:rz }); }
+              gates[si][sidx].push(p);
+              houseList.push({ x:hxw, z:hzw, vert:vert, side:side });
+              var ny = 1 + Math.floor(rn()*3);                   // 마당 소품
+              for(var q = 0; q < ny; q++){ var yk = YARD[Math.floor(rn()*YARD.length)], yp = p + (rn() - 0.5)*30, yo = c0 + side*(18 + rn()*14);
+                card(yk[0], vert ? yo : yp, vert ? yp : yo, yk[1]*(0.9 + rn()*0.3)); }
+            }
+          });
+        });
+        segs.forEach(function(sg, si){
+          var vert = sg[0] === sg[2], a = vert ? Math.min(sg[1], sg[3]) : Math.min(sg[0], sg[2]), b = vert ? Math.max(sg[1], sg[3]) : Math.max(sg[0], sg[2]), c0 = vert ? sg[0] : sg[1];
+          if(!vert && b >= SPINE_X - 2) b = SPINE_X - 18;
+          [-1, 1].forEach(function(side, sidx){
+            if(Z.onlySide && side !== Z.onlySide) return;
+            var c = c0 + side*14, open = gates[si][sidx].map(function(gp){ return [gp - 6.5, gp + 6.5]; });
+            segs.forEach(function(o, oi){ if(oi === si) return; var ov = o[0] === o[2]; if(ov === vert) return;
+              var oc = ov ? o[0] : o[1], oa = ov ? Math.min(o[1], o[3]) : Math.min(o[0], o[2]), ob = ov ? Math.max(o[1], o[3]) : Math.max(o[0], o[2]);
+              if(c >= oa - 10 && c <= ob + 10 && oc > a - 12 && oc < b + 12) open.push([oc - 11, oc + 11]); });
+            if(Z.plaza){ var P2 = Z.plaza; if(!vert && Math.abs(c - P2.z) < P2.s/2 && P2.x + P2.s/2 > a - 2) open.push([P2.x - P2.s/2 - 12, 1e9]); }
+            open.sort(function(u, v){ return u[0] - v[0]; });
+            var cur = a; open.forEach(function(o2){ if(o2[0] > cur) wallLine(cur, c, Math.min(o2[0], b), vert); cur = Math.max(cur, o2[1]); }); if(cur < b) wallLine(cur, c, b, vert);
+            gates[si][sidx].forEach(function(gp){ gateAt(vert ? c : gp, vert ? gp : c, vert ? Math.PI/2 : 0); });
+          });
+        });
+        // 과수원 줄
+        if(Z.orchard){ var O = Z.orchard; for(var r = 0; r < O.rows; r++) for(var ox = O.x0; ox > O.x1; ox -= 38){ var tx = ox + (rn() - 0.5)*8, tz = O.z - r*34 + (rn() - 0.5)*6; if(!free(tx, tz, 4, 4)) continue; card(rn() < 0.5 ? "persimmon" : "apple", tx, tz, 22 + rn()*5); } }
+        // 돌담 안쪽 풀 덤불
+        houseList.forEach(function(h){ for(var k = 0; k < 2; k++){ var bk = ["p_bush0", "p_bush1", "p_bush2", "y_wild"][Math.floor(rn()*4)]; card(bk, h.x + (rn() - 0.5)*30, h.z - h.side*(h.vert ? 0 : 20) + (rn() - 0.5)*6, 4 + rn()*1.5); } });
+        CP = prev;
+      }
+      // 마을 앞 큰길(남북) + 땅 넓히기
+      (function(){
+        var tex = VA ? vtex(VA.tiles.a_road, 5350/43, 1, true) : null, len = 5350;
+        var sp = new THREE.Mesh(new THREE.PlaneGeometry(len, 17), new THREE.MeshLambertMaterial({ color:tex ? 0xffffff : 0x9a9488, map:tex, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3 }));
+        sp.rotation.x = -Math.PI/2; var gp = new THREE.Group(); gp.add(sp); gp.rotation.y = Math.PI/2; gp.position.set(SPINE_X, 0.075, 25); CP.add(gp);
+        CP.add(extGround2(VIL.x1, -650, -2700, -60, 0.1923));
+      })();
+      ZONES.forEach(function(Z){ if(Z.segs) zoneBuild(Z); });
+      // 비닐하우스 단지 쪽 길: 1구역 끝에서 단지 끝까지 가는 골목
+      // 벼농사/논농사 들판: 북쪽(위)과 남쪽(아래)으로 길게 (한 장씩이 아니라 한꺼번에 그려서 가벼워요)
+      (function(){
+        var spec = [["field0", 1], ["field1", 2], ["field2", 3]], mats = spec.map(function(sp){ return lamb(sp[0], 3, 3, [0x7a6a50, 0x4f9a3a, 0xc2a53a][sp[1] - 1], true); });
+        var plane = new THREE.PlaneGeometry(72, 96); plane.rotateX(-Math.PI/2);
+        var cols = 18, rowsN = [], rowsS = []; for(var r = 0; r < 8; r++){ rowsN.push(1900 + r*104); rowsS.push(-1800 - r*104); }
+        var all = []; rowsN.concat(rowsS).forEach(function(rz){ for(var c = 0; c < cols; c++) all.push([-730 - c*80, rz]); });
+        var buckets = [[], [], []], h = 7; all.forEach(function(q, i){ h = (h*16807 + i*31) % 2147483647; buckets[Math.floor(h/2147483647*3)].push(q); });
+        var d = new THREE.Object3D();
+        buckets.forEach(function(bk, bi){
+          var im = new THREE.InstancedMesh(plane, mats[bi], bk.length); im.receiveShadow = true;
+          bk.forEach(function(q, i){ d.position.set(q[0], 0.52, q[1]); d.updateMatrix(); im.setMatrixAt(i, d.matrix); }); im.frustumCulled = false; CP.add(im);
+        });
+        var rimG = new THREE.BoxGeometry(77, 0.5, 101), rimI = new THREE.InstancedMesh(rimG, new THREE.MeshLambertMaterial({ color:0x6d5236 }), all.length);
+        all.forEach(function(q, i){ d.position.set(q[0], 0.25, q[1]); d.updateMatrix(); rimI.setMatrixAt(i, d.matrix); }); rimI.frustumCulled = false; CP.add(rimI);
+        // 논둑 길 (농로): 들판 가운데로 동서로 한 줄
+        [2200, -2100].forEach(function(rz){ var rt = VA ? vtex(VA.tiles.a_road, 1450/43, 1, true) : null, rm = new THREE.Mesh(new THREE.PlaneGeometry(1450, 8), new THREE.MeshLambertMaterial({ color:rt ? 0xffffff : 0xb9a47a, map:rt })); rm.rotation.x = -Math.PI/2; rm.position.set(-1440, 0.6, rz - 52); CP.add(rm); });
+      })();
