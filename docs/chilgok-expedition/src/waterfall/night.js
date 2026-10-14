@@ -6,7 +6,7 @@ const SP = process.argv[2];
   await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
   await page.goto('file://' + SP + '/w/test/index.html'); await page.waitForTimeout(500);
   await page.click('#btnStart'); await page.click('#btnToWorld'); await page.click('#worldNodes .node-btn >> nth=0'); await page.waitForTimeout(2500);
-  const views = [[-60,40,640,-300,30,690],[-150,14,690,-300,25,690]];
+  const views = [[-110,26,650,-300,38,690],[-30,24,690,-300,30,690]];
   for (let k = 0; k < views.length; k++) {
     await page.evaluate((v) => { const D = window.__dbg, sc = D.three.scene; for (let i = 0; i < 3; i++) D.render(0.1);
       sc.children.forEach(c => { if (c.isHemisphereLight) c.intensity = 0.24; if (c.isDirectionalLight) c.intensity = 0.4; if (c.isAmbientLight) c.intensity = 0.3; });

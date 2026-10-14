@@ -20,7 +20,7 @@ sub("  if(k === \"f\"){ setMapExpanded(!mapExpanded); }\n", "  if(k === \"f\"){ 
 sub("expandBtn.addEventListener(\"click\", function(){ setMapExpanded(!mapExpanded); expandBtn.blur(); });\n", "expandBtn.addEventListener(\"click\", function(){ setMapExpanded(!mapExpanded); expandBtn.blur(); });\n(function(){ var ch = document.getElementById(\"canvasHolder\");\n  ch.addEventListener(\"mousemove\", function(e){ var cs = state.cam; if(cs.plock) return; var r = ch.getBoundingClientRect(); if(!r.height) return; var v = -((e.clientY - r.top)/r.height - 0.5)*2, a = Math.abs(v); cs.pt = a < 0.14 ? 0 : (v < 0 ? -1 : 1)*Math.min(1, (a - 0.14)/0.8); });\n})();\n", "mouse pitch")
 sub("E 살펴보기 · M 지도 · F 맵 확장", "E 살펴보기 · M 지도 · F 맵 확장<br>마우스 위아래 시점 · C 시점 고정", "help")
 
-sub("  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z));\n", "  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z), (window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0);\n", "ground river")
+sub("  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z));\n", "  if(bridgeH <= 0 && window.RIVER && window.RIVER.water && window.RIVER.water(x, z)) return -0.25;      // 강물 위를 헤엄쳐요\n  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z), (window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0);\n", "ground river")
 sub("function landPush(p, px0, pz0){\n", "function landPush(p, px0, pz0){\n  if(window.RIVER && window.RIVER.push) window.RIVER.push(p, px0, pz0);      // 폭포 언덕: 오를 수 있는 경사만\n", "landPush river")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)

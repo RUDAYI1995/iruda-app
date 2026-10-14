@@ -9,22 +9,22 @@
       function vn(x, z){ var ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz; fx = fx*fx*(3 - 2*fx); fz = fz*fz*(3 - 2*fz);
         var a = hash(ix, iz), b = hash(ix + 1, iz), c = hash(ix, iz + 1), d = hash(ix + 1, iz + 1); return (a + (b - a)*fx) + ((c + (d - c)*fx) - (a + (b - a)*fx))*fz; }
       var seed = 4242; function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
-      function hw(x){                                           // 강 폭의 절반 (서쪽 개울 → 다리 밑 넓은 강 → 동쪽 동굴 입구)
-        var a = 46 - 6*sm(XA, XA + 60, x), h = a + (120 - a)*sm(-190, -30, x);
+      function hw(x){                                           // 강 폭의 절반 (좁은 폭포 개울 → 다리 밑 넓은 강 → 동쪽 폭포)
+        var a = 15 + 5*sm(XA, XA + 120, x), h = a + (120 - a)*sm(-140, -40, x);
         h *= 1 - 0.68*sm(430, 545, x);
-        var wig = 3.0*Math.sin(x*0.045 + 1.0) + 1.6*Math.sin(x*0.13 + 2.0);
+        var wig = 2.4*Math.sin(x*0.05 + 1.0) + 1.3*Math.sin(x*0.13 + 2.0);
         return h + wig*(0.4 + 0.6*sm(-250, -120, x))*(1 - sm(480, 545, x));
       }
       window.RIVER = { hw:hw, XA:XA, XE:XE, ZC:ZC, WY:WY };
-      function gorgeH(x, z){                                    // 서쪽 협곡 절벽 높이
-        var dz = Math.abs(z - ZC) - hw(Math.max(x, XA)), dx = XA - x;
-        var d = (x < XA) ? (dz > 0 ? Math.hypot(dz, dx) : dx) : dz;
-        d += (vn(x*0.07, z*0.07) - 0.5)*9;
-        var Hm = H0*(1 - sm(XA + 10, -70, x)), tx = sm(XMIN, XMIN + 90, x), tz = sm(0, 110, Math.min(z - ZLO, ZHI - z));
-        var wall = sm(0, 16, d), k = Hm/H0*tx*tz;
-        var h = H0*k*wall + wall*k*(vn(x*0.06, z*0.06)*7 + vn(x*0.15, z*0.15)*3.5);
-        if(x < XA - 8){ var f = (1 - sm(20, 34, Math.abs(z - ZC)))*wall; h = h + (H0*k - h)*f; }
-        return h;
+      function gorgeH(x, z){                                    // 서쪽 협곡: 폭포 뒤 절벽 + 개울 옆 풀밭 + 양옆 절벽
+        var dlat = Math.abs(z - ZC) - hw(Math.max(x, XA)), dh = XA - x, dn = (vn(x*0.07, z*0.07) - 0.5)*9;
+        var Hm = H0*(1 - sm(XA + 10, -70, x)), tx = sm(XMIN, XMIN + 90, x), tz = sm(0, 110, Math.min(z - ZLO, ZHI - z)), k = tx*tz;
+        var Ht = 4*(1 - sm(-150, -40, x));
+        var hl = dlat > 0 ? Ht*sm(0, 26, dlat + dn*0.3) + (Hm - Ht)*sm(30, 46, dlat + dn) : 0;
+        var hh = dh > 0 ? Hm*sm(0, 16, dh + dn) : 0, h0 = Math.max(hl, hh), wall = hh > hl ? sm(0, 16, dh + dn) : sm(30, 46, dlat + dn);
+        var h = h0*k + wall*k*(Hm/H0)*(vn(x*0.06, z*0.06)*7 + vn(x*0.15, z*0.15)*3.5) + (hl > 0 && wall < 0.05 ? vn(x*0.1, z*0.1)*1.2*sm(0, 6, dlat)*k : 0);
+        if(x < XA - 8){ var f = (1 - sm(20, 34, Math.abs(z - ZC)))*sm(0, 16, dh + dn); h = h + (Hm*k - h)*f; }
+        return Math.max(0, h);
       }
       function eastRaw(x, z){
         var r2 = Math.pow((x - 650)/150, 2) + Math.pow((z - ZC)/260, 2), h = r2 < 1 ? 48*(1 - r2) : 0;
@@ -58,14 +58,14 @@
         var g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(this.p, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(this.c, 3));
         g.computeVertexNormals(); g.computeBoundingSphere(); return new THREE.Mesh(g, mat);
       };
-      function matV(extra){ var o = { vertexColors:true, flatShading:true, roughness:0.95, metalness:0 }; if(extra) for(var k in extra) o[k] = extra[k]; return new THREE.MeshStandardMaterial(o); }
+      function matV(extra){ var o = { vertexColors:true, flatShading:true, roughness:0.95, metalness:0, fog:false }; if(extra) for(var k in extra) o[k] = extra[k]; return new THREE.MeshStandardMaterial(o); }
       var M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), S = new THREE.Vector3(), T = new THREE.Vector3();
       function mx(x, y, z, rx, ry, rz, sx, sy, sz){ E.set(rx, ry, rz); Q.setFromEuler(E); T.set(x, y, z); S.set(sx, sy, sz); return M4.compose(T, Q, S).clone(); }
 
       // ---------- 절벽(높이 지도) ----------
       var GRASS = [[0.27, 0.55, 0.10], [0.32, 0.60, 0.12], [0.23, 0.50, 0.09]];
       function rockCol(x, y, z, nx, ny, nz){
-        var n = hash(Math.floor(x*0.9), Math.floor(z*0.9) + Math.floor(y*0.7)), sh = 0.27 + 0.13*n + 0.07*ny + (nx*0.5 + nz*0.3)*0.05;
+        var n = hash(Math.floor(x*0.9), Math.floor(z*0.9) + Math.floor(y*0.7)), sh = 0.19 + 0.12*n + 0.07*ny + (nx*0.5 + nz*0.3)*0.05;
         return [sh*0.97, sh, sh*1.04];
       }
       function terrainMesh(x0, x1, z0, z1, step, hf){
@@ -138,21 +138,29 @@
       // 폭포 한 개 = 물줄기 두 겹 + 튀는 물방울 + 아래에서 피어오르는 안개
       function makeFall(cfg){
         var sys = { cfg:cfg, U:[], face:null, drops:[], mist:[], pts:null, group:new THREE.Group() }, i, tex = dotTex();
-        sys.group.add(fallMesh(sys, 0, 0.0, 1.0, -4)); sys.group.add(fallMesh(sys, cfg.sgn*1.0, 3.7, 0.6, -3.9));
+        sys.group.add(fallMesh(sys, 0, 0.0, 0.95, -4)); sys.group.add(fallMesh(sys, cfg.sgn*1.0, 3.7, 0.55, -3.9));
         var N = 380, pa = new Float32Array(N*3);
         for(i = 0; i < N; i++) sys.drops.push({ s:rnd(), u:rnd(), v:0.45 + rnd()*0.5, off:rnd()*4, jit:(rnd() - 0.5)*2 });
         var gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.BufferAttribute(pa, 3));
-        sys.pts = new THREE.Points(gg, new THREE.PointsMaterial({ map:tex, size:2.4, sizeAttenuation:true, transparent:true, opacity:0.9, depthWrite:false, color:0xffffff })); sys.pts.renderOrder = -3.5; sys.pts.frustumCulled = false; sys.group.add(sys.pts);
-        for(i = 0; i < 40; i++){ var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false, opacity:0 })); sp.renderOrder = -3; sys.group.add(sp); sys.mist.push({ s:sp, a:rnd(), z:(rnd() - 0.5)*cfg.w0*2.6, dx:rnd()*14, sp:0.10 + rnd()*0.12, low:i >= 30 }); }
+        sys.pts = new THREE.Points(gg, new THREE.PointsMaterial({ map:tex, size:2.4, sizeAttenuation:true, transparent:true, opacity:0.9, depthWrite:false, color:0xffffff, fog:false })); sys.pts.renderOrder = -3.5; sys.pts.frustumCulled = false; sys.group.add(sys.pts);
+        for(i = 0; i < 40; i++){ var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false, opacity:0, fog:false })); sp.renderOrder = -3; sys.group.add(sp); sys.mist.push({ s:sp, a:rnd(), z:(rnd() - 0.5)*cfg.w0*2.6, dx:rnd()*14, sp:0.10 + rnd()*0.12, low:i >= 30 }); }
+        var kk = Math.max(0.5, Math.min(1, (cfg.yTop - WY)/72)), NB = 170, im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xa6bfd2, roughness:1, flatShading:true, fog:false }), NB), dummy = new THREE.Object3D();
+        im.frustumCulled = false; sys.group.add(im); sys.blobs = [];
+        for(i = 0; i < NB; i++) sys.blobs.push(i < 120 ? { s:rnd(), u:rnd(), v:0.30 + rnd()*0.35, sz:1.7 + rnd()*2.1, rx:rnd()*6, ry:rnd()*6 } : { base:true, a:rnd(), ang:rnd()*6.283, rad:rnd(), sp:0.25 + rnd()*0.3, rx:rnd()*6, ry:rnd()*6 });
         sys.update = function(t, dt, L, near){
           this.group.visible = near; if(!near) return;
           var P = this.pts.geometry.attributes.position, o = [0, 0, 0], d, k;
           for(k = 0; k < this.drops.length; k++){ d = this.drops[k]; d.u += dt*d.v*0.55; if(d.u >= 1){ d.u = 0; d.s = rnd(); d.off = rnd()*3; d.v = 0.45 + rnd()*0.5; }
             facePos(this.face, d.s, d.u, o); var out = d.off*(0.3 + d.u*1.6); P.setXYZ(k, o[0] + cfg.sgn*out, o[1], o[2] + d.jit*d.u*3); }
+          for(k = 0; k < this.blobs.length; k++){ var b = this.blobs[k], sc;
+            if(!b.base){ b.u += dt*b.v*0.5; if(b.u >= 1){ b.u = 0; b.s = rnd(); b.v = 0.30 + rnd()*0.35; b.sz = 1.7 + rnd()*2.1; } facePos(this.face, b.s, b.u, o); sc = b.sz*kk*(0.6 + 0.9*b.u); dummy.position.set(o[0] + cfg.sgn*(1.0 + b.u*1.5), o[1], o[2]); }
+            else { b.a = (b.a + dt*b.sp) % 1; sc = kk*(2.0 + 2.4*Math.sin(b.a*Math.PI))*(0.8 + 0.5*b.rad); dummy.position.set(cfg.bx + cfg.dirx*(b.a*9 + b.rad*3) + cfg.sgn*1.5, WY + 0.5 + Math.sin(b.a*Math.PI)*2.2, ZC + Math.cos(b.ang)*(cfg.w0 + cfg.w1)*0.9*b.rad); }
+            dummy.rotation.set(b.rx + t*0.0004, b.ry, 0); dummy.scale.set(sc, sc*0.85, sc); dummy.updateMatrix(); im.setMatrixAt(k, dummy.matrix); }
+          im.instanceMatrix.needsUpdate = true; var bl = 0.35 + 0.65*L; im.material.emissive.setRGB(0.65*bl, 0.75*bl, 0.82*bl); im.material.color.setRGB(bl, bl, bl);
           P.needsUpdate = true; this.pts.material.opacity = 0.5 + 0.45*L; var gcol = 0.45 + 0.55*L; this.pts.material.color.setRGB(gcol, gcol, gcol);
           for(k = 0; k < this.mist.length; k++){ var m = this.mist[k], a; m.a = (m.a + dt*m.sp) % 1; a = m.a; var sc, op;
-            if(m.low){ sc = 26 + 14*Math.sin(a*Math.PI); m.s.position.set(cfg.bx + cfg.dirx*(m.dx*1.5 + 6), WY + 2.5 + a*3, ZC + m.z*1.1); op = 0.17*(0.4 + 0.6*Math.sin(a*Math.PI)); }
-            else { sc = 9 + a*26; m.s.position.set(cfg.bx + cfg.dirx*(m.dx + a*34), WY + 3 + a*24, ZC + m.z); op = 0.27*Math.sin(a*Math.PI); }
+            if(m.low){ sc = 26 + 14*Math.sin(a*Math.PI); m.s.position.set(cfg.bx + cfg.dirx*(m.dx*1.5 + 6), WY + 2.5 + a*3, ZC + m.z*1.1); op = 0.10*(0.4 + 0.6*Math.sin(a*Math.PI)); }
+            else { sc = 9 + a*26; m.s.position.set(cfg.bx + cfg.dirx*(m.dx + a*34), WY + 3 + a*24, ZC + m.z); op = 0.20*Math.sin(a*Math.PI); }
             m.s.scale.set(sc, sc, 1); m.s.material.opacity = op*(0.3 + 0.7*L); var mc = 0.55 + 0.45*L; m.s.material.color.setRGB(mc*0.93, mc*0.98, mc); }
         };
         return sys;
@@ -162,8 +170,8 @@
         var pts = ring.map(function(q){ return new THREE.Vector2(q[0], -q[1]); }), shape = new THREE.Shape(pts), g = new THREE.ShapeGeometry(shape);
         g.rotateX(-Math.PI/2); g.translate(0, WY, 0);
         WU = { uT:{ value:0 }, uL:{ value:1 }, uFog:{ value:new THREE.Color(0xbfe0ff) }, uFogR:{ value:new THREE.Vector2(380, 1500) }, uSun:{ value:new THREE.Vector3(0.5, 0.6, -0.2).normalize() }, uXA:{ value:XA }, uZC:{ value:ZC } };
-        var hwGlsl = "float hwf(float x){ float a = 46.0 - 6.0*smoothstep(" + XA + ".0, " + (XA + 60) + ".0, x); float h = a + (120.0 - a)*smoothstep(-190.0, -30.0, x); h *= 1.0 - 0.68*smoothstep(430.0, 545.0, x);\n" +
-          "  float wig = 3.0*sin(x*0.045 + 1.0) + 1.6*sin(x*0.13 + 2.0); return h + wig*(0.4 + 0.6*smoothstep(-250.0, -120.0, x))*(1.0 - smoothstep(480.0, 545.0, x)); }\n";
+        var hwGlsl = "float hwf(float x){ float a = 15.0 + 5.0*smoothstep(" + XA + ".0, " + (XA + 120) + ".0, x); float h = a + (120.0 - a)*smoothstep(-140.0, -40.0, x); h *= 1.0 - 0.68*smoothstep(430.0, 545.0, x);\n" +
+          "  float wig = 2.4*sin(x*0.05 + 1.0) + 1.3*sin(x*0.13 + 2.0); return h + wig*(0.4 + 0.6*smoothstep(-250.0, -120.0, x))*(1.0 - smoothstep(480.0, 545.0, x)); }\n";
         var m = new THREE.ShaderMaterial({ uniforms:WU, transparent:true, depthWrite:false, side:THREE.DoubleSide,
           vertexShader:"varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }",
           fragmentShader:"uniform float uT, uL, uXA, uZC; uniform vec3 uFog, uSun; uniform vec2 uFogR; varying vec3 vW;\n" + NOISE_GLSL + hwGlsl +
@@ -175,8 +183,8 @@
             "  vec3 n = normalize(vec3(-(hx - h0)/e*1.9, 1.0, -(hz - h0)/e*1.9)); vec3 V = normalize(cameraPosition - vW);\n" +
             "  float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0)*0.5 + 0.04;\n" +
             "  float edgeD = hwf(p.x) - abs(p.y - uZC); float depth = clamp(edgeD/20.0, 0.0, 1.0);\n" +
-            "  float headD = min(distance(p, vec2(uXA + 14.0, uZC)), distance(p, vec2(534.0, uZC))); float plunge = 1.0 - smoothstep(0.0, 80.0, headD);\n" +
-            "  vec3 col = mix(vec3(0.16, 0.74, 0.76), vec3(0.03, 0.30, 0.64), smoothstep(0.0, 1.0, depth));\n" +
+            "  float headD = min(distance(p, vec2(uXA + 14.0, uZC)), distance(p, vec2(534.0, uZC))); float plunge = 1.0 - smoothstep(0.0, 50.0, headD);\n" +
+            "  vec3 col = mix(vec3(0.18, 0.78, 0.86), vec3(0.05, 0.40, 0.76), smoothstep(0.0, 1.0, depth));\n" +
             "  col = mix(col, vec3(0.50, 0.85, 0.92), plunge*0.5);\n" +
             "  float diff = clamp(dot(n, normalize(uSun))*0.5 + 0.55, 0.0, 1.2); col *= 0.78 + 0.45*diff;\n" +
             "  vec3 sky = mix(vec3(0.36, 0.64, 0.94), uFog, 0.2); col = mix(col, sky, fres);\n" +
@@ -214,10 +222,10 @@
         var hT = vtx(XA, 0, ZC - hw(XA), bank), hB = vtx(XA, 0, ZC + hw(XA), bank), hT2 = vtx(XA + 5, BED, ZC - hw(XA) + 5, low), hB2 = vtx(XA + 5, BED, ZC + hw(XA) - 5, low);
         idx.push(hT, hT2, hB, hB, hT2, hB2);
         var g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-        var bank_m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1, side:THREE.DoubleSide }));
+        var bank_m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1, side:THREE.DoubleSide, fog:false }));
         var ring = []; for(k = 0; k < n; k++) ring.push([xs[k], ZC - hw(xs[k]) + 5]); for(k = n - 1; k >= 0; k--) ring.push([xs[k], ZC + hw(xs[k]) - 5]);
         var sh = new THREE.Shape(ring.map(function(q){ return new THREE.Vector2(q[0], -q[1]); })), bg = new THREE.ShapeGeometry(sh); bg.rotateX(-Math.PI/2); bg.translate(0, BED, 0);
-        var bed_m = new THREE.Mesh(bg, new THREE.MeshStandardMaterial({ color:0x6d6c5c, roughness:1 }));
+        var bed_m = new THREE.Mesh(bg, new THREE.MeshStandardMaterial({ color:0x6d6c5c, roughness:1, fog:false }));
         return [bank_m, bed_m];
       }
       // ---------- 땅에 강 모양 구멍 ----------
@@ -232,24 +240,39 @@
         U.needsUpdate = true; ground.geometry.dispose(); ground.geometry = g;
       }
       // ---------- 소나무 / 바위 / 갈대 / 버섯 ----------
-      function pineInto(ms, x, y, z, Hh){
-        var tl = Hh*0.9, lean = (rnd() - 0.5)*0.05;
-        ms.add(new THREE.CylinderGeometry(Hh*0.022, Hh*0.04, tl, 5), mx(x, y + tl/2, z, 0, 0, lean, 1, 1, 1), function(){ return [0.42 + rnd()*0.06, 0.20, 0.14]; });
-        var tiers = 6, t, q;
-        for(t = 0; t < tiers; t++){
-          var f = t/(tiers - 1), yy = y + Hh*(0.22 + 0.70*f), r = Hh*(0.30 - 0.22*f);
-          for(q = 0; q < 4; q++){
-            var a = rnd()*6.283 + t, off = r*0.35*(1 - f*0.5), tilt = 0.45 + rnd()*0.25, rl = Hh*(0.12 + 0.05*(1 - f));
-            ms.add(new THREE.ConeGeometry(r*(0.55 + rnd()*0.3), rl, 5), mx(x + Math.cos(a)*off, yy, z + Math.sin(a)*off, Math.sin(a)*tilt*0.5, rnd()*6, -Math.cos(a)*tilt*0.5, 1, 0.55, 1),
-              function(px, py, pz, nx, ny){ var g = 0.30 + 0.34*f*0.6 + 0.12*Math.max(ny, 0) + rnd()*0.06; return [0.16 + 0.12*f, g + 0.22, 0.10 + 0.06*f]; });
+      var PETAL = (function(){ var g = new THREE.BufferGeometry(), A = [0, 0, 0], B = [0.45, 0.10, -0.22], C = [1, -0.12, 0], D = [0.45, 0.10, 0.22];
+        g.setAttribute("position", new THREE.Float32BufferAttribute([].concat(A, C, B, A, D, C), 3)); return g; })();
+      function pineInto(ms, x, y, z, Hh){                         // 사진처럼: 붉은 갈색 줄기 + 아래로 처진 납작한 초록 잎 조각이 층층이
+        var tl = Hh*0.92, t, q, n = 9;
+        ms.add(new THREE.CylinderGeometry(Hh*0.014, Hh*0.032, tl, 5), mx(x, y + tl/2, z, 0, (rnd() - 0.5)*0.05, (rnd() - 0.5)*0.04, 1, 1, 1), function(){ return [0.40 + rnd()*0.05, 0.15, 0.10]; });
+        for(t = 0; t < n; t++){
+          var f = t/(n - 1), yy = y + Hh*(0.24 + 0.70*f), L = Hh*(0.30 - 0.21*f), yaw0 = rnd()*6.283, np = t < 2 ? 7 : 6;
+          for(q = 0; q < np; q++){
+            var yaw = yaw0 + q*(6.283/np) + (t%2)*0.5 + (rnd() - 0.5)*0.35, droop = 0.28 + 0.28*rnd(), ls = L*(0.8 + 0.4*rnd()), sh = 0.55 + 0.45*f + rnd()*0.14;
+            ms.add(PETAL, mx(x, yy, z, 0, yaw, -droop, ls, ls*0.9, ls*1.15), function(){ return [0.10 + 0.12*sh, 0.42 + 0.30*sh, 0.04 + 0.06*sh]; });
           }
         }
-        ms.add(new THREE.ConeGeometry(Hh*0.05, Hh*0.14, 5), mx(x, y + Hh*0.98, z, 0, 0, 0, 1, 1, 1), function(){ return [0.26, 0.62, 0.18]; });
+        for(q = 0; q < 5; q++){ var yw = q*1.2566 + rnd()*0.3; ms.add(PETAL, mx(x, y + Hh*0.95, z, 0, yw, 1.15, Hh*0.08, Hh*0.08, Hh*0.1), function(){ return [0.30, 0.75, 0.10]; }); }
+      }
+      function birchInto(ms, x, y, z, Hh){
+        ms.add(new THREE.CylinderGeometry(Hh*0.018, Hh*0.03, Hh, 5), mx(x, y + Hh/2, z, 0, 0, (rnd() - 0.5)*0.1, 1, 1, 1), function(px, py, pz, nx, ny){ return hash(Math.floor(py*3), Math.floor(px)) > 0.8 ? [0.25, 0.22, 0.2] : [0.93, 0.92, 0.86]; });
+        var b; for(b = 0; b < 5; b++) ms.add(new THREE.IcosahedronGeometry(1, 0), mx(x + (rnd() - 0.5)*Hh*0.3, y + Hh*(0.72 + rnd()*0.3), z + (rnd() - 0.5)*Hh*0.3, rnd()*3, rnd()*3, 0, Hh*(0.16 + rnd()*0.08), Hh*0.13, Hh*(0.16 + rnd()*0.08)), function(px, py, pz, nx, ny){ var s2 = 0.45 + 0.4*Math.max(ny, 0); return [0.30*s2 + 0.18, 0.55*s2 + 0.35, 0.08 + 0.1*s2]; });
+      }
+      function bushInto(ms, x, y, z, r){
+        ms.add(new THREE.IcosahedronGeometry(1, 0), mx(x, y + r*0.5, z, rnd()*3, rnd()*6, 0, r*1.4, r*0.9, r*1.2), function(px, py, pz, nx, ny){ var s2 = 0.5 + 0.5*Math.max(ny, 0); return [0.16 + 0.14*s2, 0.46 + 0.30*s2, 0.06 + 0.06*s2]; });
+      }
+      function logInto(ms, x, y, z, len){
+        ms.add(new THREE.CylinderGeometry(1.0, 1.1, len, 6), mx(x, y + 1.0, z, 0, rnd()*3, Math.PI/2, 1, 1, 1), function(px, py, pz, nx, ny){ return [0.36 + 0.06*ny, 0.21 + 0.04*ny, 0.11]; });
+      }
+      function flowerInto(ms, x, y, z){
+        var col = rnd() < 0.6 ? [0.20, 0.38, 0.95] : [0.98, 0.55, 0.15];
+        ms.add(new THREE.CylinderGeometry(0.07, 0.07, 1.3, 4), mx(x, y + 0.65, z, 0, 0, 0, 1, 1, 1), function(){ return [0.25, 0.6, 0.12]; });
+        ms.add(new THREE.IcosahedronGeometry(0.55, 0), mx(x, y + 1.4, z, rnd()*3, rnd()*3, 0, 1, 0.8, 1), function(){ return col; });
       }
       function rockInto(ms, x, y, z, r, sy){
         var g = new THREE.IcosahedronGeometry(1, 1), P = g.attributes.position, v = new THREE.Vector3(), i;
         for(i = 0; i < P.count; i++){ v.set(P.getX(i), P.getY(i), P.getZ(i)); var k = 0.78 + 0.5*hash(Math.round(v.x*40) + x*7, Math.round(v.y*40) + Math.round(v.z*40) + z*3); P.setXYZ(i, v.x*k, v.y*k, v.z*k); }
-        ms.add(g, mx(x, y, z, rnd()*3, rnd()*6, rnd()*3, r, r*(sy || 0.7), r*(0.8 + rnd()*0.4)), function(px, py, pz, nx, ny){ var b = 0.30 + 0.12*hash(Math.floor(px), Math.floor(pz) + Math.floor(py)) + 0.10*ny; return [b, b*1.01, b*1.05]; });
+        ms.add(g, mx(x, y, z, rnd()*3, rnd()*6, rnd()*3, r, r*(sy || 0.7), r*(0.8 + rnd()*0.4)), function(px, py, pz, nx, ny){ var b = 0.22 + 0.12*hash(Math.floor(px), Math.floor(pz) + Math.floor(py)) + 0.10*ny; return [b, b*1.01, b*1.05]; });
       }
       function reedsInto(ms, x, y, z){
         var n = 5 + Math.floor(rnd()*4), i;
@@ -279,38 +302,53 @@
         var g1 = terrainMesh(XMIN, -30, ZLO, ZHI, 5, gorgeH); g1.name = "gorge"; g1.receiveShadow = true; RF.add(g1);
         var g2 = terrainMesh(500, 760, ZLO, ZHI, 5, eastH); g2.name = "eastRock"; g2.receiveShadow = true; RF.add(g2);
         // 폭포 두 개: 서쪽 협곡(절벽 면을 따라) + 동쪽 바위산(수직 벽)
-        var fw = makeFall({ sgn:1, face:function(y, z){ var lo = XA - 24, hi = XA + 3, k; for(k = 0; k < 18; k++){ var mid = (lo + hi)/2; if(gorgeH(mid, z) > y) lo = mid; else hi = mid; } return hi; }, yTop:H0, w0:20, w1:9, bx:XA + 4, dirx:1 });
+        var fw = makeFall({ sgn:1, face:function(y, z){ var lo = XA - 24, hi = XA + 3, k; for(k = 0; k < 18; k++){ var mid = (lo + hi)/2; if(gorgeH(mid, z) > y) lo = mid; else hi = mid; } return hi; }, yTop:H0, w0:7, w1:6, bx:XA + 4, dirx:1 });
         var fe = makeFall({ sgn:-1, face:function(){ return XE; }, yTop:HL + 0.2, w0:15, w1:9, bx:XE - 4, dirx:-1 });
         fw.group.name = "waterfallW"; fe.group.name = "waterfallE"; RF.add(fw.group); RF.add(fe.group); falls.push(fw, fe);
         // 위 개울(폭포 바로 위 물길)
-        var up = new THREE.Mesh(new THREE.PlaneGeometry(110, 38), new THREE.MeshBasicMaterial({ color:0x6fc4e8, transparent:true, opacity:0.9 })); up.rotation.x = -Math.PI/2; up.position.set(XA - 70, H0 + 0.35, ZC); up.renderOrder = -4; RF.add(up);
-        var up2 = new THREE.Mesh(new THREE.PlaneGeometry(95, 40), new THREE.MeshBasicMaterial({ color:0x6fc4e8, transparent:true, opacity:0.9 })); up2.rotation.x = -Math.PI/2; up2.position.set(XE + 47, HL + 0.2, ZC); up2.renderOrder = -4; RF.add(up2);
+        var up = new THREE.Mesh(new THREE.PlaneGeometry(110, 38), new THREE.MeshBasicMaterial({ color:0x6fc4e8, transparent:true, opacity:0.9, fog:false })); up.rotation.x = -Math.PI/2; up.position.set(XA - 70, H0 + 0.35, ZC); up.renderOrder = -4; RF.add(up);
+        var up2 = new THREE.Mesh(new THREE.PlaneGeometry(95, 40), new THREE.MeshBasicMaterial({ color:0x6fc4e8, transparent:true, opacity:0.9, fog:false })); up2.rotation.x = -Math.PI/2; up2.position.set(XE + 47, HL + 0.2, ZC); up2.renderOrder = -4; RF.add(up2);
         // 소나무 / 바위 / 갈대 / 버섯
-        var pines = new Mesher(), rocks = new Mesher(), deco = new Mesher(), i, tries, x, z, y, cnt = 0;
-        function slope(x, z){ return Math.abs(terrainH(x + 2, z) - terrainH(x - 2, z)) + Math.abs(terrainH(x, z + 2) - terrainH(x, z - 2)); }
-        for(tries = 0; tries < 900 && cnt < 70; tries++){ x = XMIN + 10 + rnd()*(XA - 8 - XMIN - 10 + 70); z = ZLO + 30 + rnd()*(ZHI - ZLO - 60); y = gorgeH(x, z);
-          if(y < 4 || slope(x, z) > 3.2 || (Math.abs(z - ZC) < 26 && x < XA - 4)) continue; pineInto(pines, x, y - 0.3, z, 22 + rnd()*16); cnt++; }
-        for(cnt = 0, tries = 0; tries < 500 && cnt < 22; tries++){ x = 560 + rnd()*190; z = 470 + rnd()*440; y = eastH(x, z); if(y < 6 || slope(x, z) > 3.4) continue; pineInto(pines, x, y - 0.3, z, 20 + rnd()*14); cnt++; }
-        for(cnt = 0, tries = 0; tries < 800 && cnt < 34; tries++){ x = -240 + rnd()*740; z = rnd() < 0.5 ? 440 + rnd()*100 : 840 + rnd()*100; if(Math.abs(x) < 36) continue; if(Math.abs(z - ZC) < hw(x) + 8) continue; if(x > 400 && eastH(x, z) > 1) continue; y = terrainH(x, z); if(y > 1.5) continue; pineInto(pines, x, 0, z, 20 + rnd()*14); cnt++; }
-        // 개울/강 가장자리 바위와 폭포 아래 바위
-        for(i = 0; i < 46; i++){ var xx = -290 + rnd()*820, sd = rnd() < 0.5 ? -1 : 1, off = hw(xx) + (rnd() - 0.55)*5; if(xx > -200 && Math.abs(xx) < 14) continue; rockInto(rocks, xx, rnd() < 0.5 ? 0.4 : WY + 0.4, ZC + sd*off, 1.8 + rnd()*3.4, 0.7); }
-        for(i = 0; i < 9; i++){ rockInto(rocks, XA + 10 + rnd()*40, WY + 0.5, ZC + (rnd() - 0.5)*70, 2.5 + rnd()*4, 0.75); }
+        var pines = new Mesher(), rocks = new Mesher(), deco = new Mesher(), i, tries, x, z, y, cnt = 0, sd2;
+        function slope(x, z){ return (Math.abs(terrainH(x + 2, z) - terrainH(x - 2, z)) + Math.abs(terrainH(x, z + 2) - terrainH(x, z - 2)))/4; }
+        // 폭포 위 언덕(고원)의 소나무
+        for(tries = 0; tries < 1200 && cnt < 64; tries++){ x = XMIN + 10 + rnd()*(XA - 8 - XMIN - 10 + 70); z = ZLO + 30 + rnd()*(ZHI - ZLO - 60); y = gorgeH(x, z);
+          if(y < 4 || slope(x, z) > 0.9 || (Math.abs(z - ZC) < 24 && x < XA - 4)) continue; pineInto(pines, x, y - 0.3, z, 24 + rnd()*18); cnt++; }
+        // 개울 양옆 풀밭의 큰 소나무 + 자작나무 + 덤불 (사진의 앞쪽 큰 나무들)
+        for(cnt = 0, tries = 0; tries < 900 && cnt < 34; tries++){ x = XA - 14 + rnd()*200; sd2 = rnd() < 0.5 ? -1 : 1; z = ZC + sd2*(hw(x) + 5 + rnd()*24); y = gorgeH(x, z);
+          if(y > 6 || slope(x, z) > 0.5) continue; pineInto(pines, x, y - 0.3, z, 32 + rnd()*18); cnt++; }
+        for(cnt = 0, tries = 0; tries < 600 && cnt < 16; tries++){ x = XA + 10 + rnd()*160; sd2 = rnd() < 0.5 ? -1 : 1; z = ZC + sd2*(hw(x) + 3 + rnd()*14); y = gorgeH(x, z); if(y > 5) continue; birchInto(pines, x, y - 0.2, z, 15 + rnd()*9); cnt++; }
+        for(cnt = 0, tries = 0; tries < 800 && cnt < 44; tries++){ x = XA - 10 + rnd()*230; sd2 = rnd() < 0.5 ? -1 : 1; z = ZC + sd2*(hw(x) + 2 + rnd()*20); y = gorgeH(x, z); if(y > 6) continue; bushInto(deco, x, y - 0.3, z, 1.8 + rnd()*2.4); cnt++; }
+        for(cnt = 0, tries = 0; tries < 600 && cnt < 40; tries++){ x = XA - 8 + rnd()*160; sd2 = rnd() < 0.5 ? -1 : 1; z = ZC + sd2*(hw(x) + 2 + rnd()*12); y = gorgeH(x, z); if(y > 5) continue; flowerInto(deco, x, y, z); cnt++; }
+        for(i = 0; i < 4; i++){ x = XA + 8 + rnd()*50; sd2 = i % 2 ? 1 : -1; z = ZC + sd2*(hw(x) + 3 + rnd()*5); logInto(deco, x, gorgeH(x, z), z, 7 + rnd()*5); }
+        // 동쪽 바위산의 소나무
+        for(cnt = 0, tries = 0; tries < 600 && cnt < 20; tries++){ x = 560 + rnd()*190; z = 470 + rnd()*440; y = eastH(x, z); if(y < 6 || slope(x, z) > 0.9) continue; pineInto(pines, x, y - 0.3, z, 22 + rnd()*14); cnt++; }
+        // 강가(다리 쪽) 소나무
+        for(cnt = 0, tries = 0; tries < 800 && cnt < 26; tries++){ x = -100 + rnd()*600; z = rnd() < 0.5 ? 440 + rnd()*100 : 840 + rnd()*100; if(Math.abs(x) < 36) continue; if(Math.abs(z - ZC) < hw(x) + 8) continue; if(x > 400 && eastH(x, z) > 1) continue; y = terrainH(x, z); if(y > 1.5) continue; pineInto(pines, x, 0, z, 22 + rnd()*14); cnt++; }
+        // 바위: 강가 / 폭포 아래 / 물밑
+        for(i = 0; i < 40; i++){ var xx = -290 + rnd()*820, sd = rnd() < 0.5 ? -1 : 1, off = hw(xx) + (rnd() - 0.55)*4; if(xx > -200 && Math.abs(xx) < 14) continue; rockInto(rocks, xx, rnd() < 0.5 ? 0.4 : WY + 0.4, ZC + sd*off, 1.6 + rnd()*3.0, 0.7); }
+        for(i = 0; i < 8; i++){ rockInto(rocks, XA + 8 + rnd()*26, WY + 0.5, ZC + (rnd() - 0.5)*22, 1.6 + rnd()*2.6, 0.75); }
         for(i = 0; i < 9; i++){ rockInto(rocks, 534 - rnd()*40, WY + 0.5, ZC + (rnd() - 0.5)*54, 2.2 + rnd()*3.5, 0.75); }
         for(i = 0; i < 60; i++){ var ux = XA + 20 + rnd()*560, uh = hw(ux), uz = ZC + (rnd() < 0.5 ? -1 : 1)*(uh - 2 - rnd()*(ux < -60 ? uh - 6 : 14)); if(Math.abs(ux) < 12) continue; rockInto(rocks, ux, BED + 0.6, uz, 0.9 + rnd()*1.8, 0.6); }
-        for(i = 0; i < 5; i++){ var rz = ZC + (rnd() < 0.5 ? -1 : 1)*(hw(-250) + 2 + rnd()*6); rockInto(rocks, -250 + rnd()*100, terrainH(-250, rz) - 1, rz, 5 + rnd()*5, 0.9); }
-        for(i = 0; i < 52; i++){ var rx = XA + 14 + rnd()*190, rs = rnd() < 0.5 ? -1 : 1; reedsInto(deco, rx, WY, ZC + rs*(hw(rx) - 1.2 - rnd()*1.5)); }
-        for(i = 0; i < 9; i++){ var mx0 = -250 + rnd()*200, ms2 = rnd() < 0.5 ? -1 : 1, mz = ZC + ms2*(hw(mx0) + 3 + rnd()*3); mushroomInto(deco, mx0, Math.max(0, terrainH(mx0, mz)), mz, 1.2 + rnd()*0.8); }
-        var pm = pines.mesh(matV()); pm.castShadow = true; pm.receiveShadow = true; pm.name = "riverPines"; RF.add(pm);
+        for(i = 0; i < 7; i++){ var rz = ZC + (rnd() < 0.5 ? -1 : 1)*(hw(-250) + 3 + rnd()*14); rockInto(rocks, -270 + rnd()*120, Math.max(0, terrainH(-250, rz)) - 0.5, rz, 3 + rnd()*4, 0.9); }
+        // 키 큰 풀 (물가)
+        for(i = 0; i < 90; i++){ var rx = XA + 6 + rnd()*200, rs = rnd() < 0.5 ? -1 : 1; reedsInto(deco, rx, WY, ZC + rs*(hw(rx) - 1.0 - rnd()*1.6)); }
+        for(i = 0; i < 12; i++){ var mx0 = XA + 6 + rnd()*170, ms2 = rnd() < 0.5 ? -1 : 1, mz = ZC + ms2*(hw(mx0) + 3 + rnd()*7); mushroomInto(deco, mx0, Math.max(0, terrainH(mx0, mz)), mz, 1.3 + rnd()*1.0); }
+        // 작은 나무 판자 다리 (개울을 건너는 다리)
+        (function(){ var bx = -175, zA = ZC - hw(bx) - 5, zB = ZC + hw(bx) + 5, n = Math.ceil((zB - zA)/2.1), q;
+          for(q = 0; q < n; q++) deco.add(new THREE.BoxGeometry(5.2, 0.5, 1.9), mx(bx + (rnd() - 0.5)*0.3, 0.55, zA + (q + 0.5)*(zB - zA)/n, 0, (rnd() - 0.5)*0.05, 0, 1, 1, 1), function(px, py, pz, nx, ny){ return [0.50 + 0.1*ny + rnd()*0.06, 0.33 + 0.06*ny, 0.19]; });
+          [-2.9, 2.9].forEach(function(o){ deco.add(new THREE.CylinderGeometry(0.4, 0.4, zB - zA + 2, 6), mx(bx + o, 0.25, (zA + zB)/2, Math.PI/2, 0, 0, 1, 1, 1), function(){ return [0.32, 0.19, 0.10]; });
+            for(q = 0; q < 4; q++) deco.add(new THREE.CylinderGeometry(0.28, 0.32, 2.6, 5), mx(bx + o, 0.8, zA + 1.5 + q*(zB - zA - 3)/3, 0, 0, 0, 1, 1, 1), function(){ return [0.34, 0.2, 0.11]; }); }); })();
+        var pm = pines.mesh(matV({ side:THREE.DoubleSide })); pm.castShadow = true; pm.receiveShadow = true; pm.name = "riverPines"; RF.add(pm);
         var rm = rocks.mesh(matV()); rm.castShadow = true; rm.receiveShadow = true; rm.name = "riverRocks"; RF.add(rm);
         var dm = deco.mesh(matV({ side:THREE.DoubleSide })); dm.name = "riverDeco"; RF.add(dm);
-        // 막는 곳: 강물(다리 길만 빼고)은 못 들어가요. 언덕/절벽은 오를 수 있는 경사만 올라가요 (RIVER.push)
-        var R = window.ROCK_RECTS;
-        for(x = XA + 10; x < XE; x += 20){ if(Math.abs(x) <= 12) continue; var hh = hw(x) - 1.5; R.push({ x:x, z:ZC, hx:11, hz:hh }); }
+        // 어디든 자유롭게: 강물도 헤엄쳐 들어갈 수 있고(RIVER.water 높이), 언덕은 아주 가파른 절벽(약 70° 이상)만 못 올라가요
+        window.RIVER.water = function(x, z){ return x > XA && x < XE && Math.abs(z - ZC) < hw(x) - 0.8; };
         window.RIVER.hh = function(x, z){ if(z < ZLO || z > ZHI) return 0; if(x >= XMIN && x < -30) return gorgeH(x, z); if(x >= 500 && x < 780) return eastH(x, z); return 0; };
         window.RIVER.push = function(p, px0, pz0){
           var hh = window.RIVER.hh; if(!((p.x < -30 && p.x > XMIN - 30) || (p.x > 490 && p.x < 790)) && !((px0 < -30 && px0 > XMIN - 30) || (px0 > 490 && px0 < 790))) return;
-          var dx = p.x - px0, dz = p.z - pz0, dist = Math.hypot(dx, dz); if(dist < 1e-6) return;
-          function steep(x, z){ return Math.abs(hh(x, z) - hh(px0, pz0)) > 1.7*Math.hypot(x - px0, z - pz0) + 0.6; }
+          var dist = Math.hypot(p.x - px0, p.z - pz0); if(dist < 1e-6) return;
+          function steep(x, z){ return Math.abs(hh(x, z) - hh(px0, pz0)) > 2.7*Math.hypot(x - px0, z - pz0) + 0.8; }
           if(!steep(p.x, p.z)) return;
           if(!steep(p.x, pz0)){ p.z = pz0; return; } if(!steep(px0, p.z)){ p.x = px0; return; }
           p.x = px0; p.z = pz0;
@@ -330,8 +368,8 @@
         var tt = t/1000, L = 1, fc = scene.fog ? scene.fog.color : null, hm = null, sn = null, fi;
         scene.children.forEach(function(c){ if(c.isHemisphereLight) hm = c; else if(c.isDirectionalLight) sn = c; });
         if(hm && sn){ L = Math.max(0, Math.min(1, (hm.intensity + sn.intensity)/1.9)); }
-        var wm = RF.getObjectByName("riverWater"); if(wm){ var wu = wm.material.uniforms; wu.uT.value = tt; wu.uL.value = L; if(fc) wu.uFog.value.copy(fc); if(scene.fog) wu.uFogR.value.set(scene.fog.near, scene.fog.far); }
-        for(fi = 0; fi < falls.length; fi++) falls[fi].U.forEach(function(U){ U.uT.value = tt; U.uL.value = L; if(fc) U.uFog.value.copy(fc); if(scene.fog) U.uFogR.value.set(scene.fog.near, scene.fog.far); });
+        var wm = RF.getObjectByName("riverWater"); if(wm){ var wu = wm.material.uniforms; wu.uT.value = tt; wu.uL.value = L; if(fc) wu.uFog.value.copy(fc); if(scene.fog) wu.uFogR.value.set(scene.fog.near*3, scene.fog.far*3); }
+        for(fi = 0; fi < falls.length; fi++) falls[fi].U.forEach(function(U){ U.uT.value = tt; U.uL.value = L; if(fc) U.uFog.value.copy(fc); if(scene.fog) U.uFogR.value.set(scene.fog.near*3, scene.fog.far*3); });
         var near = Math.hypot(p.x - 130, p.z - ZC) < 1600; RF.visible = near;
         for(fi = 0; fi < falls.length; fi++) falls[fi].update(t, dt, L, near);
       };
