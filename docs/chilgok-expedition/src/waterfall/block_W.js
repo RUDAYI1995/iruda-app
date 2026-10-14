@@ -2,7 +2,7 @@
     // 강은 서쪽 끝의 절벽 폭포에서 시작해서 동쪽으로 흘러 호국의 다리 밑을 지나 바위산 동굴로 들어가요.
     // 월드가 만들어진 뒤(첫 프레임)에 한 번 붙여요. 땅에 강 모양 구멍을 내고, 절벽·소나무·바위·물을 따로 만든 그룹(riverFall)에 담아요.
     (function buildRiverFall(){
-      var XA = -300, ZC = 690, WY = -0.25, BED = -2.4, H0 = 72, XE = 548, XMIN = XA - 120, ZLO = 420, ZHI = 960;
+      var XA = -300, ZC = 690, WY = -0.25, BED = -7, H0 = 72, XE = 548, XMIN = XA - 120, ZLO = 420, ZHI = 960;
       var built = false, RF = null, falls = [], lastWorld = null;
       function sm(a, b, x){ var t = Math.max(0, Math.min(1, (x - a)/(b - a))); return t*t*(3 - 2*t); }
       function hash(i, j){ var s = Math.sin(i*127.1 + j*311.7)*43758.5453; return s - Math.floor(s); }
@@ -92,7 +92,9 @@
       // ---------- 폭포 물줄기 ----------
       var NOISE_GLSL = "float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }\n" +
         "float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }\n";
-      var WU = null;
+      var WU = null, WTEX = null;
+      function waterTex(){ if(WTEX) return WTEX; var im = new Image(); WTEX = new THREE.Texture(im); WTEX.wrapS = WTEX.wrapT = THREE.RepeatWrapping; im.onload = function(){ WTEX.needsUpdate = true; if(WU) WU.uHas.value = 1; WTEX._ok = true; };
+        im.src = "data:image/webp;base64,__WATERTEX__"; if(THREE.SRGBColorSpace) WTEX.colorSpace = THREE.SRGBColorSpace; WTEX.anisotropy = 8; return WTEX; }
       function fallMesh(sys, off, ph, alpha, ro){
         var C = sys.cfg, NC = 18, NR = 34, pos = [], uv = [], idx = [], i, j;
         for(j = 0; j <= NR; j++){
@@ -169,27 +171,31 @@
       function waterMesh(ring){
         var pts = ring.map(function(q){ return new THREE.Vector2(q[0], -q[1]); }), shape = new THREE.Shape(pts), g = new THREE.ShapeGeometry(shape);
         g.rotateX(-Math.PI/2); g.translate(0, WY, 0);
-        WU = { uT:{ value:0 }, uL:{ value:1 }, uFog:{ value:new THREE.Color(0xbfe0ff) }, uFogR:{ value:new THREE.Vector2(380, 1500) }, uSun:{ value:new THREE.Vector3(0.5, 0.6, -0.2).normalize() }, uXA:{ value:XA }, uZC:{ value:ZC } };
+        WU = { uT:{ value:0 }, uL:{ value:1 }, uFog:{ value:new THREE.Color(0xbfe0ff) }, uFogR:{ value:new THREE.Vector2(380, 1500) }, uSun:{ value:new THREE.Vector3(0.5, 0.6, -0.2).normalize() }, uTex:{ value:waterTex() }, uHas:{ value:WTEX && WTEX._ok ? 1 : 0 }, uXA:{ value:XA }, uZC:{ value:ZC } };
         var hwGlsl = "float hwf(float x){ float a = 15.0 + 5.0*smoothstep(" + XA + ".0, " + (XA + 120) + ".0, x); float h = a + (120.0 - a)*smoothstep(-140.0, -40.0, x); h *= 1.0 - 0.68*smoothstep(430.0, 545.0, x);\n" +
           "  float wig = 2.4*sin(x*0.05 + 1.0) + 1.3*sin(x*0.13 + 2.0); return h + wig*(0.4 + 0.6*smoothstep(-250.0, -120.0, x))*(1.0 - smoothstep(480.0, 545.0, x)); }\n";
         var m = new THREE.ShaderMaterial({ uniforms:WU, transparent:true, depthWrite:false, side:THREE.DoubleSide,
           vertexShader:"varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }",
-          fragmentShader:"uniform float uT, uL, uXA, uZC; uniform vec3 uFog, uSun; uniform vec2 uFogR; varying vec3 vW;\n" + NOISE_GLSL + hwGlsl +
+          fragmentShader:"uniform float uT, uL, uXA, uZC; uniform vec3 uFog, uSun; uniform vec2 uFogR; uniform sampler2D uTex; uniform float uHas; varying vec3 vW;\n" + NOISE_GLSL + hwGlsl +
             "float fbm(vec2 p){ float a = 0.5, s = 0.0; for(int i = 0; i < 3; i++){ s += a*vn(p); p = p*2.03 + vec2(11.7, 3.1); a *= 0.5; } return s; }\n" +
             "float hgt(vec2 p){ return fbm(p*0.22 - vec2(uT*1.3, 0.0)) + 0.4*fbm(p*0.62 - vec2(uT*2.2, uT*0.2)) + 0.3*fbm(vec2(p.x*0.35 + uT*0.4, p.y*0.35 - uT*0.55)); }\n" +
             "float ridge(vec2 q){ return 1.0 - abs(vn(q)*2.0 - 1.0); }\n" +
             "float caus(vec2 p){ vec2 q = p*0.5; return pow(ridge(q + vec2(uT*0.35, uT*0.2))*ridge(q*1.7 - vec2(uT*0.3, -uT*0.25)), 4.0); }\n" +
             "void main(){ vec2 p = vW.xz; float e = 0.5, h0 = hgt(p), hx = hgt(p + vec2(e, 0.0)), hz = hgt(p + vec2(0.0, e));\n" +
             "  vec3 n = normalize(vec3(-(hx - h0)/e*1.9, 1.0, -(hz - h0)/e*1.9)); vec3 V = normalize(cameraPosition - vW);\n" +
-            "  float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0)*0.5 + 0.04;\n" +
+            "  float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0)*0.3 + 0.03;\n" +
             "  float edgeD = hwf(p.x) - abs(p.y - uZC); float depth = clamp(edgeD/20.0, 0.0, 1.0);\n" +
             "  float headD = min(distance(p, vec2(uXA + 14.0, uZC)), distance(p, vec2(534.0, uZC))); float plunge = 1.0 - smoothstep(0.0, 50.0, headD);\n" +
-            "  vec3 col = mix(vec3(0.18, 0.78, 0.86), vec3(0.05, 0.40, 0.76), smoothstep(0.0, 1.0, depth));\n" +
-            "  col = mix(col, vec3(0.50, 0.85, 0.92), plunge*0.5);\n" +
-            "  float diff = clamp(dot(n, normalize(uSun))*0.5 + 0.55, 0.0, 1.2); col *= 0.78 + 0.45*diff;\n" +
+            "  vec2 tuv = p*0.0165 + n.xz*0.03; vec2 fl = vec2(-uT*0.030, 0.0);\n" +
+            "  vec3 t1 = texture2D(uTex, tuv + fl).rgb, t2 = texture2D(uTex, tuv*vec2(0.63, 0.71) + vec2(0.31, 0.17) + fl*0.7).rgb, t3 = texture2D(uTex, tuv*2.3 + vec2(0.7, 0.4) + fl*1.6).rgb;\n" +
+            "  vec3 tcol = mix(vec3(0.24, 0.66, 0.80), t1*0.5 + t2*0.32 + t3*0.18, uHas);\n" +
+            "  vec3 tint = mix(vec3(1.0), vec3(0.62, 0.84, 1.0), smoothstep(0.0, 1.0, depth));\n" +
+            "  vec3 col = tcol*tint*mix(1.18, 0.92, smoothstep(0.0, 1.0, depth));\n" +
+            "  col = mix(col, vec3(0.55, 0.88, 0.95), plunge*0.4);\n" +
+            "  float diff = clamp(dot(n, normalize(uSun))*0.5 + 0.55, 0.0, 1.2); col *= 0.86 + 0.3*diff;\n" +
             "  vec3 sky = mix(vec3(0.36, 0.64, 0.94), uFog, 0.2); col = mix(col, sky, fres);\n" +
-            "  vec3 Hh = normalize(uSun + V); col += vec3(1.0, 0.95, 0.82)*(pow(max(dot(n, Hh), 0.0), 70.0)*0.8 + pow(max(dot(n, Hh), 0.0), 260.0)*(0.6 + vn(p*2.6 - vec2(uT*2.0, 0.0)))*1.4);\n" +
-            "  col += vec3(0.55, 0.95, 0.95)*caus(p)*(1.0 - smoothstep(0.05, 0.85, depth))*0.9;\n" +
+            "  vec3 Hh = normalize(uSun + V); col += vec3(1.0, 0.95, 0.82)*(pow(max(dot(n, Hh), 0.0), 70.0)*0.45 + pow(max(dot(n, Hh), 0.0), 260.0)*(0.6 + vn(p*2.6 - vec2(uT*2.0, 0.0)))*0.9);\n" +
+            "  col += vec3(0.5, 0.9, 0.95)*caus(p)*(1.0 - smoothstep(0.05, 0.85, depth))*0.28;\n" +
             "  col += vec3(0.10, 0.14, 0.16)*0.4*smoothstep(0.55, 0.85, hgt(p*vec2(1.0, 2.4) + 3.0));\n" +
             "  float fn = vn(p*0.8 - vec2(uT*1.3, 0.0))*0.6 + vn(p*2.4 - vec2(uT*2.2, 0.0))*0.4;\n" +
             "  float ef = 1.0 - smoothstep(0.4, 3.5 + 3.5*fn, edgeD);\n" +
@@ -201,7 +207,7 @@
             "  float foam = clamp(ef*0.95 + pf + wake*fn + plf, 0.0, 1.0);\n" +
             "  col = mix(col, vec3(0.97, 0.99, 1.0), foam*smoothstep(0.30, 0.62, fn + 0.25));\n" +
                         "  col *= mix(0.34, 1.0, uL);\n" +
-            "  float al = mix(0.40, 0.94, smoothstep(0.0, 0.7, depth)); al = max(al, foam*0.92);\n" +
+            "  float al = mix(0.55, 0.95, smoothstep(0.0, 0.5, depth)); al = max(al, foam*0.92);\n" +
             "  gl_FragColor = vec4(col, al);\n" +
             "  #include <tonemapping_fragment>\n" +
             "  float fd = length(cameraPosition - vW); gl_FragColor.rgb = mix(gl_FragColor.rgb, uFog, smoothstep(uFogR.x, uFogR.y, fd)); }" });
@@ -346,6 +352,7 @@
         window.RIVER.water = function(x, z){ return x > XA && x < XE && Math.abs(z - ZC) < hw(x) - 0.8; };
         window.RIVER.hh = function(x, z){ if(z < ZLO || z > ZHI) return 0; if(x >= XMIN && x < -30) return gorgeH(x, z); if(x >= 500 && x < 780) return eastH(x, z); return 0; };
         window.RIVER.push = function(p, px0, pz0){
+          if(Math.abs(px0) < 9.6 && Math.abs(p.x) >= 9.6 && pz0 > 534 && pz0 < 846){ p.x = px0; }      // 다리 난간: 다리 위에서는 옆으로 뛰어내리지 않아요
           var hh = window.RIVER.hh; if(!((p.x < -30 && p.x > XMIN - 30) || (p.x > 490 && p.x < 790)) && !((px0 < -30 && px0 > XMIN - 30) || (px0 > 490 && px0 < 790))) return;
           var dist = Math.hypot(p.x - px0, p.z - pz0); if(dist < 1e-6) return;
           function steep(x, z){ return Math.abs(hh(x, z) - hh(px0, pz0)) > 2.7*Math.hypot(x - px0, z - pz0) + 0.8; }
@@ -355,6 +362,34 @@
         };
         built = true; window.__riverBuilt = true;
       }
+      // ---------- 수영: 물결 고리 + 물방울 (그림은 render 쪽에서 몸을 물에 담그고 노를 저어요) ----------
+      var SW = null;
+      function swimInit(){
+        SW = { rings:[], drops:[], clip:new THREE.Plane(new THREE.Vector3(0, 1, 0), 1e5), t:0, last:0, was:false };
+        var tex = dotTex(), i;
+        for(i = 0; i < 5; i++){ var m = new THREE.Mesh(new THREE.RingGeometry(0.72, 1, 40), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0, depthWrite:false, fog:false, side:THREE.DoubleSide })); m.rotation.x = -Math.PI/2; m.renderOrder = -2; m.visible = false; m.userData = { a:1 }; scene.add(m); SW.rings.push(m); }
+        for(i = 0; i < 18; i++){ var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false, opacity:0, fog:false })); sp.visible = false; sp.userData = { life:1, vx:0, vy:0, vz:0 }; scene.add(sp); SW.drops.push(sp); }
+        if(three.renderer) three.renderer.localClippingEnabled = true;
+        var tm = three.playerTopSprite.material; tm.clippingPlanes = [SW.clip]; tm.needsUpdate = true;
+      }
+      function emitRing(x, z, big){ var m = null, i; for(i = 0; i < SW.rings.length; i++) if(!SW.rings[i].visible){ m = SW.rings[i]; break; } if(!m) return; m.userData.a = 0; m.userData.big = big; m.position.set(x, WY + 0.08, z); m.visible = true; }
+      function emitDrops(x, z, n, power){ var k = 0, i; for(i = 0; i < SW.drops.length && k < n; i++){ var s = SW.drops[i]; if(s.visible) continue; k++; var a = rnd()*6.283, v = (0.5 + rnd())*power;
+        s.userData.life = 0; s.userData.vx = Math.cos(a)*v*5; s.userData.vz = Math.sin(a)*v*5; s.userData.vy = (4 + rnd()*5)*power; s.position.set(x, WY + 0.5, z); s.scale.set(1.3, 1.3, 1); s.material.opacity = 0.9; s.visible = true; } }
+      // render 에서 매 프레임 불러요: 수영 중이면 물결/물방울을 내고 캐릭터 몸을 물에 담글 높이(clip)를 돌려줘요
+      window.swimFx = function(p, dt, t, sw){
+        if(!SW) swimInit(); var i;
+        if(sw > 0.5 && !SW.was){ emitRing(p.x, p.z, 1.6); emitDrops(p.x, p.z, 12, 1.0); if(window.sfxSplash) window.sfxSplash(1); }
+        if(sw < 0.3 && SW.was){ emitRing(p.x, p.z, 1.2); emitDrops(p.x, p.z, 8, 0.8); }
+        SW.was = sw > 0.5;
+        SW.t += dt; var gap = p.walking ? 0.28 : 0.85;
+        if(sw > 0.5 && SW.t - SW.last > gap){ SW.last = SW.t; emitRing(p.x, p.z, p.walking ? 1.0 : 0.6); if(p.walking){ emitDrops(p.x, p.z, 2, 0.35); } }
+        for(i = 0; i < SW.rings.length; i++){ var m = SW.rings[i]; if(!m.visible) continue; var u = m.userData; u.a += dt*(0.55); if(u.a >= 1){ m.visible = false; continue; }
+          var sc = 2 + u.a*(11*(u.big || 1)); m.scale.set(sc, sc, 1); m.material.opacity = 0.7*(1 - u.a)*(1 - u.a); }
+        for(i = 0; i < SW.drops.length; i++){ var s = SW.drops[i]; if(!s.visible) continue; var d = s.userData; d.life += dt; d.vy -= 26*dt; s.position.x += d.vx*dt; s.position.z += d.vz*dt; s.position.y += d.vy*dt;
+          if(s.position.y < WY || d.life > 1.2){ s.visible = false; continue; } s.material.opacity = 0.85*(1 - d.life/1.2); }
+        SW.clip.constant = sw > 0.05 ? -(WY + 0.1) : 1e5;
+        return SW;
+      };
       window.riverTick = function(t, dt, p){
         var w = (typeof three !== "undefined") ? three.world : null;
         if(!w || w.children.length < 20) return;
