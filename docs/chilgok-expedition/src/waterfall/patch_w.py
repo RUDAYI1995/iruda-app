@@ -19,6 +19,9 @@ sub("camGY + 3 + p.y + Math.min(1, skyH/SKY.H)*12, (inSkyCam", "camGY + 3 + p.y 
 sub("  if(k === \"f\"){ setMapExpanded(!mapExpanded); }\n", "  if(k === \"f\"){ setMapExpanded(!mapExpanded); }\n  else if(k === \"c\"){ var cs0 = state.cam; cs0.plock = !cs0.plock; showToast(cs0.plock ? \"🔒 시점 고정 (C로 풀기)\" : \"🔓 시점 자유 — 마우스를 위아래로 움직여 보세요 (C로 고정)\"); }\n", "key c")
 sub("expandBtn.addEventListener(\"click\", function(){ setMapExpanded(!mapExpanded); expandBtn.blur(); });\n", "expandBtn.addEventListener(\"click\", function(){ setMapExpanded(!mapExpanded); expandBtn.blur(); });\n(function(){ var ch = document.getElementById(\"canvasHolder\");\n  ch.addEventListener(\"mousemove\", function(e){ var cs = state.cam; if(cs.plock) return; var r = ch.getBoundingClientRect(); if(!r.height) return; var v = -((e.clientY - r.top)/r.height - 0.5)*2, a = Math.abs(v); cs.pt = a < 0.14 ? 0 : (v < 0 ? -1 : 1)*Math.min(1, (a - 0.14)/0.8); });\n})();\n", "mouse pitch")
 sub("E 살펴보기 · M 지도 · F 맵 확장", "E 살펴보기 · M 지도 · F 맵 확장<br>마우스 위아래 시점 · C 시점 고정", "help")
+
+sub("  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z));\n", "  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z), (window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0);\n", "ground river")
+sub("function landPush(p, px0, pz0){\n", "function landPush(p, px0, pz0){\n  if(window.RIVER && window.RIVER.push) window.RIVER.push(p, px0, pz0);      // 폭포 언덕: 오를 수 있는 경사만\n", "landPush river")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
 HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt};\n"
