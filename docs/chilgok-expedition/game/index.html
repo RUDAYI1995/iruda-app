@@ -305,7 +305,7 @@
           <button class="pad-btn" id="btnDown">▼</button>
           <button class="pad-btn" id="btnRight">▶</button>
         </div>
-        <div class="help">방향키/WASD 이동 · Shift 달리기 · Space 점프<br>E 살펴보기 · M 지도 · F 맵 확장</div>
+        <div class="help">방향키/WASD 이동 · Shift 달리기 · Space 점프<br>E 살펴보기 · M 지도 · F 맵 확장<br>마우스 위아래 시점 · C 시점 고정</div>
         <div id="actionpad">
           <button class="pad-btn" id="btnJump">⤴</button>
           <button class="pad-btn" id="btnInteract">E</button>
@@ -6142,6 +6142,9 @@ function setMapExpanded(on){
   setTimeout(resizeRenderer, 60);   // once the browser has finished resizing
 }
 expandBtn.addEventListener("click", function(){ setMapExpanded(!mapExpanded); expandBtn.blur(); });
+(function(){ var ch = document.getElementById("canvasHolder");
+  ch.addEventListener("mousemove", function(e){ var cs = state.cam; if(cs.plock) return; var r = ch.getBoundingClientRect(); if(!r.height) return; var v = -((e.clientY - r.top)/r.height - 0.5)*2, a = Math.abs(v); cs.pt = a < 0.14 ? 0 : (v < 0 ? -1 : 1)*Math.min(1, (a - 0.14)/0.8); });
+})();
 document.addEventListener("fullscreenchange", function(){
   // leaving real fullscreen with Esc also collapses the expanded view
   if(!document.fullscreenElement && fsRequested && mapExpanded){ fsRequested = false; setMapExpanded(false); }
@@ -6151,6 +6154,7 @@ window.addEventListener("keydown", function(e){
   if(screens.game.hidden) return;
   var k = e.key.toLowerCase();
   if(k === "f"){ setMapExpanded(!mapExpanded); }
+  else if(k === "c"){ var cs0 = state.cam; cs0.plock = !cs0.plock; showToast(cs0.plock ? "🔒 시점 고정 (C로 풀기)" : "🔓 시점 자유 — 마우스를 위아래로 움직여 보세요 (C로 고정)"); }
   else if(k === "escape" && mapExpanded){ setMapExpanded(false); }
 });
 
@@ -6719,7 +6723,8 @@ function render(dt){
   }
   var inSkyCam = p.x > SKY.edgeX, camGY = inSkyCam ? cs.fy : groundY;      // 기존 맵은 예전 그대로, 하늘섬 구역만 부드럽게
   var vk = cs.vk || 0, vt = (p.x < VIL.westX - 50 && p.x > VIL.x1 - 100) ? 1 : 0; vk += (vt - vk)*(1 - Math.pow(0.02, dt)); cs.vk = vk < 0.001 ? 0 : vk;   // 마을 안에서는 카메라를 더 높고 멀리 (지붕 속으로 파고들지 않게)
-  var desiredY = 16 + camGY + p.y*0.4 + 15*cs.vk, camBack = 32 + 14*cs.vk;
+  cs.pv = (cs.pv || 0) + ((cs.pt || 0) - (cs.pv || 0))*Math.min(1, dt*6); var pv = Math.abs(cs.pv) < 0.002 ? 0 : cs.pv;      // 마우스 위아래 시점 (위 = 하늘 쪽, 아래 = 내려다보기)
+  var desiredY = 16 + camGY + p.y*0.4 + 15*cs.vk + (pv < 0 ? -pv*30 : -pv*8), camBack = 32 + 14*cs.vk + (pv < 0 ? -pv*10 : 0);
   cam.position.x = cs.fx - sinY*camBack;
   cam.position.z = cs.fz - cosY*camBack;
   // never let the camera sink into a hillside (it can end up behind a slope when looking downhill)
@@ -6732,7 +6737,7 @@ function render(dt){
     cs.arm += (af - cs.arm) * Math.min(1, dt*(af < cs.arm ? 22 : 5));
     if(cs.arm < 0.999){ cs.rawY = aey; cs.armOn = true; cam.position.x = atx + (aex - atx)*cs.arm; cam.position.y = aty + (aey - aty)*cs.arm; cam.position.z = atz + (aez - atz)*cs.arm; }
   }
-  cam.lookAt((inSkyCam ? cs.fx : p.x) + sinY*14, camGY + 3 + p.y + Math.min(1, skyH/SKY.H)*12, (inSkyCam ? cs.fz : p.z) + cosY*14);
+  cam.lookAt((inSkyCam ? cs.fx : p.x) + sinY*14, camGY + 3 + p.y + Math.min(1, skyH/SKY.H)*12 + (pv > 0 ? pv*26 : pv*14), (inSkyCam ? cs.fz : p.z) + cosY*14);
   if(three.skyUpdate){ try{ three.skyUpdate(t, dt, p, skyH); }catch(skyErr2){ if(window.console) console.warn("skyUpdate failed:", skyErr2); three.skyUpdate = null; } }
   if(three.dayUpdate){ try{ three.dayUpdate(t, dt, p); }catch(dayErr){ if(window.console) console.warn("dayUpdate failed:", dayErr); three.dayUpdate = null; } }
 
