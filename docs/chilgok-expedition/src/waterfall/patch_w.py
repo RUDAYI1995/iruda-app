@@ -2,7 +2,7 @@ import sys, os, shutil
 SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/pub/index.html", encoding="utf-8").read()
 import base64
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read()
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read()
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
@@ -35,6 +35,11 @@ sub("  three.playerLegSprite.material.rotation = legSwing;\n",
 sub("  three.playerTopSprite.material.rotation = armSwing;\n",
     "  three.playerTopSprite.material.rotation = armSwing;\n  if(swK > 0){        // 수영: 몸 아래쪽을 물에 담그고(클립), 숨 쉬듯 떠오르고, 팔을 젓듯 좌우로 기울이고 늘었다 줄어요\n    var stroke = Math.sin(swimPh), moving = p.walking ? 1 : 0.35, heave = Math.sin(swimPh*0.5)*0.35;\n    three.playerTopSprite.scale.set(baseW*(1.02 + 0.08*Math.abs(stroke)*moving)*sxFactor, topH*(0.98 - 0.05*Math.abs(stroke)*moving)*syFactor, 1);\n    three.playerTopSprite.position.set(p.x, groundY + topH*(0.5 - 0.17*swK) + 0.2 + heave*swK + 0.35*Math.abs(stroke)*moving*swK, p.z);\n    three.playerTopSprite.material.rotation = stroke*0.17*moving*swK + Math.sin(swimPh*0.5)*0.03*swK;\n  }\n", "swim top")
 sub("      window.sfxStep = function(runK){", "      window.sfxSplash = function(v){\n        if(!AC || muted) return; var n = AC.currentTime, ns = AC.createBufferSource(); ns.buffer = noiseB(); var f = AC.createBiquadFilter(); f.type = \"bandpass\"; f.Q.value = 0.7; f.frequency.setValueAtTime(1800, n); f.frequency.exponentialRampToValueAtTime(500, n + 0.5);\n        var g = AC.createGain(); g.gain.setValueAtTime(0.0001, n); g.gain.exponentialRampToValueAtTime(0.16*(v || 1), n + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.55); ns.connect(f); f.connect(g); g.connect(master); ns.start(n, Math.random()*0.4); ns.stop(n + 0.6);\n      };\n      window.sfxStep = function(runK){", "sfx splash")
+
+sub("  three.playerTopSprite.material.rotation = armSwing;\n  if(swK > 0){",
+    "  three.playerTopSprite.material.rotation = armSwing;\n  var hamOn = window.hamgokiUpdate ? window.hamgokiUpdate(p, dt, t, groundY, runK, swK, swimPh, state.cam.yaw) : false;\n  if(swK > 0){", "ham call")
+
+sub("  // The world is thousands of units long, far more than one shadow map can\n", "  three.playerTopSprite.visible = !hamOn; if(hamOn) three.playerLegSprite.visible = false;      // 3D 캐릭터일 때는 그림 조각을 숨겨요\n  // The world is thousands of units long, far more than one shadow map can\n", "ham vis")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
 HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt};\n"

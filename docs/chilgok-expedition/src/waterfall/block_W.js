@@ -388,6 +388,7 @@
         for(i = 0; i < SW.drops.length; i++){ var s = SW.drops[i]; if(!s.visible) continue; var d = s.userData; d.life += dt; d.vy -= 26*dt; s.position.x += d.vx*dt; s.position.z += d.vz*dt; s.position.y += d.vy*dt;
           if(s.position.y < WY || d.life > 1.2){ s.visible = false; continue; } s.material.opacity = 0.85*(1 - d.life/1.2); }
         SW.clip.constant = sw > 0.05 ? -(WY + 0.1) : 1e5;
+        window.__swClip = SW.clip;
         return SW;
       };
       window.riverTick = function(t, dt, p){
