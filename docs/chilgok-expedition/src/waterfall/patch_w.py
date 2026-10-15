@@ -2,7 +2,8 @@ import sys, os, shutil
 SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/pub/index.html", encoding="utf-8").read()
 import base64
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode())
+MN = {k: base64.b64encode(open(SP + "/w/mn/" + k + ".webp","rb").read()).decode() for k in ("front","left","right","back","roof","gate")}
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode())
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
@@ -59,9 +60,13 @@ sub("      fallTex.offset.y += dt*0.55;\n", "      fallTex.offset.y += dt*0.55; 
 sub("      var a = rnd()*Math.PI*2, wdt = 3 + rnd()*2.4;\n      var pivot = new THREE.Object3D();\n", "      var a = rnd()*Math.PI*2, wdt = 7 + rnd()*5;      // 새 물줄기 그림에 맞게 넓힘 (V68)\n      var pivot = new THREE.Object3D();\n", "wider fall")
 sub("      pivot.add(lip);\n      g.add(pivot);\n    }\n", "      pivot.add(lip);\n      var mst = new THREE.Sprite(fallMistMat); mst.scale.set(wdt*3.2, wdt*2.2, 1); mst.position.set(0, -L + wdt*0.5, 2); pivot.add(mst);      // 떨어진 물이 부서지는 물안개\n      g.add(pivot);\n    }\n", "fall mist")
 sub("    fallMat.map = fallStrip;", "    var fallMistTex = canvasTex(64, 64, function(g, w, h){ var gr = g.createRadialGradient(w/2, h/2, 2, w/2, h/2, w/2); gr.addColorStop(0, \"rgba(255,255,255,0.75)\"); gr.addColorStop(0.5, \"rgba(230,244,255,0.32)\"); gr.addColorStop(1, \"rgba(230,244,255,0)\"); g.clearRect(0, 0, w, h); g.fillStyle = gr; g.fillRect(0, 0, w, h); });\n    var fallMistMat = new THREE.SpriteMaterial({ map:fallMistTex, transparent:true, depthWrite:false, opacity:0.55, fog:false });\n    fallMat.map = fallStrip;", "mist mat")
+
+sub("function villageHint(p){                     // 마을에서 E 를 누르면 무엇을 하는지 알려줘요 (없으면 null)\n  var ah = window.airHint ? window.airHint(p) : null; if(ah) return ah;\n", "function villageHint(p){                     // 마을에서 E 를 누르면 무엇을 하는지 알려줘요 (없으면 null)\n  var ah = window.airHint ? window.airHint(p) : null; if(ah) return ah;\n  var mh = window.mansionHint ? window.mansionHint(p) : null; if(mh) return mh;\n", "mansion hint")
+sub("  if(window.airInteract && window.airInteract(p)) return true;\n", "  if(window.airInteract && window.airInteract(p)) return true;\n  if(window.mansionInteract && window.mansionInteract(p)) return true;\n", "mansion interact")
+sub("        if(window.airTick) window.airTick(t, dt, p);\n", "        if(window.airTick) window.airTick(t, dt, p);\n        if(window.mansionTick) window.mansionTick(t, dt, p);\n", "mansion tick")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
-HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt, SKY:SKY, SKY_PROPS:SKY_PROPS, SKY_SPIRAL:SKY_SPIRAL, skyWalkable:skyWalkable, tryInteract:tryInteract, villageHint:villageHint, CHARACTERS:CHARACTERS, setRef:function(v){SKY_REF=v;}};\n"
+HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt, SKY:SKY, SKY_PROPS:SKY_PROPS, SKY_SPIRAL:SKY_SPIRAL, skyWalkable:skyWalkable, tryInteract:tryInteract, villageHint:villageHint, CHARACTERS:CHARACTERS, setRef:function(v){SKY_REF=v;}, HILLS:HILLS, insideAnyHill:insideAnyHill, LAND_RECTS:LAND_RECTS, TOWN_RECTS:TOWN_RECTS, LANDMARKS:LANDMARKS, MT:MT};\n"
 MARK = "/* ---------------- Boot ---------------- */"
 assert src.count(MARK) == 1
 open(SP + "/w/test/index.html", "w", encoding="utf-8").write(src.replace(MARK, HOOK + MARK))
