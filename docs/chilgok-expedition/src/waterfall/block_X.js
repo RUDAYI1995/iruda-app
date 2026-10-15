@@ -26,25 +26,19 @@
       function lamp(p, x, z, crystalCol){ var t = new THREE.Group(); t.position.set(x, 0, z); p.add(t); var navy = std(0x2b3558, { r:0.5 }), gold = std(0xd8b04a, { r:0.35, m:0.5, em:0.25 }); bx(t, 5, 2, 5, gold, 0, 1, 0); bx(t, 3.6, 14, 3.6, navy, 0, 9, 0); bx(t, 5, 1.5, 5, gold, 0, 16.5, 0); var c = new THREE.Mesh(new THREE.OctahedronGeometry(3.4, 0), std(crystalCol || 0xbff2ff, { r:0.15, e:0x6fb8d0, tr:true, op:0.92 })); c.scale.set(0.8, 1.5, 0.8); c.position.y = 22; t.add(c); t.userData.c = c; return t; }
       function banner(p, x, z, ry){ var g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry || 0; g.scale.setScalar(0.68); p.add(g); var gold = std(0xd8b04a, { r:0.35, m:0.5, em:0.25 }); cy(g, 0.7, 0.9, 52, std(0x39405e, { r:0.5 }), 0, 26, 0, 8); bx(g, 22, 1.4, 1.4, gold, 0, 51, 0); var t = ct(256, 512, function(c, w, h){ c.fillStyle = "#2b3a6a"; c.fillRect(0, 0, w, h); c.fillStyle = "#d8b04a"; c.fillRect(0, 0, w, 14); c.beginPath(); c.moveTo(0, h - 60); c.lineTo(w/2, h); c.lineTo(w, h - 60); c.lineTo(w, h); c.lineTo(0, h); c.closePath(); c.fillStyle = "#2b3a6a"; c.fill(); cat(c, w/2, 170, 74, "#ffffff", true); paw(c, w/2, 340, 70, "#ffffff"); });
         var f = new THREE.Mesh(new THREE.PlaneGeometry(18, 34), std(0xffffff, { map:t, side:THREE.DoubleSide, em:0.45 })); f.position.set(0, 32, 0.8); g.add(f); }
-      function buildTerminal(p){                                           // 로컬 좌표: 건물 중심 (0, 0, 0), 정면은 -z
-        var cream = std(0xefe8da, { r:0.7, em:0.28 }), navy = std(0x2f3a63, { r:0.5, em:0.22 }), gold = std(0xd8b04a, { r:0.35, m:0.5, em:0.25 }), W = 70, D = 40, Ht = 28;
-        var floor = bx(p, W, 1, D, std(0xf1ece0, { map:stoneTex(), r:0.6, em:0.18 }), 0, 0.5, 0); floor.material.map.repeat.set(3, 2);
-        bx(p, W, Ht, 2, cream, 0, Ht/2, D/2 - 1); bx(p, 2, Ht, D, cream, W/2 - 1, Ht/2, 0); bx(p, 2, Ht, D, cream, -W/2 + 1, Ht/2, 0);   // 뒷벽, 양옆 벽
-        // 정면: 가운데 큰 아치(입구) + 양옆 기둥 + 아치 간판
-        [-1, 1].forEach(function(s){ bx(p, 6, Ht + 4, 6, cream, s*(W/2 - 3), (Ht + 4)/2, -D/2 + 1); bx(p, 8, 2, 8, gold, s*(W/2 - 3), 3, -D/2 + 1); bx(p, 8, 2, 8, gold, s*(W/2 - 3), Ht + 3, -D/2 + 1); bx(p, 9, 18, 3, cream, s*28, 9, -D/2 + 1); bx(p, 9, 18, 3, cream, s*10, 9, -D/2 + 1); });
-        var arch = new THREE.Mesh(new THREE.TorusGeometry(15, 2.6, 10, 36, Math.PI), cream); arch.position.set(0, 14, -D/2 + 1); p.add(arch); bx(p, 36, 4.2, 4, cream, 0, Ht + 0.5, -D/2 + 1);
-        var sg = new THREE.Mesh(new THREE.CircleGeometry(15, 40, 0, Math.PI), std(0xffffff, { map:sign(512, 256, "SKY CAT AIRLINES", "#2b3a6a", "#f6e9c4", true), em:0.55 })); sg.position.set(0, 14.2, -D/2 - 0.4); sg.rotation.y = Math.PI; p.add(sg);
-        // 지붕: 남색 사각 뿔 + 모서리 첨탑(고양이 귀 느낌)
-        var roof = new THREE.Mesh(new THREE.ConeGeometry(Math.hypot(W, D)/2*0.82, 22, 4, 1), navy); roof.rotation.y = Math.PI/4; roof.scale.set(W/D*0.74, 1, 1.1); roof.position.set(0, Ht + 11, 0); p.add(roof);
-        [[-W/2, -D/2], [W/2, -D/2], [-W/2, D/2], [W/2, D/2]].forEach(function(q, i){ cy(p, 4.6, 5.2, Ht + 10, cream, q[0], (Ht + 10)/2, q[1], 16); var tr = new THREE.Mesh(new THREE.ConeGeometry(6.5, 20, 16), navy); tr.position.set(q[0], Ht + 20, q[1]); p.add(tr); var sp2 = cy(p, 0.35, 0.35, 7, gold, q[0], Ht + 33, q[1], 6); });
-        var spire = new THREE.Mesh(new THREE.ConeGeometry(2.6, 11, 12), navy); spire.position.set(0, Ht + 29, 0); p.add(spire); cy(p, 0.3, 0.3, 8, gold, 0, Ht + 39, 0, 6);
-        // 내부: 벤치, 화분, 안내 전광판, 등불
-        var bench = std(0x3c5aa6, { r:0.8, em:0.25 }); [-18, 4].forEach(function(bxp){ bx(p, 14, 3, 5, bench, bxp, 3, 12); bx(p, 14, 6, 1.6, bench, bxp, 6, 14.2); bx(p, 14, 1.5, 6, gold, bxp, 1.4, 12); });
-        var board = new THREE.Mesh(new THREE.PlaneGeometry(14, 6.5), std(0xffffff, { map:ct(256, 128, function(g, w, h){ g.fillStyle = "#14224a"; g.fillRect(0, 0, w, h); g.fillStyle = "#cfe9ff"; g.font = "bold 18px monospace"; g.fillText("SKY CAT  FLIGHT 4096", 12, 26); g.fillStyle = "#7fd6ff"; g.font = "14px monospace"; g.fillText("CHILGOK   BOARDING", 12, 56); g.fillStyle = "#ffd36a"; g.fillText("GATE 1       ON TIME", 12, 84); paw(g, 224, 90, 22, "#cfe9ff"); }), em:0.7 })); board.position.set(0, 19, D/2 - 2.1); board.rotation.y = Math.PI; p.add(board);
-        [-1, 1].forEach(function(s){ cy(p, 2.4, 2.8, 4, std(0xe9e2d2, { r:0.8 }), s*29, 2.5, 5, 12); sp(p, 3.2, std(0x4a8a46, { r:0.8, em:0.3 }), s*29, 7, 5, 1, 1.1, 1); });
-        [-24, 24].forEach(function(lx){ var l = new THREE.Mesh(new THREE.SphereGeometry(1.5, 12, 8), std(0xffe9a8, { e:0xffd36a, r:0.3 })); l.position.set(lx, 20, D/2 - 5); p.add(l); });
-        // 정문 앞 계단형 단
-        bx(p, 40, 1, 4, cream, 0, 0.5, -D/2 - 1.5);
+      var TERMT = null;
+      function termTex(){ if(TERMT) return TERMT; var im = new Image(); var t = new THREE.Texture(im); im.onload = function(){ t.needsUpdate = true; }; im.src = "data:image/webp;base64,__TERMTEX__"; if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return (TERMT = t); }
+      function buildTerminal(p){                                           // 로컬 좌표: 건물 중심 (0, 0, 0), 정면은 -z.  정면은 참고 이미지(2번)를 입힌 판 + 뒤에 입체 몸통/지붕
+        var cream = std(0xefe8da, { r:0.7, em:0.42 }), navy = std(0x3c4f94, { r:0.5, em:0.3 }), W = 56, D = 36, Ht = 32, CWd = 96, CH2 = CWd*920/1236;
+        bx(p, W + 4, 1, D + 6, std(0xf1ece0, { map:stoneTex(), r:0.6, em:0.25 }), 0, 0.5, 0).material.map.repeat.set(3, 2);
+        bx(p, W, Ht, 2, cream, 0, Ht/2, D/2 - 1); bx(p, 2, Ht, D, cream, W/2 - 1, Ht/2, 0); bx(p, 2, Ht, D, cream, -W/2 + 1, Ht/2, 0);
+        // 옆 건물 (카드의 양옆 정자 뒤 몸통) + 작은 남색 지붕
+        [-1, 1].forEach(function(s2){ bx(p, 20, 22, 22, cream, s2*(W/2 + 10), 11, -6); var rc = new THREE.Mesh(new THREE.ConeGeometry(12, 10, 6), navy); rc.position.set(s2*(W/2 + 10), 27, -6); p.add(rc); });
+        // 지붕: 남색 사각 뿔 (카드 뒤에서 옆/뒤에서 보면 입체로 보여요)
+        var roof = new THREE.Mesh(new THREE.ConeGeometry(22, 18, 4, 1), navy); roof.rotation.y = Math.PI/4; roof.scale.set(1.5, 1, 1.05); roof.position.set(0, Ht + 9, 0); p.add(roof);
+        // 정면 카드: 참고 이미지 (투명 배경 컷아웃)
+        var card = new THREE.Mesh(new THREE.PlaneGeometry(CWd, CH2), new THREE.MeshStandardMaterial({ map:termTex(), emissiveMap:termTex(), emissive:new THREE.Color(0x666666), roughness:0.8, metalness:0, alphaTest:0.4, side:THREE.FrontSide })); card.position.set(0, CH2/2 - 1.2, -D/2 - 1); card.rotation.y = Math.PI; card.name = "terminalFront"; p.add(card);
+        p.userData.card = card;
       }
       function buildGear(p, x, z){ var dk = std(0x2d2f36, { r:0.8, em:0.1 }), gr = std(0x9aa0aa, { r:0.4, m:0.6, em:0.15 }); [-1, 1].forEach(function(s){ cy(p, 2.6, 2.6, 3, dk, x, 2.6, z + s*3.2, 14).rotation.x = Math.PI/2; }); cy(p, 0.8, 0.8, 11, gr, x, 9, z, 6); }
       function buildIsland(){
@@ -56,7 +50,7 @@
         // 원형 화단 + 광장
         var bed = new THREE.Mesh(new THREE.CircleGeometry(32, 48), std(0xffffff, { map:bedTex(), r:0.9, em:0.3 })); bed.rotation.x = -Math.PI/2; bed.position.set(0, 0.12, -78); G.add(bed);
         // 터미널 (오른쪽 월드 +x), 탑승교, 활주로, 비행기 (왼쪽 -x)
-        var term = new THREE.Group(); term.position.set(55, 0, 52); G.add(term); buildTerminal(term);
+        var term = new THREE.Group(); term.position.set(68, 0, 52); G.add(term); buildTerminal(term);
         var tar = new THREE.Mesh(new THREE.PlaneGeometry(190, 150), std(0xffffff, { map:tarmacTex(), r:0.85, em:0.22 })); tar.rotation.x = -Math.PI/2; tar.position.set(-62, 0.1, 55); G.add(tar);
         // 비행기 (날아다니는 것과 같은 모델)
         if(window.catPlaneClone){ var pl = window.catPlaneClone(); if(pl){ pl.scale.multiplyScalar(0.64); pl.position.set(-85, 13.4, 58); pl.rotation.y = 0; G.add(pl); G.userData.plane = pl; } }
@@ -80,7 +74,7 @@
       // ---------- 공항 하늘 배경 (참고 이미지 1번: 보라빛 구름하늘 + 떠 있는 성 섬) ----------
       var SKYT = null;
       function skyTex(mirror){ var im = new Image(); var t = new THREE.Texture(im); t.wrapS = mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; im.onload = function(){ t.needsUpdate = true; }; im.src = "data:image/webp;base64,__SKYTEX__"; if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
-      function skyBackdrop(){ var HC = 1700, R = 1750, t = skyTex(true); t.repeat.set(2, 1); var m = new THREE.MeshBasicMaterial({ map:t, side:THREE.BackSide, fog:false, depthWrite:false, depthTest:false, color:0xffffff, transparent:true, opacity:1 }); var cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, HC, 64, 1, true), m); cyl.renderOrder = -90; cyl.frustumCulled = false; cyl.name = "airportSky"; cyl.userData.t = t; cyl.userData.HC = HC; return cyl; }
+      function skyBackdrop(){ var HC = 1700, R = 1750, t = skyTex(true); t.repeat.set(2, 1); var m = new THREE.MeshBasicMaterial({ map:t, side:THREE.BackSide, fog:false, depthWrite:false, depthTest:false, color:0xffffff }); var cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, HC, 64, 1, true), m); cyl.renderOrder = -90; cyl.frustumCulled = false; cyl.name = "airportSky"; cyl.userData.t = t; cyl.userData.HC = HC; return cyl; }
       // ---------- 기내 ----------
       function cloudTexOld(){ return ct(1024, 512, function(g, w, h){ var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#5da6f0"); gr.addColorStop(0.55, "#a6d3ff"); gr.addColorStop(1, "#f3f8ff"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
           function island(x, y, s, hue){ g.fillStyle = "rgba(60,48,80,0.25)"; g.beginPath(); g.moveTo(x - s, y); g.lineTo(x + s, y); g.lineTo(x, y + s*1.1); g.closePath(); g.fill(); g.fillStyle = "#c9b8e8"; g.beginPath(); g.moveTo(x - s*0.9, y); g.lineTo(x + s*0.9, y); g.lineTo(x + s*0.2, y + s*0.8); g.lineTo(x - s*0.3, y + s*0.9); g.closePath(); g.fill(); g.fillStyle = hue; g.beginPath(); g.ellipse(x, y - 2, s, s*0.22, 0, 0, 7); g.fill(); for(var k = 0; k < 5; k++){ g.fillStyle = "#e9a9c8"; g.beginPath(); g.arc(x + (k - 2)*s*0.3, y - s*0.3, s*0.17, 0, 7); g.fill(); } g.fillStyle = "#f4efe6"; g.fillRect(x - s*0.12, y - s*0.55, s*0.24, s*0.4); g.fillStyle = "#4b5c9a"; g.beginPath(); g.moveTo(x - s*0.2, y - s*0.55); g.lineTo(x, y - s*0.85); g.lineTo(x + s*0.2, y - s*0.55); g.fill(); }
@@ -125,7 +119,7 @@
       // ---------- 이동 가능 영역 (SKY 높이 후보에 더해져요) ----------
       var IB = [ { x:55, z:52, hx:35, hz:20 }, { x:-85, z:58, hx:72, hz:15 }, { x:-62, z:45, hx:60, hz:1.2 }, { x:-62, z:45, hx:60, hz:1.2 } ];  // 섬 로컬: 터미널 건물(안쪽 빼고), 비행기
       var TERM_DOOR = { x0:55 - 15, x1:55 + 15, z:32 };
-      function inTerminalBody(lx, lz){ var tx = lx - 55, tz = lz - 52; if(Math.abs(tx) < 35 && Math.abs(tz) < 20){ if(Math.abs(tx) < 33 && Math.abs(tz) < 18) return false; return true; } return false; }
+      function inTerminalBody(lx, lz){ return Math.abs(lx - 68) < 50 && lz > 28 && lz < 74; }
       function islandBlocked(lx, lz){
         if(inTerminalBody(lx, lz)) return true;
         if(lx > -158 && lx < -26 && lz > 40 && lz < 74 && !(lx > -50 && lz < 52)) return true;     // 비행기 동체 (탑승교 끝은 열려 있어요)
