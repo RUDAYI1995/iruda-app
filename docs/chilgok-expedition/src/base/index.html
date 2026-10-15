@@ -1,0 +1,2598 @@
+<title>칠곡 원정대</title>
+<style>
+  :root{
+    --cream:#FFF8EE;
+    --ink:#3A2E22;
+    --ink-soft:#6B5B4A;
+    --accent:#E63946;
+    --accent-soft:#FFD3D9;
+    --gold:#D4A437;
+    --panel:#FFFFFF;
+    --panel-border:#EEE1CC;
+    --sky-top:#FDEFD8;
+    --shadow:rgba(58,46,34,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --cream:#211A14;
+      --ink:#F5ECDD;
+      --ink-soft:#C9B99E;
+      --accent:#FF7A85;
+      --accent-soft:#4A2A2E;
+      --gold:#E8C05F;
+      --panel:#2B2219;
+      --panel-border:#4A3B2A;
+      --shadow:rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --cream:#211A14;
+    --ink:#F5ECDD;
+    --ink-soft:#C9B99E;
+    --accent:#FF7A85;
+    --accent-soft:#4A2A2E;
+    --gold:#E8C05F;
+    --panel:#2B2219;
+    --panel-border:#4A3B2A;
+    --shadow:rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Gowun Dodum','Pretendard','Noto Sans KR',sans-serif;
+    display:flex; justify-content:center;
+    padding-block:20px;
+  }
+  #app{
+    width:100%;
+    max-width:900px;
+    display:flex; flex-direction:column;
+    gap:14px;
+  }
+  h1,h2,h3{margin:0; text-wrap:balance;}
+  .eyebrow{
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); font-weight:700;
+  }
+  .stage{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:22px;
+    box-shadow:0 10px 30px var(--shadow);
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+  }
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:inherit; font-weight:700; font-size:15px;
+    padding:12px 22px; border-radius:999px;
+    background:var(--accent); color:#fff;
+    box-shadow:0 6px 0 rgba(0,0,0,.15);
+    transition:transform .08s ease;
+  }
+  .btn:active{ transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.15); }
+  .btn.secondary{
+    background:var(--panel); color:var(--ink);
+    border:2px solid var(--panel-border);
+    box-shadow:none;
+  }
+  .btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+  /* ---------- Title ---------- */
+  #screen-title{ text-align:center; padding:44px 22px; }
+  .logo-row{
+    display:flex; justify-content:center; gap:6px; margin-bottom:6px; flex-wrap:wrap;
+  }
+  .logo-chip{
+    width:46px;height:46px;border-radius:50%;
+    background:var(--panel); border:2px solid var(--panel-border);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .logo-chip img{ width:100%; height:100%; object-fit:contain; transform:scale(1.5) translateY(6%); }
+  #screen-title h1{ font-size:clamp(28px,6vw,42px); margin:10px 0 4px; }
+  #screen-title p{ color:var(--ink-soft); font-size:15px; margin:0 0 26px; }
+  .title-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .badge-3d{
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.06em;
+    background:var(--gold); color:#3A2E10; padding:3px 10px; border-radius:999px; margin-bottom:10px;
+  }
+
+  /* ---------- Character select ---------- */
+  .char-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+    gap:12px; margin:18px 0;
+  }
+  .char-card{
+    border:2px solid var(--panel-border); border-radius:16px;
+    padding:12px 8px 10px; text-align:center; cursor:pointer;
+    background:var(--panel); transition:border-color .12s, transform .12s;
+  }
+  .char-card:hover{ transform:translateY(-3px); }
+  .char-card.selected{ border-color:var(--char-color,var(--accent)); box-shadow:0 0 0 3px color-mix(in srgb, var(--char-color,var(--accent)) 30%, transparent); }
+  .char-card .avatar{
+    width:64px;height:64px; margin:0 auto 6px; border-radius:50%;
+    background:var(--char-bg,#f2f2f2); display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .char-card .avatar img{ width:92%; }
+  .char-card .cname{ font-weight:800; font-size:14px; }
+  .char-card .cspecies{ font-size:11px; color:var(--ink-soft); }
+  .detail-panel{
+    display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+    border:2px dashed var(--panel-border); border-radius:16px; padding:14px 16px;
+  }
+  .detail-panel .avatar-lg{
+    width:84px;height:84px;border-radius:50%; flex:0 0 auto;
+    background:var(--char-bg,#f2f2f2); display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .detail-panel .avatar-lg img{ width:92%; }
+  .detail-text{ flex:1; min-width:180px; }
+  .detail-text .quote{ font-style:italic; color:var(--ink-soft); font-size:13px; margin-top:4px; }
+  .select-actions{ display:flex; justify-content:space-between; gap:10px; margin-top:16px; flex-wrap:wrap; }
+
+  /* ---------- World map ---------- */
+  .node-btn{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:none; border:none; cursor:pointer; font-family:inherit; color:var(--ink);
+  }
+  .node-dot{
+    width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+    border:3px solid var(--panel-border); background:var(--panel);
+  }
+  .node-dot.done{ border-color:var(--gold); background:color-mix(in srgb, var(--gold) 18%, var(--panel)); }
+  .node-dot.current{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .node-label{ font-size:12px; font-weight:700; text-align:center; max-width:80px; }
+
+  /* ---------- Game ---------- */
+  #game-wrap{ display:flex; flex-direction:column; gap:8px; }
+  #hud{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+  }
+  #hud .place{ font-weight:800; font-size:16px; }
+  #hud .sub{ font-size:12px; color:var(--ink-soft); }
+  .stamp-dot{ width:14px;height:14px;border-radius:50%; border:2px solid var(--panel-border); display:inline-block; }
+  .stamp-dot.got{ background:var(--gold); border-color:var(--gold); }
+  #stampRow, #stampRow2{ display:flex; gap:4px; }
+  #canvasHolder{
+    position:relative; border-radius:16px; overflow:hidden; border:2px solid var(--panel-border);
+    background:#bfe0ff; touch-action:none;
+    aspect-ratio:16/9;
+  }
+  #canvasHolder canvas{ display:block; width:100%; height:100%; }
+  #loadingNote{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#3A2E22; font-size:13px; background:#bfe0ff;
+  }
+  #interact-hint, #toast{
+    position:absolute; left:50%; transform:translateX(-50%);
+    bottom:14px; background:rgba(20,15,10,.82); color:#fff;
+    padding:8px 14px; border-radius:10px; font-size:13px; max-width:88%;
+    text-align:center; pointer-events:none;
+  }
+  #toast{ bottom:auto; top:14px; font-weight:700; }
+  #zoneToast{
+    position:absolute; top:14px; left:14px; background:rgba(20,15,10,.6); color:#fff;
+    padding:5px 12px; border-radius:8px; font-size:12px; pointer-events:none;
+  }
+  /* expanded map: the game view fills the whole window (and the real screen when the browser allows fullscreen) */
+  #expandBtn{
+    position:absolute; right:12px; bottom:12px; z-index:5;
+    background:rgba(20,15,10,.72); color:#fff; border:1px solid rgba(255,255,255,.35);
+    padding:7px 12px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;
+    font-family:inherit;
+  }
+  #expandBtn:hover{ background:rgba(20,15,10,.9); }
+  #canvasHolder.expanded{
+    position:fixed; inset:0; z-index:1000; width:100vw; height:100vh;
+    aspect-ratio:auto; border-radius:0; border:none;
+  }
+  body.expanded-game{ overflow:hidden; }
+  body.expanded-game .fact-card{
+    position:fixed; left:50%; bottom:64px; transform:translateX(-50%);
+    width:min(560px, 90vw); z-index:1002; margin:0;
+  }
+  #hpWrap{
+    position:absolute; top:14px; right:14px; display:flex; flex-direction:column; gap:6px;
+    align-items:flex-end; pointer-events:none;
+  }
+  .hpbar{ width:150px; height:14px; border-radius:7px; background:rgba(20,15,10,.55); overflow:hidden; border:1px solid rgba(255,255,255,.35); }
+  .hpbar .fill{ height:100%; background:#4CAF50; width:100%; transition:width .15s; }
+  #bossBar .fill{ background:#e04b4b; }
+  .hplabel{ font-size:10px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); font-weight:700; }
+  #controls-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  #dpad{
+    display:grid; grid-template-columns:repeat(3,40px); grid-template-rows:repeat(2,40px);
+    gap:4px;
+  }
+  #dpad .pad-btn:nth-child(1){ grid-column:2; grid-row:1; }
+  #dpad .pad-btn:nth-child(2){ grid-column:1; grid-row:2; }
+  #dpad .pad-btn:nth-child(3){ grid-column:2; grid-row:2; }
+  #dpad .pad-btn:nth-child(4){ grid-column:3; grid-row:2; }
+  .pad-btn{
+    width:40px;height:40px;border-radius:10px; border:none; font-size:16px;
+    background:var(--panel); border:2px solid var(--panel-border); color:var(--ink); cursor:pointer;
+  }
+  .pad-btn:active{ background:var(--accent-soft); }
+  #actionpad{ display:flex; gap:8px; }
+  #actionpad .pad-btn{ width:44px; height:44px; }
+  .help{ font-size:11px; color:var(--ink-soft); text-align:center; }
+  [hidden]{ display:none !important; }
+  .fact-card{
+    background:var(--panel); border:2px solid var(--panel-border); border-radius:16px;
+    padding:16px; margin-top:8px;
+  }
+  .fact-card h3{ font-size:15px; margin-bottom:6px; }
+  .fact-card p{ font-size:13px; color:var(--ink-soft); line-height:1.55; margin:0; }
+  footer.note{ text-align:center; font-size:11px; color:var(--ink-soft); padding-top:4px; }
+  @media (max-width:480px){
+    .stage{ padding:16px; border-radius:16px; }
+  }
+</style>
+
+<div id="app">
+  <!-- TITLE -->
+  <section class="stage" id="screen-title">
+    <div class="logo-row" id="logoRow"></div>
+    <div class="badge-3d">3D 미니어처 월드</div>
+    <div class="eyebrow">대구 칠곡 캐릭터 관광 어드벤처</div>
+    <h1>칠곡 원정대</h1>
+    <p>함곡이·께곡이·하곡이·는곡이·사곡이·람곡이·들곡이와 함께<br>3D로 만든 칠곡 미니어처 속을 자유롭게 걸어다니며 스탬프를 모아보세요.</p>
+    <div class="title-actions">
+      <button class="btn" id="btnStart">여행 시작하기</button>
+      <button class="btn secondary" id="btnContinue" hidden>이어하기</button>
+    </div>
+  </section>
+
+  <!-- CHARACTER SELECT -->
+  <section class="stage" id="screen-select" hidden>
+    <div class="eyebrow">01 · 동행 캐릭터 선택</div>
+    <h2>누구와 함께 떠날까요?</h2>
+    <div class="char-grid" id="charGrid"></div>
+    <div class="detail-panel" id="detailPanel"></div>
+    <div class="select-actions">
+      <button class="btn secondary" id="btnBackTitle">← 타이틀로</button>
+      <button class="btn" id="btnToWorld">이 친구와 출발! →</button>
+    </div>
+  </section>
+
+  <!-- WORLD MAP (quick travel) -->
+  <section class="stage" id="screen-world" hidden>
+    <div class="eyebrow">02 · 칠곡 스탬프 투어</div>
+    <h2 id="worldHeading">가고 싶은 장소를 골라주세요</h2>
+    <p class="help" style="text-align:left">지도를 눌러 바로 이동하거나, 3D 필드에서 직접 걸어서 다음 장소로 갈 수 있어요.</p>
+    <div id="worldNodes" style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;margin:18px 0;"></div>
+    <div id="stampRow"></div>
+    <div class="select-actions">
+      <button class="btn secondary" id="btnBackSelect">← 캐릭터 다시 선택</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section class="stage" id="screen-game" hidden>
+    <div id="game-wrap">
+      <div id="hud">
+        <div>
+          <div class="place" id="hudPlace">-</div>
+          <div class="sub" id="hudSub">-</div>
+        </div>
+        <div id="stampRow2"></div>
+      </div>
+      <div id="canvasHolder">
+        <div id="loadingNote">3D 월드 불러오는 중...</div>
+        <div id="zoneToast" hidden></div>
+        <div id="interact-hint" hidden>E 눌러 살펴보기</div>
+        <div id="toast" hidden></div>
+        <button id="expandBtn" type="button" title="F">⛶ 맵 확장하기</button>
+        <div id="hpWrap" hidden>
+          <div>
+            <div class="hplabel">Lv.<span id="hpLevel">1</span> · 체력</div>
+            <div class="hpbar" id="hpBar"><div class="fill" id="hpFill"></div></div>
+          </div>
+          <div id="bossBarWrap" hidden>
+            <div class="hplabel">보스 · 북한군 전차</div>
+            <div class="hpbar" id="bossBar"><div class="fill" id="bossFill"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="controls-row">
+        <div id="dpad">
+          <button class="pad-btn" id="btnUp">▲</button>
+          <button class="pad-btn" id="btnLeft">◀</button>
+          <button class="pad-btn" id="btnDown">▼</button>
+          <button class="pad-btn" id="btnRight">▶</button>
+        </div>
+        <div class="help">방향키/WASD 이동 · Space 점프<br>E 살펴보기 · M 지도 · F 맵 확장</div>
+        <div id="actionpad">
+          <button class="pad-btn" id="btnJump">⤴</button>
+          <button class="pad-btn" id="btnInteract">E</button>
+          <button class="pad-btn" id="btnMap">🗺</button>
+        </div>
+      </div>
+      <div class="fact-card" id="factCard" hidden>
+        <h3 id="factTitle"></h3>
+        <p id="factBody"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">대구 칠곡 홍보 캐릭터 팬 메이드 3D 미니게임 · 실제 장소 정보는 참고용입니다</footer>
+</div>
+
+<script src="three.min.js"></script>
+<script>if(typeof THREE==="undefined"){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');}</script>
+<script src="sprites.js?v=7"></script>
+<script src="sprites_dir.js?v=3"></script>
+<script src="textures.js?v=4"></script>
+<script src="trees.js?v=2"></script>
+<script src="shops.js?v=2"></script>
+<script src="units.js?v=1"></script>
+<script src="mountains.js?v=1"></script>
+<script>
+(function(){
+  var need = {"three.min.js":"THREE","sprites.js":"SPRITES","sprites_dir.js":"SPRITES_DIR","textures.js":"TEXTURES","trees.js":"TREES","shops.js":"SHOPS","units.js":"UNITS","mountains.js":"MOUNTAINS"};
+  var missing = Object.keys(need).filter(function(f){ return typeof window[need[f]] === "undefined"; });
+  if(!missing.length) return;
+  var d = document.createElement("div");
+  d.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99999;background:#e63946;color:#fff;padding:14px 18px;font:600 15px/1.6 sans-serif;";
+  d.textContent = "필요한 파일을 못 찾았어요: " + missing.join(", ") + " — zip을 '모두 압축 풀기' 한 폴더 안에서 index.html을 열어주세요. (zip 안에서 바로 열면 안 돼요)";
+  document.body.appendChild(d);
+})();
+</script>
+<script>
+(function(){
+"use strict";
+
+/* ---------------- Character data ---------------- */
+var CHARACTERS = [
+  {id:"hamgoki", name:"함곡이", species:"토끼", color:"#E63946", bg:"#FFE3E6", quote:"함께하면, 더 따뜻한 세상이 될 수 있어!"},
+  {id:"kkegoki", name:"께곡이", species:"호랑이", color:"#FFBA3D", bg:"#FFEFD6", quote:"틀뜬대도 결곡엔, 언제나 널 응원해!"},
+  {id:"hagoki",  name:"하곡이", species:"부엉이", color:"#FFD54F", bg:"#FFF7D6", quote:"생각하면, 더 좋은 답이 보여!"},
+  {id:"neugoki", name:"는곡이", species:"사슴",   color:"#2E7D32", bg:"#E1F3E2", quote:"함께라면, 더 멋진 내일이 있어!"},
+  {id:"sagoki",  name:"사곡이", species:"수달",   color:"#2E9BFF", bg:"#DCEEFF", quote:"언제나 새로운 세상으로, 함께 떠나자!"},
+  {id:"ramgoki", name:"람곡이", species:"돼지",   color:"#1B3BBF", bg:"#E1E6FB", quote:"더 넓은 세상을 향해, 함께 꿈꾸는 내일!"},
+  {id:"deulgoki",name:"들곡이", species:"거북이", color:"#6B2ED6", bg:"#EDE1FB", quote:"천천히 가도 괜찮아, 함께라면 끝까지 갈 수 있어!"}
+];
+
+/* ---------------- Landmark data: one continuous 3D valley along Z ---------------- */
+var LANDMARKS = [
+  {
+    id:0, name:"왜관 시내", sub:"칠곡군청이 있는 시작 마을", z:0, theme:"town",
+    fact:"왜관읍은 칠곡군청이 자리한 중심지로, 경부선 철도와 4번 국도가 지나는 교통의 관문이에요. 낙동강을 따라 옛 시가지와 새 시가지가 나란히 자리하고 있어요.",
+    npcLabel:"군청 안내소", sky:0xFDEFD8
+  },
+  {
+    id:1, name:"호국의 다리", sub:"왜관철교 (등록문화재)", z:690, theme:"bridge",
+    fact:"왜관철교는 1905년 준공된 경부선 철교로, 6·25전쟁 당시 낙동강 방어선을 지키기 위해 폭파되었던 안보 유적이에요. 지금은 '호국의 다리'라는 이름으로 보행교 역할을 하고 있어요.",
+    npcLabel:"호국의 다리 안내판", sky:0xDCEEFF
+  },
+  {
+    // 실제로 가산산성은 왜관에서 산길로 16.6km 들어가야 하는 내륙 산악
+    // 지역이라, 강변을 따라가는 메인 동선(마을-다리-생태공원-기념관)과는
+    // 방향 자체가 달라요. 그래서 다리를 건넌 직후 갈라지는 산길 갈림길
+    // (branch) 위에 놓아서, 강변 축과는 따로 걸어 들어가야 닿게 했어요.
+    id:2, name:"가산산성", sub:"팔공산 도립공원 속 옛 산성", x:-220, z:1000, theme:"fortress", branch:true,
+    fact:"가산산성은 조선시대에 쌓은 산성으로, 임진왜란 이후 국난에 대비해 지어졌어요. 성곽을 따라 걷는 등산로가 유명하고, 봄 벚꽃과 가을 단풍 명소로도 사랑받아요.",
+    npcLabel:"산성 초소", sky:0xEAF6E4
+  },
+  {
+    // 송림사도 강변이 아닌 내륙 사찰이라 가산산성과 같은 산길 갈림길 위,
+    // 가산산성보다 더 안쪽에 놓았어요.
+    id:3, name:"송림사", sub:"오층전탑이 있는 천년 사찰", x:-430, z:1070, theme:"temple", branch:true,
+    fact:"송림사는 신라시대에 창건된 것으로 전해지는 사찰로, 국내에 몇 안 되는 전탑(벽돌탑) 형식의 오층전탑으로 유명해요. 경내 배롱나무 꽃도 볼거리예요.",
+    npcLabel:"송림사 종무소", sky:0xFFF3DC
+  },
+  {
+    // 칠곡보 생태공원과 칠곡호국평화기념관은 실제로도 같은
+    // "칠곡호국관광벨트" 구역 안에 이웃해 있어서, 강변 메인 동선에서
+    // 서로 가까운 이웃 정류장으로 배치했어요.
+    id:4, name:"칠곡보 생태공원", sub:"낙동강 자전거길과 체육공원", z:1650, theme:"river",
+    fact:"칠곡보 일대는 낙동강을 따라 이어지는 자전거길과 체육공원이 조성되어 있어요. 강바람을 맞으며 걷기 좋고, 노을 질 무렵 풍경이 특히 아름다워요.",
+    npcLabel:"생태공원 쉼터", sky:0xE4F6FF
+  },
+  {
+    id:5, name:"칠곡호국평화기념관", sub:"다부동전투를 기리는 공간", z:2300, theme:"memorial",
+    fact:"칠곡호국평화기념관은 6·25전쟁 다부동전투 등 칠곡의 호국 역사를 기억하고 평화의 소중함을 전하는 공간이에요. 여행의 마지막 코스로 들러보기 좋아요.",
+    npcLabel:"기념관 전시실", sky:0xEDEBFB
+  }
+];
+// PATH_MAX_Z reaches well past the tower (z=2300) so the 북한군 spawn area
+// beyond it is walkable
+var PATH_MIN_Z = -40, PATH_MAX_Z = 2680;
+var MEMORIAL_Z = LANDMARKS.filter(function(l){return l.theme==="memorial";})[0].z;
+var MEMORIAL_LANDMARK_ID = LANDMARKS.filter(function(l){return l.theme==="memorial";})[0].id;
+
+// The bridge deck sits above regular ground level so it can clear the
+// river/piers below it. This finds how high the walkable surface is at a
+// given z, ramping smoothly up onto the deck instead of a hard step, so the
+// character's feet track the deck top rather than sinking into it.
+// BRIDGE_SPAN_LEN/BRIDGE_NUM_SPANS must match the same-named values used to
+// build the bridge geometry itself (see buildBridge) — they're kept as
+// shared top-level constants so the walkable-height math below can never
+// drift out of sync with the visual deck length again (that mismatch was
+// the "walks straight through the bridge without climbing" bug).
+var BRIDGE_SPAN_LEN = 16, BRIDGE_NUM_SPANS = 15;
+var BRIDGE_DECK_Y = 9, BRIDGE_FLAT_HALF = (BRIDGE_SPAN_LEN*BRIDGE_NUM_SPANS)/2, BRIDGE_RAMP_LEN = 36;
+var BRIDGE_ZS = LANDMARKS.filter(function(m){ return m.theme === "bridge"; }).map(function(m){ return m.z; });
+function bridgeHeightAt(z){
+  for(var i=0;i<BRIDGE_ZS.length;i++){
+    var d = Math.abs(z - BRIDGE_ZS[i]);
+    if(d <= BRIDGE_FLAT_HALF) return BRIDGE_DECK_Y;
+    if(d <= BRIDGE_FLAT_HALF + BRIDGE_RAMP_LEN){
+      var t = (BRIDGE_FLAT_HALF + BRIDGE_RAMP_LEN - d) / BRIDGE_RAMP_LEN;
+      return BRIDGE_DECK_Y * Math.max(0, Math.min(1, t));
+    }
+  }
+  return 0;
+}
+
+// 가산 — a climbable mountain behind the 가산산성 gate. The real peak is
+// ~900 m; here it is a stylised ~110-unit hill that keeps the "you really
+// climb it" feel (the tall distant mountains are backdrop pictures). Its
+// height function is shared by the terrain mesh, the trail, the trees and the
+// player, so the feet always sit exactly on the visible surface.
+var MT = { cx:-235, cz:1370, ax:210, az:240, H:110 };
+function mountainHeight(x, z){
+  var dx = (x - MT.cx)/MT.ax, dz = (z - MT.cz)/MT.az, r2 = dx*dx + dz*dz;
+  if(r2 >= 1) return 0;
+  var f = 1 - r2;
+  var n = Math.sin(x*0.045 + 1.3)*Math.cos(z*0.05)*0.5 + Math.sin(x*0.11 + z*0.09)*0.25;  // ridges/gullies so it isn't a smooth dome
+  return Math.max(0, MT.H*f*f + n*MT.H*0.055*f);
+}
+function insideMountain(x, z, pad){
+  var dx = (x - MT.cx)/(MT.ax + (pad||0)), dz = (z - MT.cz)/(MT.az + (pad||0));
+  return dx*dx + dz*dz < 1;
+}
+// switchback trail from the fortress gate up to the summit (world x,z)
+var MT_TRAIL = [[-220,1012],[-221,1150],[-300,1196],[-168,1244],[-306,1292],[-182,1336],[-236,1372]];
+// Real, walkable hills flanking the road (3D terrain, not pictures), bigger
+// than the earlier flat hill cards so they read as actual hills. Generated
+// deterministically, so the terrain mesh, the trees on them and the player's
+// footing all agree.
+var HILLS = (function(){
+  var list = [], seed = 7;
+  function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
+  for(var hz = 330; hz < PATH_MAX_Z - 140; hz += 210){
+    [-1, 1].forEach(function(sd){
+      var r1=rnd(), r2=rnd(), r3=rnd(), r4=rnd(), r5=rnd(), r6=rnd();
+      if(sd < 0 && hz > 760 && hz < 1760) return;       // the 가산 mountain and the mountain-road branch
+      if(hz > 480 && hz < 900) return;                  // the river under the bridge spans the whole width here
+      if(sd > 0 && hz > 1300 && hz < 2000) return;      // 칠곡보 생태공원's river is on this side
+      list.push({ cx:sd*(250 + r1*70), cz:hz + (r2-0.5)*70, ax:115 + r3*40, az:130 + r4*50, H:85 + r5*40, ph:r6*6 });
+    });
+  }
+  return list;
+})();
+function hillHeightAt(x, z){
+  var best = 0;
+  for(var i=0;i<HILLS.length;i++){
+    var h = HILLS[i], dx = (x-h.cx)/h.ax, dz = (z-h.cz)/h.az, r2 = dx*dx + dz*dz;
+    if(r2 >= 1) continue;
+    var f = 1 - r2;
+    var n = Math.sin(x*0.05 + h.ph)*Math.cos(z*0.06 + h.ph)*0.5 + Math.sin(x*0.12 + z*0.1 + h.ph)*0.25;
+    var v = h.H*f*f + n*h.H*0.06*f;
+    if(v > best) best = v;
+  }
+  return best;
+}
+function insideAnyHill(x, z, pad){
+  for(var i=0;i<HILLS.length;i++){
+    var h = HILLS[i], dx = (x-h.cx)/(h.ax+(pad||0)), dz = (z-h.cz)/(h.az+(pad||0));
+    if(dx*dx + dz*dz < 1) return true;
+  }
+  return false;
+}
+function groundHeightAt(x, z){
+  // the bridge deck only exists over the road itself, not out over the river to either side
+  var bridgeH = Math.abs(x) < 28 ? bridgeHeightAt(z) : 0;
+  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z));
+}
+
+// Swaps the player billboard's texture to the crop for the given facing
+// direction (front/back/left/right), so the character visibly turns to
+// face wherever it's walking instead of always showing one static pose.
+// The same source image is windowed into a top (torso/head) texture and a
+// bottom (legs) texture via UV repeat/offset, so the legs piece can be
+// rotated independently for a walking swing without needing separate art.
+function applyDirTexture(dir){
+  if(!three.ready) return;
+  var cur = three.playerDirTex, curA = three.playerDirAspect;
+  if(!cur) return;
+  var baseTex = cur[dir] || cur.front;
+  var aspect = (curA && (curA[dir] || curA.front)) || 1;
+  three.spriteAspect = aspect;
+  if(!baseTex || three._lastAppliedTex === baseTex) return;
+  three._lastAppliedTex = baseTex;
+  var legFrac = three.legFrac;
+  var legTex = baseTex.clone();
+  legTex.repeat.set(1, legFrac);
+  // An offset of exactly 0 on this renderer hits a sampling edge case that
+  // renders the legs fully transparent (confirmed live: a nonzero epsilon
+  // makes them appear). Nudging off zero costs nothing visually.
+  legTex.offset.set(0, 0.001);
+  legTex.needsUpdate = true;
+  var topTex = baseTex.clone();
+  topTex.repeat.set(1, 1 - legFrac);
+  topTex.offset.set(0, legFrac);
+  topTex.needsUpdate = true;
+  three.playerTopMat.map = topTex;
+  three.playerLegMat.map = legTex;
+  three.playerTopMat.needsUpdate = true;
+  three.playerLegMat.needsUpdate = true;
+}
+
+/* ---------------- Persistence ---------------- */
+var SAVE_KEY = "chilgok-adventure-save-v2";
+function loadSave(){
+  try{
+    var raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function writeSave(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      charId: state.charId,
+      stamps: Array.from(state.stamps),
+      defeated: Array.from(state.defeated)
+    }));
+  }catch(e){}
+}
+
+/* ---------------- Global state ---------------- */
+var MEMORIAL_ENEMY_COUNT = 10; // regular "북한군" grunts guarding the memorial
+var state = {
+  charId: null,
+  stamps: new Set(),
+  defeated: new Set(), // enemy ids beaten at the memorial: "grunt0".."grunt9","boss"
+  player: {x:0, z:-20, y:0, vy:0, onGround:true, dir:"front", walking:false, squash:0,
+    level:1, hp:100, maxHp:100, invuln:0, attackCd:0},
+  keys: {},
+  cam: { yaw:0, target:0, flipT:0, fx:null, fz:null, prevV:0, latchFacing:1 }
+};
+function memorialCleared(){
+  if(state.defeated.size < MEMORIAL_ENEMY_COUNT+1) return false;
+  for(var i=0;i<MEMORIAL_ENEMY_COUNT;i++){ if(!state.defeated.has("grunt"+i)) return false; }
+  return state.defeated.has("boss");
+}
+
+var saved = loadSave();
+if(saved && saved.charId){
+  document.getElementById("btnContinue").hidden = false;
+}
+
+/* ---------------- Screen management ---------------- */
+var screens = {
+  title: document.getElementById("screen-title"),
+  select: document.getElementById("screen-select"),
+  world: document.getElementById("screen-world"),
+  game: document.getElementById("screen-game")
+};
+function showScreen(name){
+  Object.keys(screens).forEach(function(k){ screens[k].hidden = (k!==name); });
+  if(name==="world") renderWorld();
+  if(name==="game") enterGameScreen();
+}
+
+/* ---------------- Title logo row ---------------- */
+var logoRow = document.getElementById("logoRow");
+CHARACTERS.forEach(function(c){
+  var chip = document.createElement("div");
+  chip.className = "logo-chip";
+  chip.style.background = c.bg;
+  chip.innerHTML = '<img src="'+ (window.SPRITES ? window.SPRITES[c.id] : "") +'" alt="'+c.name+'">';
+  logoRow.appendChild(chip);
+});
+
+document.getElementById("btnStart").addEventListener("click", function(){
+  showScreen("select");
+});
+document.getElementById("btnContinue").addEventListener("click", function(){
+  if(saved){
+    state.charId = saved.charId;
+    state.stamps = new Set(saved.stamps||[]);
+    state.defeated = new Set(saved.defeated||[]);
+  }
+  showScreen("world");
+});
+
+/* ---------------- Character select ---------------- */
+var charGrid = document.getElementById("charGrid");
+var detailPanel = document.getElementById("detailPanel");
+function renderCharGrid(){
+  charGrid.innerHTML = "";
+  CHARACTERS.forEach(function(c){
+    var card = document.createElement("div");
+    card.className = "char-card" + (state.charId===c.id ? " selected":"");
+    card.style.setProperty("--char-color", c.color);
+    card.style.setProperty("--char-bg", c.bg);
+    card.innerHTML =
+      '<div class="avatar"><img src="'+window.SPRITES[c.id]+'" alt="'+c.name+'"></div>'+
+      '<div class="cname">'+c.name+'</div>'+
+      '<div class="cspecies">'+c.species+'</div>';
+    card.addEventListener("click", function(){
+      state.charId = c.id;
+      renderCharGrid();
+      renderDetail();
+      applyPlayerTexture();
+    });
+    charGrid.appendChild(card);
+  });
+}
+function renderDetail(){
+  var c = CHARACTERS.find(function(x){return x.id===state.charId;});
+  if(!c){ detailPanel.innerHTML = '<p class="help">캐릭터를 선택해주세요.</p>'; return; }
+  detailPanel.innerHTML =
+    '<div class="avatar-lg" style="background:'+c.bg+'"><img src="'+window.SPRITES[c.id]+'" alt="'+c.name+'"></div>'+
+    '<div class="detail-text"><h3>'+c.name+' <span style="color:var(--ink-soft);font-weight:400;font-size:13px;">· '+c.species+'</span></h3>'+
+    '<div class="quote">“'+c.quote+'”</div></div>';
+}
+if(!state.charId) state.charId = CHARACTERS[0].id;
+renderCharGrid();
+renderDetail();
+
+document.getElementById("btnBackTitle").addEventListener("click", function(){ showScreen("title"); });
+document.getElementById("btnToWorld").addEventListener("click", function(){
+  writeSave();
+  showScreen("world");
+});
+document.getElementById("btnBackSelect").addEventListener("click", function(){ showScreen("select"); });
+
+/* ---------------- World map (quick travel) ---------------- */
+var worldNodes = document.getElementById("worldNodes");
+var stampRow = document.getElementById("stampRow");
+var stampRow2 = document.getElementById("stampRow2");
+function stampDots(container){
+  container.innerHTML = "";
+  LANDMARKS.forEach(function(m){
+    var d = document.createElement("div");
+    d.className = "stamp-dot" + (state.stamps.has(m.id) ? " got":"");
+    d.title = m.name;
+    container.appendChild(d);
+  });
+}
+function currentLandmark(){
+  // Real 2D distance, not just z — now that 가산산성/송림사 sit off on a
+  // side branch (same general z as the fork, but far away in x), a
+  // z-only check could mistakenly call them "current" while the player is
+  // still on the main riverside path.
+  var p = state.player, best = LANDMARKS[0], bestD = Infinity;
+  // on the 가산 slope you're still at 가산산성, even if 송림사 is nominally closer
+  if(insideMountain(p.x, p.z, 20)) return LANDMARKS.filter(function(m){ return m.theme === "fortress"; })[0];
+  LANDMARKS.forEach(function(m){
+    var d = Math.hypot(p.x - (m.x||0), p.z - m.z);
+    if(d < bestD){ bestD = d; best = m; }
+  });
+  return best;
+}
+function renderWorld(){
+  document.getElementById("worldHeading").textContent =
+    (CHARACTERS.find(function(c){return c.id===state.charId;})||{}).name + "와 함께, 어디로 갈까요?";
+  worldNodes.innerHTML = "";
+  var cur = currentLandmark();
+  LANDMARKS.forEach(function(m, i){
+    var btn = document.createElement("button");
+    btn.className = "node-btn";
+    var dotClass = "node-dot" + (state.stamps.has(m.id)?" done":"") + (cur.id===m.id?" current":"");
+    btn.innerHTML =
+      '<div class="'+dotClass+'">'+(state.stamps.has(m.id) ? "✅" : (i+1))+'</div>'+
+      '<div class="node-label">'+m.name+'</div>';
+    btn.addEventListener("click", function(){
+      var mx = m.x || 0;
+      if(m.branch){
+        // approach a branch landmark from back along its side path, not by
+        // teleporting straight into the building
+        state.player.x = mx + (mx < 0 ? 30 : -30);
+        state.player.z = m.z;
+      } else {
+        state.player.x = 0;
+        state.player.z = m.z - 14;
+      }
+      showScreen("game");
+    });
+    worldNodes.appendChild(btn);
+    if(i < LANDMARKS.length-1){
+      var line = document.createElement("div");
+      line.style.cssText = "flex:1;align-self:center;height:3px;background:var(--panel-border);min-width:14px;margin-top:-20px;";
+      worldNodes.appendChild(line);
+    }
+  });
+  stampDots(stampRow);
+}
+document.getElementById("btnMap").addEventListener("click", function(){ showScreen("world"); });
+
+/* =====================================================================
+   3D ENGINE (Three.js) — low-poly miniature world, billboard character
+   ===================================================================== */
+var canvasHolder = document.getElementById("canvasHolder");
+var loadingNote = document.getElementById("loadingNote");
+var hudPlace = document.getElementById("hudPlace");
+var hudSub = document.getElementById("hudSub");
+var interactHint = document.getElementById("interact-hint");
+var toastEl = document.getElementById("toast");
+var zoneToastEl = document.getElementById("zoneToast");
+var factCard = document.getElementById("factCard");
+var hpWrap = document.getElementById("hpWrap");
+var hpFill = document.getElementById("hpFill");
+var hpLevel = document.getElementById("hpLevel");
+var bossBarWrap = document.getElementById("bossBarWrap");
+var bossFill = document.getElementById("bossFill");
+var factTitle = document.getElementById("factTitle");
+var factBody = document.getElementById("factBody");
+
+var three = { ready:false };
+var rafId = null;
+var toastTimer = null, zoneTimer = null;
+var lastZoneId = null;
+
+function initThree(){
+  if(typeof THREE === "undefined"){
+    loadingNote.textContent = "3D 라이브러리를 불러오지 못했어요. 새로고침 해보세요.";
+    return;
+  }
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xbfe0ff);
+  // Fog starts further out and ends much further, so tall far-off things
+  // (fortress walls, tall shops, trees) fade gradually into the haze instead
+  // of turning into flat sky-coloured silhouettes that blot out the mountains.
+  scene.fog = new THREE.Fog(0xbfe0ff, 380, 1500);
+
+  // far plane reaches the distant mountain backdrop (cards sit up to ~1800 away)
+  var camera = new THREE.PerspectiveCamera(52, 16/9, 0.5, 3200);
+  camera.position.set(state.player.x, 16, state.player.z-32);
+  camera.lookAt(state.player.x, 3, state.player.z+14);
+
+  var renderer;
+  try{
+    renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+  }catch(e){
+    loadingNote.textContent = "이 브라우저에서 3D(WebGL)를 켤 수 없어요. 크롬 설정 > 시스템 > '하드웨어 가속 사용'을 켠 뒤 다시 열어주세요.";
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+  // Real shadow mapping + filmic tone mapping — both built into Three.js
+  // core (no extra addon scripts needed), and the single biggest jump in
+  // perceived quality available to us without new 3D assets.
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  canvasHolder.appendChild(renderer.domElement);
+
+  // lighting — softer ambient now that real shadows carry the contrast
+  var hemi = new THREE.HemisphereLight(0xffffff, 0x6b8f4e, 0.75);
+  scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff2d6, 1.15);
+  sun.position.set(110, 55, -30); // lower, late-day angle so shadows are
+                                    // actually long enough to read on screen
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 320;
+  sun.shadow.camera.left = -70;
+  sun.shadow.camera.right = 70;
+  sun.shadow.camera.top = 70;
+  sun.shadow.camera.bottom = -70;
+  sun.shadow.bias = -0.0015;
+  scene.add(sun);
+  scene.add(sun.target);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+
+  var world = new THREE.Group();
+  scene.add(world);
+  three.waterMats = []; // flowing-water materials, scrolled every frame in render()
+  three.boats = [];     // {mesh, baseX, baseZ, phase} drifting on the water
+  three.units = [];       // battle units (북한군 + 국군), see makeUnit()
+  three.facers = [];      // groups that turn to face the camera every frame
+  three.projectiles = []; // {mesh, vx,vz, dmg, side, life}
+  three.battle = null;
+
+  // ---- real-photo texture support ----
+  var texLoaderShared = new THREE.TextureLoader();
+  var texCache = {};
+  function photoTex(name, repX, repY){
+    var key = name + ":" + repX + ":" + repY;
+    if(texCache[key]) return texCache[key];
+    var src = window.TEXTURES && window.TEXTURES[name];
+    if(!src) return null;
+    var t = texLoaderShared.load(src);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repX||1, repY||1);
+    if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    texCache[key] = t;
+    return t;
+  }
+
+  function mat(color, opts){
+    opts = opts || {};
+    // MeshStandardMaterial (PBR-lite, still core Three.js — no addon needed)
+    // gives real specular highlights and roughness response under the new
+    // shadow-casting light, instead of MeshLambertMaterial's flat diffuse-only
+    // look. roughness stays high (matte) to keep the cartoon material feel.
+    var params = { flatShading:true, roughness:0.85, metalness:0.05 };
+    if(opts.map){ params.map = opts.map; params.color = opts.tint || 0xffffff; }
+    else { params.color = color; }
+    var m = new THREE.MeshStandardMaterial(params);
+    if(opts.transparent){ m.transparent = true; m.opacity = opts.opacity!=null?opts.opacity:1; }
+    return m;
+  }
+  function box(w,h,d,color,x,y,z,ry,opts){
+    var mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(color,opts));
+    mesh.position.set(x,y,z);
+    if(ry) mesh.rotation.y = ry;
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    world.add(mesh);
+    return mesh;
+  }
+  function cone(r,h,color,x,y,z,seg){
+    var mesh = new THREE.Mesh(new THREE.ConeGeometry(r,h,seg||8), mat(color));
+    mesh.position.set(x,y,z);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    world.add(mesh);
+    return mesh;
+  }
+  function cyl(rt,rb,h,color,x,y,z,seg){
+    var mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||10), mat(color));
+    mesh.position.set(x,y,z);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    world.add(mesh);
+    return mesh;
+  }
+  function plane(w,d,color,x,y,z,opts){
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w,d), mat(color, opts));
+    mesh.rotation.x = -Math.PI/2;
+    mesh.receiveShadow = true;
+    mesh.position.set(x,y,z);
+    world.add(mesh);
+    return mesh;
+  }
+  // small low-poly boat, gently bobbing and drifting back and forth on the
+  // water surface; returned entry is animated per-frame in render()
+  function makeBoat(x, z, seed){
+    var g = new THREE.Group();
+    var hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 7.5), mat(0x8C5A3B));
+    hull.castShadow = true; hull.receiveShadow = true;
+    g.add(hull);
+    var deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.3, 6.4), mat(0xC9A66B));
+    deck.position.y = 0.7;
+    deck.castShadow = true;
+    g.add(deck);
+    var cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 2.2), mat(0xE0E0E0));
+    cabin.position.set(0, 1.6, -1.4);
+    cabin.castShadow = true;
+    g.add(cabin);
+    g.position.set(x, 0.4, z);
+    g.rotation.y = (seed%2===0) ? 0.15 : -0.2;
+    world.add(g);
+    return { mesh:g, baseX:x, baseZ:z, phase: seed*1.7 };
+  }
+
+  // ---- ground + path spanning the whole valley ----
+  var groundLen = PATH_MAX_Z-PATH_MIN_Z+80;
+  // Widened (from 920) so the ground plane still fully covers the
+  // 가산산성/송림사 mountain-road branch, which now reaches out past ±460.
+  var GROUND_W = 1300;
+  var grassTex = photoTex("grass", 77, groundLen/12);
+  var pathTex = photoTex("path", 2, groundLen/6);
+  plane(GROUND_W, groundLen, 0x8fbf6b, 0, 0, (PATH_MIN_Z+PATH_MAX_Z)/2, grassTex?{map:grassTex}:null);
+  plane(16, groundLen, 0xE7D9AE, 0, 0.02, (PATH_MIN_Z+PATH_MAX_Z)/2, pathTex?{map:pathTex}:null);
+
+  // ---- trees scattered along the corridor, in a near band and a far band
+  // so the now-doubled left/right space doesn't read as empty. Each tree is
+  // built from a few stacked, tapering canopy layers (plus a rounded variant)
+  // instead of one flat cone, so the tree line reads as an actual forest
+  // instead of a row of identical toy cones. ----
+  // ---- photo/rendered tree images (billboard sprites), mixed in with the
+  // procedural trees below for variety. window.TREES currently only has
+  // "tree1" — more keys can be dropped in later without any code changes
+  // here, they'll just start showing up once added to TREE_ASPECT. ----
+  var treeTexCache = {};
+  function treeTex(key){
+    if(treeTexCache[key]) return treeTexCache[key];
+    var src = window.TREES && window.TREES[key];
+    if(!src) return null;
+    var t = texLoaderShared.load(src);
+    if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    treeTexCache[key] = t;
+    return t;
+  }
+  // source image size in px (the grass mound was cut off the original art,
+  // so roots/trunk blend into the real ground instead of a pasted-on disc)
+  var TREE_ASPECT = { tree1: 611/792 };
+  var TREE_PX_H = { tree1: 792 };
+  var TREE_REF_PX = 849; // original px height that "22 * scale" world units was tuned for
+  var TREE_SINK = 0.07;  // fraction of height buried below the ground line
+  // soft round blob used for the flat ground shadows under sprite trees
+  var shadowBlobTex = (function(){
+    var c = document.createElement("canvas"); c.width = c.height = 128;
+    var g = c.getContext("2d");
+    var grad = g.createRadialGradient(64,64,4,64,64,62);
+    grad.addColorStop(0, "rgba(0,0,0,0.85)");
+    grad.addColorStop(0.55, "rgba(0,0,0,0.5)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grad; g.fillRect(0,0,128,128);
+    return new THREE.CanvasTexture(c);
+  })();
+  var shadowBlobMat = new THREE.MeshBasicMaterial({ map:shadowBlobTex, transparent:true, depthWrite:false, opacity:0.75 });
+  // shadow falls opposite the sun (sun sits at +x, -z of the player)
+  var SHADOW_DIR = (function(){ var dx=-110, dz=30, l=Math.hypot(dx,dz); return {x:dx/l, z:dz/l, ang:Math.atan2(-dz/l, dx/l)}; })();
+  function groundShadow(cx, cz, lenAlong, lenAcross, y){
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(lenAlong, lenAcross), shadowBlobMat);
+    m.rotation.x = -Math.PI/2;
+    m.rotation.z = SHADOW_DIR.ang;
+    m.position.set(cx, y, cz);
+    m.renderOrder = 2;
+    world.add(m);
+  }
+  // irregular patch of bare soil with a grass-blended edge, laid flat under
+  // the trunk so the roots read as growing out of dirt instead of resting
+  // on top of the lawn
+  var soilTex = (function(){
+    var c = document.createElement("canvas"); c.width = c.height = 128;
+    var g = c.getContext("2d");
+    var grad = g.createRadialGradient(64,64,6,64,64,62);
+    grad.addColorStop(0, "rgba(88,58,32,0.95)");
+    grad.addColorStop(0.5, "rgba(104,70,40,0.85)");
+    grad.addColorStop(0.8, "rgba(112,82,46,0.45)");
+    grad.addColorStop(1, "rgba(112,82,46,0)");
+    g.fillStyle = grad; g.fillRect(0,0,128,128);
+    // deterministic speckle so patches don't look like a clean gradient
+    var seed = 7;
+    function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
+    for(var i=0;i<140;i++){
+      var a = rnd()*Math.PI*2, r = rnd()*52;
+      var px = 64+Math.cos(a)*r, py = 64+Math.sin(a)*r;
+      g.fillStyle = rnd()<0.5 ? "rgba(70,45,25,0.45)" : "rgba(150,115,70,0.35)";
+      g.beginPath(); g.arc(px,py,1+rnd()*2.4,0,Math.PI*2); g.fill();
+    }
+    return new THREE.CanvasTexture(c);
+  })();
+  var soilMat = new THREE.MeshBasicMaterial({ map:soilTex, transparent:true, depthWrite:false, color:0xd9d0c4 });
+  function soilPatch(cx, cz, w, d, rot){
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), soilMat);
+    m.rotation.x = -Math.PI/2;
+    m.rotation.z = rot || 0;
+    m.position.set(cx, 0.045, cz);
+    m.renderOrder = 1;
+    world.add(m);
+  }
+  function makeSpriteTree(x, z, scale, key){
+    var tex = treeTex(key);
+    if(!tex) return false;
+    // A THREE.Sprite always fully faces the camera on every axis, including
+    // pitch — so as soon as the (slightly downward-looking) chase camera
+    // isn't exactly level with it, the whole cutout tilts back, and its
+    // baked-in ground/grass circle visibly lifts off the actual 3D ground
+    // it's standing on ("floating"). The chase camera's yaw never actually
+    // changes (it only ever looks toward +Z), so there's no need to
+    // billboard this at all — a plain vertical plane, never rotated, stays
+    // flush with the ground from any camera position.
+    var h = 22*scale*((TREE_PX_H[key]||TREE_REF_PX)/TREE_REF_PX); // keeps the canopy the same size as before the mound was cut
+    var w = h * (TREE_ASPECT[key] || 0.75);
+    var geo = new THREE.PlaneGeometry(w, h);
+    var treeMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, side:THREE.DoubleSide, alphaTest:0.5 });
+    var mesh = new THREE.Mesh(geo, treeMat);
+    // bottom of the trunk is buried: the opaque ground plane hides whatever
+    // is below y=0, so the trunk/roots emerge from the soil
+    mesh.position.set(x, h/2 - h*TREE_SINK, z);
+    world.add(mesh);
+    // flat contact shadow right under the trunk, plus a long canopy shadow
+    // thrown away from the sun like the 3D trees' real shadows
+    // soil patch wide enough to cover the spread of the side roots, so their
+    // tips sit in dirt instead of hovering over grass
+    soilPatch(x, z - w*0.02, w*0.9, w*0.46, 0);
+    soilPatch(x - w*0.12, z - w*0.05, w*0.5, w*0.3, 0.4);
+    groundShadow(x + SHADOW_DIR.x*w*0.05, z + SHADOW_DIR.z*w*0.05, w*0.62, w*0.34, 0.06);
+    // canopy shadow: the canopy centre is ~0.65h up, and with the sun's
+    // elevation the shadow lands ~2.07x that height away along SHADOW_DIR
+    groundShadow(x + SHADOW_DIR.x*h*1.3, z + SHADOW_DIR.z*h*1.3, w*1.7, w*0.9, 0.055);
+    return true;
+  }
+
+  // ---- 왜관 시내 storefront row. Each shop is a real box with depth: the
+  // supplied illustration is mapped onto the street-facing face, the sides,
+  // back and roof are solid wall-coloured surfaces (lit, so they shade and
+  // cast real sun shadows), and the shops stand shoulder to shoulder with a
+  // continuous sidewalk, like an actual block of buildings. The path
+  // (x = ±15) stays open so the walkway still crosses the street. ----
+  var TOWN_Z = LANDMARKS.filter(function(m){ return m.theme === "town"; })[0].z;
+  var SHOP_FRONT_Z = TOWN_Z + 44; // z of the street-facing facade
+  var SHOP_DEPTH = 34;
+  // The facade art is shown 1.5x larger than before, and each building is
+  // then made at least 3.2x taller than the old one by REPEATING the art's
+  // floor band (m0..m1) — real extra storeys, not a stretched picture.
+  var FACADE_SCALE = 1.5, HEIGHT_MULT = 3.2;
+  // wall/trim/frame/ground are the colours painted onto the side + back
+  // walls so they read as the same building as the supplied facade.
+  // m0/m1: the repeatable floor band (fractions of the art height, from the
+  // top); g: where the shopfront starts.
+  var SHOP_META = {
+    shop1:{aspect:0.7984, wall:0xF5DDB5, trim:0xE0B98A, frame:0x4E9BD6, ground:0xA6DA2C, m0:0.3667, m1:0.6034, g:0.6034},
+    shop2:{aspect:0.9078, wall:0xF2A98C, trim:0xF3DDBA, frame:0x1F6F5E, ground:0xF3DDBA, m0:0.1577, m1:0.4712, g:0.4730},
+    shop3:{aspect:0.6859, wall:0xA9E1B9, trim:0xF0D79A, frame:0xF0D79A, ground:0xF0D79A, m0:0.2841, m1:0.4933, g:0.7040},
+    shop4:{aspect:0.7219, wall:0xFBD26F, trim:0xEBD3A8, frame:0x3F7FCB, ground:0xE5654A, m0:0.3618, m1:0.6149, g:0.6149},
+    shop5:{aspect:0.8250, wall:0x6DBDEB, trim:0xF3E3C0, frame:0x3C4A5A, ground:0xF07A2A, m0:0.1688, m1:0.4356, g:0.4356},
+    shop6:{aspect:0.7234, wall:0xC6AAE6, trim:0xF0A66B, frame:0xF0A66B, ground:0xF3C79A, m0:0.3432, m1:0.5624, g:0.5624}
+  };
+  // Paints a side/back wall (depth x height) with the building's own
+  // storeys: cornice at the top, floor bands, window rows, a shopfront
+  // band and a plinth. `shade` darkens it for faces turned away from the sun.
+  var sideTexCache = {};
+  function hex(c){ return "#" + ("000000" + c.toString(16)).slice(-6); }
+  // frontRight: whether the street-facing edge is the right edge of this face's texture
+  function sideWallTex(s, shade, frontRight){
+    var ck = s.key + ":" + shade + ":" + (frontRight ? "R" : "L");
+    if(sideTexCache[ck]) return sideTexCache[ck];
+    var meta = SHOP_META[s.key];
+    var PPU = 9, W = Math.round(SHOP_DEPTH*PPU), H = Math.round(s.hb*PPU);
+    var u = s.scaleH*PPU;                      // px per "art height", so details scale with the facade
+    var c = document.createElement("canvas"); c.width = W; c.height = H;
+    var g = c.getContext("2d");
+    g.fillStyle = hex(meta.wall); g.fillRect(0,0,W,H);
+    var corniceH = u*0.07, plinthH = u*0.03, groundH = (1-meta.g)*u;
+    var upperH = H - corniceH - groundH - plinthH;
+    var floors = Math.max(1, Math.round(upperH/((meta.m1-meta.m0)*u)));
+    var floorH = upperH / floors, band = u*0.012;
+    g.fillStyle = hex(meta.trim); g.fillRect(0,0,W,corniceH);
+    g.fillStyle = "rgba(0,0,0,0.12)"; g.fillRect(0,corniceH,W,band);
+    for(var f=0; f<floors; f++){
+      var top = corniceH + f*floorH;
+      if(f>0){ g.fillStyle = hex(meta.trim); g.fillRect(0, top-band, W, band*2); }
+      var wh = floorH*0.52, wy = top + floorH*0.24, ww = W*0.2;
+      [0.27, 0.73].forEach(function(cx){
+        var wx = W*cx - ww/2;
+        g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(wx+3, wy+3, ww, wh);
+        g.fillStyle = hex(meta.trim); g.fillRect(wx-4, wy-6, ww+8, 6); g.fillRect(wx-4, wy+wh, ww+8, 5);
+        g.fillStyle = hex(meta.frame); g.fillRect(wx-3, wy, ww+6, wh);
+        var gl = g.createLinearGradient(0,wy,0,wy+wh);
+        gl.addColorStop(0,"#5E9CDB"); gl.addColorStop(1,"#9CC8EE");
+        g.fillStyle = gl; g.fillRect(wx+2, wy+3, ww-4, wh-6);
+        g.fillStyle = hex(meta.frame); g.fillRect(wx+ww/2-1.5, wy, 3, wh); g.fillRect(wx, wy+wh*0.45, ww, 3);
+      });
+    }
+    var gTop = corniceH + upperH;
+    g.fillStyle = hex(meta.trim); g.fillRect(0, gTop-band, W, band*2);
+    g.fillStyle = hex(meta.ground); g.fillRect(0, gTop+band, W, groundH-band);
+    [0.27, 0.73].forEach(function(cx){
+      var ww = W*0.24, wh = groundH*0.5, wx = W*cx - ww/2, wy = gTop + groundH*0.22;
+      g.fillStyle = hex(meta.frame); g.fillRect(wx-4, wy-4, ww+8, wh+8);
+      var gl2 = g.createLinearGradient(0,wy,0,wy+wh);
+      gl2.addColorStop(0,"#F7E3A8"); gl2.addColorStop(1,"#F0C970");
+      g.fillStyle = gl2; g.fillRect(wx, wy, ww, wh);
+    });
+    g.fillStyle = hex(meta.trim); g.fillRect(0, H-plinthH, W, plinthH);
+    g.fillStyle = "rgba(0,0,0,0.22)"; g.fillRect(0, H-plinthH, W, 3);
+    // corner quoins continue the facade's corner pilasters up the whole edge
+    var qw = W*0.055, fx = frontRight ? W - qw : 0, bx = frontRight ? 0 : W - qw*0.6;
+    g.fillStyle = hex(meta.trim); g.fillRect(fx, 0, qw, H); g.fillRect(bx, 0, qw*0.6, H);
+    g.fillStyle = "rgba(0,0,0,0.14)"; g.fillRect(frontRight ? fx-3 : fx+qw, 0, 3, H);
+    if(shade > 0){ g.fillStyle = "rgba(20,10,30,"+shade+")"; g.fillRect(0,0,W,H); }
+    var t = new THREE.CanvasTexture(c);
+    if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    sideTexCache[ck] = t;
+    return t;
+  }
+  var SHOP_CAP = { shop1:0.07, shop2:0.095, shop3:0.065, shop4:0.10, shop5:0.11, shop6:0.08 };
+  // [key, base height] outward from the path; dir -1 = toward -x
+  var SHOP_ROWS = [
+    { dir:-1, items:[["shop2",28],["shop5",28],["shop6",36]] },
+    { dir: 1, items:[["shop1",34],["shop3",44],["shop4",36]] }
+  ];
+  var SHOP_LAYOUT = [];
+  SHOP_ROWS.forEach(function(row){
+    var cursor = 15;
+    row.items.forEach(function(it){
+      var meta = SHOP_META[it[0]];
+      var scaleH = it[1] * FACADE_SCALE;               // full facade art height in world units
+      var w = scaleH * meta.aspect;
+      var fixedH = (meta.m0 + (1 - meta.m1)) * scaleH; // top + shopfront pieces
+      var midH = (meta.m1 - meta.m0) * scaleH;         // one repeatable floor
+      var N = Math.max(1, Math.ceil((it[1]*HEIGHT_MULT - fixedH) / midH));
+      var totalH = fixedH + N*midH;
+      // cap = the part of the art above its main cornice (pilasters/railing);
+      // the solid body stops at the cornice and that strip is rebuilt in 3D
+      var cap = SHOP_CAP[it[0]] * scaleH;
+      SHOP_LAYOUT.push({ key:it[0], w:w, cx:row.dir*(cursor + w/2), scaleH:scaleH, N:N, midH:midH, h:totalH, hb:totalH-cap, ph:cap });
+      cursor += w + 0.3;
+    });
+  });
+  function nearShop(x, z){
+    return SHOP_LAYOUT.some(function(s){
+      return Math.abs(x - s.cx) < s.w/2 + 16 && z > SHOP_FRONT_Z - 40 && z < SHOP_FRONT_Z + SHOP_DEPTH + 14;
+    });
+  }
+  var shopImgCache = {};
+  function shopSliceTex(key, a, b){
+    // one THREE.Texture per slice, all sharing the same decoded Image; each
+    // windows a horizontal band [a,b] (fractions from the top) of the art
+    var img = shopImgCache[key];
+    if(!img){ img = shopImgCache[key] = new Image(); img.src = window.SHOPS[key]; }
+    var t = new THREE.Texture(img);
+    var inset = 0.0006;
+    t.repeat.set(1, (b - a) - inset*2);
+    t.offset.set(0, Math.max(0.0008, 1 - b + inset));
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    if(img.complete && img.naturalWidth){ t.needsUpdate = true; }
+    else img.addEventListener("load", function(){ t.needsUpdate = true; });
+    return t;
+  }
+  function makeShop(s){
+    if(!(window.SHOPS && window.SHOPS[s.key])) return false;
+    var meta = SHOP_META[s.key];
+    function wallMat(shade, frontRight){ return new THREE.MeshBasicMaterial({ map:sideWallTex(s, shade, frontRight) }); }
+    // +x face is seen from +x looking -x, so the street (-z) edge is its right edge;
+    // the -x face is the mirror case
+    var wallPX = wallMat(0.04, true), wallNX = wallMat(0.2, false), wallBack = wallMat(0.14, true);
+    var roof = new THREE.MeshBasicMaterial({ color:new THREE.Color(meta.trim).multiplyScalar(0.8) });
+    var hidden = new THREE.MeshBasicMaterial({ color:meta.wall });
+    // The box is only the solid body (up to the cornice); its street face is
+    // never seen — the facade slices stand just in front of it.
+    var mats = [wallPX, wallNX, roof, hidden, wallBack, hidden];
+    var mesh = new THREE.Mesh(new THREE.BoxGeometry(s.w, s.hb, SHOP_DEPTH), mats);
+    mesh.position.set(s.cx, s.hb/2 - 0.3, SHOP_FRONT_Z + SHOP_DEPTH/2);
+    mesh.castShadow = true;
+    world.add(mesh);
+    // facade in stacked slices: shopfront at the bottom, N repeated floor
+    // bands, then the roofline/top floors
+    var y = -0.3;
+    function slice(a, b, repeatIdx){
+      var hh = (b - a) * s.scaleH;
+      var m = new THREE.Mesh(
+        new THREE.PlaneGeometry(s.w, hh),
+        new THREE.MeshBasicMaterial({ map:shopSliceTex(s.key, a, b), alphaTest:0.4, color:0xF2F2F2 })
+      );
+      m.rotation.y = Math.PI; // front face toward the camera (-z), not mirrored
+      m.position.set(s.cx, y + hh/2, SHOP_FRONT_Z - 0.04 - (repeatIdx||0)*0.002);
+      world.add(m);
+      y += hh;
+    }
+    slice(meta.m1, 1);                                   // shopfront (+ bottom of the art)
+    for(var i=0; i<s.N; i++) slice(meta.m0, meta.m1, i); // repeated floors
+    slice(0, meta.m0);                                   // roofline + top floors
+    // 3D roof parapet: walls along both sides and the back plus corner posts
+    var ph = s.ph, yTop = s.hb - 0.3;
+    var parMat = new THREE.MeshBasicMaterial({ color:new THREE.Color(meta.trim).multiplyScalar(0.92) });
+    var parShade = new THREE.MeshBasicMaterial({ color:new THREE.Color(meta.trim).multiplyScalar(0.72) });
+    function parBox(w, h, d, x, yy, z, m){
+      var b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      b.position.set(x, yy, z); b.castShadow = true; world.add(b); return b;
+    }
+    var zc = SHOP_FRONT_Z + SHOP_DEPTH/2, zBack = SHOP_FRONT_Z + SHOP_DEPTH;
+    var wallT = 1.4, postW = Math.min(4.5, s.w*0.1);
+    parBox(wallT, ph*0.8, SHOP_DEPTH - 0.4, s.cx + s.w/2 - wallT/2, yTop + ph*0.4, zc, parMat);
+    parBox(wallT, ph*0.8, SHOP_DEPTH - 0.4, s.cx - s.w/2 + wallT/2, yTop + ph*0.4, zc, parShade);
+    parBox(s.w, ph*0.8, wallT, s.cx, yTop + ph*0.4, zBack - wallT/2, parShade);
+    [-1, 1].forEach(function(sd){
+      parBox(postW, ph*1.15, postW, s.cx + sd*(s.w/2 - postW/2), yTop + ph*0.575, zBack - postW/2, sd>0 ? parMat : parShade);
+    });
+    // continuous sidewalk along the front
+    plane(s.w + 0.4, 12, 0xCFC9BC, s.cx, 0.032, SHOP_FRONT_Z - 6);
+    return true;
+  }
+
+  // Saturated three-tone leaf sets (shaded underside -> body -> sunlit top),
+  // matching the vivid look of the photo tree instead of the old washed-out
+  // pastels. The last set is a bright blossom tree, used sparingly.
+  var leafSets = [
+    [0x1E7B45, 0x5BBF3A, 0xB5E83A],
+    [0x2A8A3E, 0x6FCB3F, 0xC4EE45],
+    [0x1A6F52, 0x4CB86A, 0xA6E05A],
+    [0x25803F, 0x58C23C, 0xAEE63C],
+    [0x1E7B45, 0x5BBF3A, 0xB5E83A],
+    [0xC9457A, 0xFF7FA6, 0xFFC0D4]
+  ];
+  function makeTree(x, z, scale, colorIdx, round){
+    var set = leafSets[((colorIdx%leafSets.length)+leafSets.length)%leafSets.length];
+    var trunkH = 9*scale;
+    cyl(1.5*scale, 2*scale, trunkH, 0x8B5A33, x, trunkH/2, z, 7);
+    if(round){
+      // broadleaf variant: stacked rounded canopies, dark underside up to a
+      // sunlit crown, for volume instead of one flat-colored ball
+      var blobs = [
+        {r:6.8*scale, dx:0,           dy:4.6*scale, dz:0,            c:set[0]},
+        {r:5.6*scale, dx:0.8*scale,   dy:7.4*scale, dz:-0.4*scale,   c:set[1]},
+        {r:3.9*scale, dx:1.6*scale,   dy:10.4*scale, dz:-0.8*scale,  c:set[2]}
+      ];
+      blobs.forEach(function(b){
+        var m = new THREE.Mesh(new THREE.IcosahedronGeometry(b.r,1), mat(b.c));
+        m.position.set(x+b.dx, trunkH+b.dy, z+b.dz);
+        m.castShadow = true; m.receiveShadow = true;
+        world.add(m);
+      });
+    } else {
+      // conifer variant: 3 tapering tiers, dark at the bottom to bright at the top
+      var tiers = [
+        {r:8.2*scale, h:9.5*scale, y:trunkH+3.2*scale, c:set[0]},
+        {r:6.2*scale, h:8*scale,   y:trunkH+8.5*scale, c:set[1]},
+        {r:4.2*scale, h:6.5*scale, y:trunkH+13.5*scale, c:set[2]}
+      ];
+      tiers.forEach(function(t){ cone(t.r, t.h, t.c, x, t.y, z, 8); });
+    }
+  }
+  for(var tz = -10; tz < PATH_MAX_Z; tz += 42){
+    var tooClose = LANDMARKS.some(function(m){ return Math.abs(m.z - tz) < 18; });
+    if(tooClose) continue;
+    var jitter = Math.sin(tz*0.13)*8;
+    var lc = Math.abs(Math.round(tz/42));
+    [-1,1].forEach(function(side){
+      var txNear = side*(46 + Math.abs(jitter));
+      var scaleNear = 0.9 + (Math.sin(tz*0.53 + side*1.7)+1)/2*0.35;
+      var idxNear = Math.round(tz/42) + side;
+      // mix in the new photo-tree for a portion of the near-band trees
+      // instead of all of them — more variety, and it leaves room to slot
+      // in the other 6 tree images later without redoing this loop
+      if(nearShop(txNear, tz) || insideMountain(txNear, tz, 14) || insideAnyHill(txNear, tz, 8)){
+        // a storefront stands here — no tree in front of it
+      } else if(window.TREES && window.TREES.tree1 && ((idxNear%4)+4)%4 === 0){
+        makeSpriteTree(txNear, tz, scaleNear*1.3, "tree1");
+      } else {
+        makeTree(txNear, tz, scaleNear, lc+side, (Math.round(tz/23)+side)%2===0);
+      }
+      var txFar = side*(110 + Math.abs(jitter)*1.4);
+      var scaleFar = 1.05 + (Math.cos(tz*0.41 + side*2.1)+1)/2*0.4;
+      var idxFar = Math.round(tz/42) + side + 2;
+      if(nearShop(txFar, tz+18) || insideMountain(txFar, tz+18, 14) || insideAnyHill(txFar, tz+18, 8)){
+        // far band behind/beside the storefront stays clear too
+      } else if(window.TREES && window.TREES.tree1 && ((idxFar%5)+5)%5 === 0){
+        makeSpriteTree(txFar, tz+18, scaleFar*1.3, "tree1");
+      } else {
+        makeTree(txFar, tz+18, scaleFar, lc+side+2, (Math.round(tz/31)+side)%2===0);
+      }
+    });
+  }
+
+  // ---- landmark builders ----
+  function buildTown(z){
+    var g = new THREE.Group(); world.add(g);
+    var BS = 3; // buildings scaled 3x so they read as real-sized structures
+    var specs = [
+      {w:18,h:22,d:16,c:0xF5C97A,x:-46,dz:-14},
+      // moved back from dz:10 so the storefront row has the street frontage
+      {w:14,h:16,d:14,c:0xF2A65A,x:-30,dz:-6},
+      {w:16,h:26,d:16,c:0xEFAFC0,x:32,dz:-8},
+      // moved back from dz:14 so the (now larger) storefront row has the frontage
+      {w:20,h:18,d:16,c:0xF7CE8C,x:48,dz:-30}
+    ];
+    specs.forEach(function(s){
+      var w=s.w*BS, h=s.h*BS, d=s.d*BS, x=s.x*BS, dz=s.dz*BS;
+      box(w,h,d,s.c,x,h/2,z+dz);
+      cone(w*0.75,10*BS,0xC0392B,x,h+5*BS,z+dz,4);
+    });
+    // little clock tower beside the path
+    cyl(3*BS,3*BS,26*BS,0xE8C05F,16*BS,13*BS,z-2*BS,8);
+    cone(4.5*BS,8*BS,0xC0392B,16*BS,30*BS,z-2*BS,8);
+
+    // a real street crossing the sidewalk, with a painted crosswalk
+    var roadTex = photoTex("road", 20, 1.2);
+    plane(GROUND_W, 15, 0x3a3d40, 0, 0.03, z+27, roadTex?{map:roadTex}:null);
+    for(var cw=-3; cw<=3; cw++){
+      plane(1.6, 14, 0xffffff, cw*3, 0.035, z+27, {transparent:true, opacity:0.92});
+    }
+    // storefront along the street, just beyond the road on the right-hand side
+    SHOP_LAYOUT.forEach(makeShop);
+  }
+
+  function buildBridge(z){
+    var g = new THREE.Group(); world.add(g);
+
+    // Shared with groundHeightAt's BRIDGE_FLAT_HALF (see top of file) so the
+    // walkable-height ramp always matches this geometry's actual length.
+    var SPAN_LEN = BRIDGE_SPAN_LEN, NUM_SPANS = BRIDGE_NUM_SPANS;
+    var bridgeLen = SPAN_LEN * NUM_SPANS; // flat, elevated section over the river
+    var z0 = z - bridgeLen/2, z1 = z + bridgeLen/2;
+    var RAMP_LEN = BRIDGE_RAMP_LEN; // shared with groundHeightAt so the
+    var rampStart = z0 - RAMP_LEN, rampEnd = z1 + RAMP_LEN; // character's height tracks this exact slope
+
+    // ---- river: starts right where the approach ramps begin climbing, so
+    // the water reads as one continuous body instead of a floating patch ----
+    var waterTex = photoTex("water", 30, 14);
+    var waterLen = rampEnd - rampStart; // matches the ramp footprint exactly
+                                          // so water never appears before the
+                                          // deck actually starts climbing
+    var riverMesh = plane(GROUND_W, waterLen, 0x3d78a8, 0, 0.04, z, waterTex?{map:waterTex, transparent:true, opacity:0.96}:{transparent:true,opacity:0.92});
+    three.waterMats.push(riverMesh.material);
+    // a couple of boats drifting under the bridge, clear of the piers
+    three.boats.push(makeBoat(-70, z - bridgeLen*0.28, 0));
+    three.boats.push(makeBoat(90, z + bridgeLen*0.22, 1));
+
+    // ---- bridge deck: ramp up from ground, flat span over the river, ramp
+    // back down — reuses the path (walking-surface) texture ----
+    var deckTex = photoTex("path", 4, 12);
+    var deckMatOpts = deckTex ? {map:deckTex} : null;
+    function slopeDeck(za, ya, zb, yb){
+      var dz = zb-za, dy = yb-ya;
+      var len = Math.hypot(dz, dy);
+      var m = new THREE.Mesh(new THREE.BoxGeometry(18, len, 1.3), mat(0xC9BFAE, deckMatOpts));
+      m.position.set(0, (ya+yb)/2, (za+zb)/2);
+      m.rotation.x = Math.atan2(dz, dy);
+      world.add(m);
+    }
+    slopeDeck(rampStart, 0, z0, BRIDGE_DECK_Y);
+    box(18, 1.3, bridgeLen, 0xC9BFAE, 0, BRIDGE_DECK_Y - 0.65, z, 0, deckMatOpts);
+    slopeDeck(z1, BRIDGE_DECK_Y, rampEnd, 0);
+
+    // ---- wide stone piers standing in the river at each span boundary,
+    // stacked from a broad water-line base up to a stepped cap under the
+    // girder — matching the tall rectangular piers in the reference photo ----
+    var pierTex = photoTex("pier", 2, 3);
+    var pierMat = mat(0x9a9488, pierTex?{map:pierTex}:null);
+    var pierTop = BRIDGE_DECK_Y - 0.6, pierBottom = -9;
+    var pierMidY = pierTop - 3; // where the shaft narrows above the waterline base
+    for(var pI=0; pI<=NUM_SPANS; pI++){
+      var pz = z0 + pI*SPAN_LEN;
+      // broad base rising from the riverbed through the waterline
+      var baseH = pierMidY - pierBottom;
+      box(8.5, baseH, 5, 0x9a9488, 0, (pierBottom+pierMidY)/2, pz, 0, pierTex?{map:pierTex}:null);
+      // narrower upper shaft above the waterline, up to the deck
+      var shaftH = pierTop - pierMidY;
+      box(6.5, shaftH, 3.6, 0x9a9488, 0, (pierMidY+pierTop)/2, pz, 0, pierTex?{map:pierTex}:null);
+      // stepped cap right under the girder
+      var pierCap = new THREE.Mesh(new THREE.BoxGeometry(8.5, 1.2, 5), pierMat);
+      pierCap.position.set(0, pierTop + 0.6, pz);
+      world.add(pierCap);
+    }
+
+    // ---- blue bowstring-arch truss, textured with the real bridge photo,
+    // repeated once per span like the reference photo's row of arches ----
+    var steelTex = photoTex("steel", 3, 1);
+    var steelMat = mat(0x6f93b8, steelTex?{map:steelTex}:null);
+    var halfSpan = 9, baseY = BRIDGE_DECK_Y, apexY = BRIDGE_DECK_Y + 10, ARC_SEGMENTS = 8;
+
+    function archNode(t, zStart){ // t: 0..1 across one span
+      return { z: zStart + t*SPAN_LEN, y: baseY + (apexY-baseY)*4*t*(1-t) };
+    }
+    function beamBetween(x, a, b, thick){
+      var dz = b.z - a.z, dy = b.y - a.y;
+      var len = Math.hypot(dz, dy);
+      var beam = new THREE.Mesh(new THREE.BoxGeometry(thick, len, thick), steelMat);
+      beam.position.set(x, (a.y+b.y)/2, (a.z+b.z)/2);
+      beam.rotation.x = Math.atan2(dz, dy);
+      world.add(beam);
+    }
+
+    for(var s=0; s<NUM_SPANS; s++){
+      var spanZ0 = z0 + s*SPAN_LEN;
+      [-1,1].forEach(function(side){
+        var x = side*halfSpan;
+        var nodes = [];
+        for(var k=0;k<=ARC_SEGMENTS;k++) nodes.push(archNode(k/ARC_SEGMENTS, spanZ0));
+        // curved top chord
+        for(var k2=0;k2<ARC_SEGMENTS;k2++) beamBetween(x, nodes[k2], nodes[k2+1], 0.9);
+        // straight bottom chord
+        beamBetween(x, {z:spanZ0,y:baseY}, {z:spanZ0+SPAN_LEN,y:baseY}, 0.9);
+        // verticals + alternating diagonals (Warren-style bracing)
+        for(var k3=1;k3<ARC_SEGMENTS;k3++){
+          var bot = {z:nodes[k3].z, y:baseY};
+          beamBetween(x, bot, nodes[k3], 0.55);
+        }
+        for(var k4=0;k4<ARC_SEGMENTS;k4++){
+          var botA = {z:nodes[k4].z, y:baseY};
+          beamBetween(x, botA, nodes[k4+1], 0.5);
+        }
+      });
+      // cross-beam tying the two truss walls together at the arch peak
+      var midTop = archNode(0.5, spanZ0);
+      box(halfSpan*2, 0.7, 0.7, 0x6f93b8, 0, midTop.y, midTop.z, 0, steelTex?{map:steelTex}:null);
+    }
+  }
+
+  function buildFortress(z, bx){
+    bx = bx || 0; // branch-path center — fortress now sits off the main
+                   // riverside spine, on the mountain-road side branch
+    var BS = 3; // footprint (width/depth) scale, unchanged from before
+    var HS = 3; // extra HEIGHT-only scale on top of that, per the latest request
+    var wallColor = 0xB7A98A, capColor = 0x8C7B5A;
+    var wallH = 13*BS*HS, capH = 3*BS*HS;
+    for(var i=-6;i<=6;i++){
+      if(i>=-1 && i<=1) continue; // gate opening
+      var wx = bx + i*7.2*BS;
+      box(6.6*BS, wallH, 5*BS, wallColor, wx, wallH/2, z);
+      box(6.6*BS, capH, 5*BS, capColor, wx, wallH + capH/2, z);
+    }
+    var towerH = 20*BS*HS, roofH = 9*BS*HS;
+    cyl(5*BS,6*BS,towerH,wallColor,bx-52*BS,towerH/2,z,8);
+    cyl(5*BS,6*BS,towerH,wallColor,bx+52*BS,towerH/2,z,8);
+    cone(7*BS,roofH,capColor,bx-52*BS,towerH+roofH/2,z,8);
+    cone(7*BS,roofH,capColor,bx+52*BS,towerH+roofH/2,z,8);
+  }
+
+  function buildTemple(z, bx){
+    bx = bx || 0; // branch-path center — 송림사 sits further down the same
+                   // inland mountain branch as 가산산성, not on the river spine
+    var BS = 3; // buildings scaled 3x
+    // main hall (left of path)
+    box(28*BS,14*BS,20*BS,0xB5472F,bx-34*BS,7*BS,z);
+    var roof = new THREE.Mesh(new THREE.ConeGeometry(22*BS,10*BS,4), mat(0x7A3323));
+    roof.position.set(bx-34*BS,19*BS,z); roof.rotation.y = Math.PI/4;
+    world.add(roof);
+    // 5-story pagoda (right of path)
+    var sizes = [16,13,10.5,8.5,7];
+    var y = 3*BS;
+    for(var i=0;i<sizes.length;i++){
+      box(sizes[i]*BS,6*BS,sizes[i]*BS,0x8B7D6B,bx+34*BS,y,z);
+      y += 6.6*BS;
+    }
+    cyl(0.6*BS,0.6*BS,10*BS,0xD4A437,bx+34*BS,y+4*BS,z,6);
+  }
+
+  function buildRiverPark(z){
+    var BS = 3; // buildings/river-scenery scaled 3x
+    // river runs alongside the path on one side
+    var waterTex = photoTex("water", 24, 34);
+    var riverW = 70*BS, riverX = 58*BS;
+    var riverMesh = plane(riverW,220*BS,0x7FC7E0,riverX,-0.25,z,waterTex?{map:waterTex,transparent:true,opacity:0.94}:{transparent:true,opacity:0.92});
+    three.waterMats.push(riverMesh.material);
+    // pier
+    box(14*BS,1*BS,40*BS,0xC9BFAE,40*BS,0.6*BS,z);
+    for(var i=-1;i<=1;i++){
+      cyl(0.6*BS,0.6*BS,3*BS,0x8C6E4A,34*BS,1.5*BS,z+i*16*BS,6);
+    }
+    // benches + lamp posts on the path side
+    box(8*BS,2*BS,3*BS,0x8C6E4A,-24*BS,1*BS,z-10*BS);
+    box(8*BS,2*BS,3*BS,0x8C6E4A,-24*BS,1*BS,z+10*BS);
+    cyl(0.5*BS,0.5*BS,10*BS,0x6D4C41,-40*BS,5*BS,z,6);
+    cyl(2*BS,2*BS,2*BS,0xFFD54F,-40*BS,10.5*BS,z,8);
+    // small boats drifting on the river
+    [-60,0,70].forEach(function(dz, bi){
+      three.boats.push(makeBoat(riverX + (bi%2===0?-14:10), z+dz*BS, bi));
+    });
+  }
+
+  function buildMemorial(z){
+    var BS = 3; // buildings scaled 3x
+    plane(70*BS,70*BS,0xD9D4EE,0,0.01,z);
+    var col = new THREE.Mesh(new THREE.CylinderGeometry(3*BS,8*BS,44*BS,4), mat(0x8E8AC4));
+    col.position.set(0,22*BS,z); col.rotation.y = Math.PI/4;
+    world.add(col);
+    cone(5*BS,8*BS,0xF3D874,0,46*BS,z,4);
+    [-1,1].forEach(function(side){
+      cyl(0.4*BS,0.4*BS,20*BS,0x8C6E4A, side*20*BS, 10*BS, z-6*BS, 6);
+      var flag = new THREE.Mesh(new THREE.PlaneGeometry(8*BS,5*BS), mat(0xE8C05F,{transparent:true,opacity:0.95}));
+      flag.position.set(side*20*BS+ (side*4*BS), 17*BS, z-6*BS);
+      flag.rotation.y = Math.PI/2;
+      world.add(flag);
+    });
+    buildMemorialCombat(z);
+  }
+
+  // ---- 6·25 battle at the 호국탑 (칠곡호국평화기념관) ----
+  // Illustrated soldiers and tanks (window.UNITS) standing upright in the
+  // world as camera-facing cards: 북한군 spawn beyond (north of) the tower,
+  // 국군 spawn beyond the 호국의 다리 and march up the path to the tower.
+  // The bosses are one tank per side. The art is cartoon low-poly; there is
+  // no gore — units simply drop out when defeated.
+  var UNIT_ASPECT = { nkSoldier:0.55, nkTank:1.4024, rokSoldier:0.5304, rokTank:1.2905 };
+  // back-view art, drawn at the same pixel scale as the stand frame:
+  // runRel = run-frame height / stand-frame height, *Cx = how far the body
+  // centre sits right of the image centre (fraction of its width)
+  // A / B = the two run frames (opposite foot forward), S = standing; each
+  // side's three frames share one pixel scale. aspect = w/h, rel = height
+  // relative to S, cx = body centre right of the image centre (fraction of width)
+  var BACK_ART = {
+    rokSoldier:{
+      A:{key:"rokBackA", aspect:0.5728, rel:0.9571, cx:0.0200},
+      B:{key:"rokBackB", aspect:0.5322, rel:0.9696, cx:0.0737},
+      S:{key:"rokBackS", aspect:0.4786, rel:1.0000, cx:0.0522}
+    },
+    nkSoldier:{
+      A:{key:"nkBackA", aspect:0.5147, rel:0.9750, cx:0.0789},
+      B:{key:"nkBackB", aspect:0.5672, rel:0.9571, cx:0.0407},
+      S:{key:"nkBackS", aspect:0.5214, rel:1.0000, cx:0.0770}
+    }
+  };
+  // tank art besides the 3/4 front: rear and side views, sized in world units
+  // so the three views read as the same vehicle (h = height of that view)
+  var TANK_ART = {
+    rokTank:{ rear:{key:"rokTankRear", aspect:0.7952, h:19}, side:{key:"rokTankSide", aspect:1.8262, h:13.2} },
+    nkTank: { rear:{key:"nkTankRear",  aspect:1.0500, h:16}, side:{key:"nkTankSide",  aspect:2.0190, h:11.9} }
+  };
+  var UNIT_STATS = {
+    nkSoldier: { side:"nk",  kind:"soldier", h:12, hp:40,  dmg:6,  range:75,  cd:1.6, speed:40, aggro:150, shell:0.5, shellSpeed:70, color:0xff7a3d },
+    nkTank:    { side:"nk",  kind:"tank",    h:15, hp:300, dmg:18, range:120, cd:3.4, speed:13, aggro:220, shell:1.3, shellSpeed:48, color:0x333333 },
+    rokSoldier:{ side:"rok", kind:"soldier", h:12, hp:40,  dmg:6,  range:75,  cd:1.6, speed:40, aggro:150, shell:0.5, shellSpeed:70, color:0xffe08a },
+    rokTank:   { side:"rok", kind:"tank",    h:15, hp:300, dmg:18, range:120, cd:3.4, speed:13, aggro:220, shell:1.3, shellSpeed:48, color:0x333333 }
+  };
+  var unitTexCache = {};
+  function unitTex(key){
+    if(unitTexCache[key]) return unitTexCache[key];
+    var src = window.UNITS && window.UNITS[key];
+    if(!src) return null;
+    var t = texLoaderShared.load(src);
+    if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    return (unitTexCache[key] = t);
+  }
+  // texture windowing for the soldier cut-outs: u from the left, v from the
+  // bottom, all fractions of the art; each slice shares one decoded Image
+  var unitImgCache = {};
+  function unitSliceTex(key, u0, u1, v0, v1){
+    var img = unitImgCache[key];
+    if(!img){ img = unitImgCache[key] = new Image(); img.src = window.UNITS[key]; }
+    var t = new THREE.Texture(img), e = 0.0012;
+    t.repeat.set(u1-u0-e*2, v1-v0-e*2);
+    t.offset.set(u0+e, Math.max(0.001, v0+e));
+    if(img.complete && img.naturalWidth){ t.needsUpdate = true; }
+    else img.addEventListener("load", function(){ t.needsUpdate = true; });
+    return t;
+  }
+  function makeUnit(id, tex, x, z, extra){
+    var st = UNIT_STATS[tex];
+    var tx = unitTex(tex);
+    if(!tx) return null;
+    var h = st.h, w = h * UNIT_ASPECT[tex];
+    var g = new THREE.Group();
+    g.position.set(x, 0, z);
+    g.visible = false;
+    var body, baseY, legL = null, legR = null, frontG = null, backG = null, backFrames = null, tankViews = null;
+    if(st.kind === "soldier"){
+      // Cut the single illustration into a torso and two legs so the legs
+      // can alternate like a run cycle (the art only has one pose). The
+      // right-hand strip (rifle tip) stays with the torso so it doesn't
+      // swing with the leg.
+      var HIP = 0.44, SPLIT = 0.44, RIGHT = 0.72;           // legs = bottom 44%; fractions of the art
+      var legH = h*HIP, topH = h - legH;
+      body = new THREE.Group();
+      baseY = -h*0.02;
+      var frontG = new THREE.Group();   // the original front-facing cut-out (legs swing)
+      body.add(frontG);
+      function piece(u0, u1, v0, v1, pivotTop){
+        var pw = (u1-u0)*w, ph = (v1-v0)*h;
+        var geo = new THREE.PlaneGeometry(pw, ph);
+        if(pivotTop) geo.translate(0, -ph/2, 0);            // origin at the hip so rotation swings from there
+        var m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map:unitSliceTex(tex, u0, u1, v0, v1), alphaTest:0.4, side:THREE.DoubleSide, color:0xF2F2F2 }));
+        frontG.add(m);
+        return { mesh:m, cx:(u0+u1)/2*w - w/2, ph:ph };
+      }
+      var top = piece(0, 1, HIP, 1, false);
+      top.mesh.position.set(0, legH + topH/2, 0.02);
+      var strip = piece(RIGHT, 1, 0, HIP, false);
+      strip.mesh.position.set(top.cx*0 + (RIGHT+1)/2*w - w/2, legH/2, 0.0);
+      var lp = piece(0, SPLIT, 0, HIP, true);
+      lp.mesh.position.set(lp.cx, legH, 0.01); legL = lp.mesh;
+      var rp = piece(SPLIT, RIGHT, 0, HIP, true);
+      rp.mesh.position.set(rp.cx, legH, 0.01); legR = rp.mesh;
+      body.userData.top = top.mesh;
+      // Back view (for units walking away from the camera): two run frames
+      // (opposite foot forward) and a standing frame, each a full illustration.
+      var ba = BACK_ART[tex];
+      if(ba && window.UNITS[ba.A.key] && window.UNITS[ba.B.key] && window.UNITS[ba.S.key]){
+        backG = new THREE.Group();
+        backG.visible = false;
+        body.add(backG);
+        backFrames = {};
+        ["A","B","S"].forEach(function(f){
+          var fr = ba[f], fh = h*fr.rel, fw = fh*fr.aspect;
+          var m = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh),
+            new THREE.MeshBasicMaterial({ map:unitSliceTex(fr.key, 0, 1, 0, 1), alphaTest:0.4, side:THREE.DoubleSide, color:0xF2F2F2 }));
+          m.position.set(-fr.cx*fw, fh/2, 0.02);   // body centred on the unit, feet at the ground line
+          m.visible = (f === "S");
+          backG.add(m);
+          backFrames[f] = m;
+        });
+      }
+    } else {
+      // tank: three views — the 3/4 front (heading toward the camera), the
+      // rear (heading away: barrel pointing off into the distance) and the
+      // side (moving/aiming sideways); updateBattle picks one by heading
+      body = new THREE.Group();
+      baseY = -h*0.02;
+      var tfront = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ map:tx, alphaTest:0.4, side:THREE.DoubleSide, color:0xF2F2F2 })
+      );
+      tfront.position.y = h/2;
+      body.add(tfront);
+      tankViews = { front:tfront };
+      var ta = TANK_ART[tex];
+      if(ta){
+        ["rear","side"].forEach(function(k){
+          var a = ta[k];
+          if(!window.UNITS[a.key]) return;
+          var tm = new THREE.Mesh(
+            new THREE.PlaneGeometry(a.h*a.aspect, a.h),
+            new THREE.MeshBasicMaterial({ map:unitTex(a.key), alphaTest:0.4, side:THREE.DoubleSide, color:0xF2F2F2 })
+          );
+          tm.position.y = a.h/2;
+          tm.visible = false;
+          body.add(tm);
+          tankViews[k] = tm;
+        });
+      }
+    }
+    body.position.y = baseY;
+    g.add(body);
+    // small health bar above the head, part of the camera-facing group
+    var bw = Math.max(5, w*0.8);
+    var barBg = new THREE.Mesh(new THREE.PlaneGeometry(bw, 0.8), new THREE.MeshBasicMaterial({ color:0x1b1b1b }));
+    barBg.position.set(0, h + 1.4, 0.03); g.add(barBg);
+    var barFill = new THREE.Mesh(new THREE.PlaneGeometry(bw, 0.8), new THREE.MeshBasicMaterial({ color: st.side === "nk" ? 0xe04b4b : 0x4fb85a }));
+    barFill.position.set(0, h + 1.4, 0.06); g.add(barFill);
+    world.add(g);
+    var sh = new THREE.Mesh(new THREE.PlaneGeometry(st.kind==="tank" ? w*0.95 : w*1.5, st.kind==="tank" ? w*0.5 : w*0.7), shadowBlobMat);
+    sh.rotation.x = -Math.PI/2; sh.position.set(x, 0.06, z); sh.renderOrder = 2; sh.visible = false;
+    world.add(sh);
+    three.facers.push(g);
+    var u = {
+      id:id, tex:tex, side:st.side, kind:st.kind, x:x, z:z, w:w, h:h,
+      hp:st.hp, maxHp:st.hp, dmg:st.dmg, range:st.range, cd:st.cd, cdT:0.6 + Math.random()*st.cd,
+      speed:st.speed, aggro:st.aggro, shell:st.shell, shellSpeed:st.shellSpeed, color:st.color,
+      hitR: st.kind==="tank" ? w*0.34 : 3.4,
+      group:g, body:body, baseY:baseY, legL:legL, legR:legR, frontG:frontG, backG:backG, backFrames:backFrames, tankViews:tankViews, tview:"front", hx:0, hz:(st.side === "rok" ? 1 : -1), faceZ:(st.side === "rok" ? 1 : -1), barFill:barFill, barW:bw, shadow:sh,
+      alive:true, active:false, spawnDelay:0, pop:0, walkT:Math.random()*6, moving:false, laneX:x, stopZ:0
+    };
+    if(extra) for(var k in extra) u[k] = extra[k];
+    three.units.push(u);
+    return u;
+  }
+  function buildMemorialCombat(z){
+    // Both armies have the same strength (10 soldiers + 1 tank) and spawn at
+    // the same pace from opposite ends of the road: 국군 just north of the
+    // bridge's exit ramp, 북한군 beyond (north of) the tower. Each marches
+    // toward the other's side and they open fire where they meet.
+    var bridgeExit = LANDMARKS.filter(function(m){ return m.theme === "bridge"; })[0].z + BRIDGE_FLAT_HALF + BRIDGE_RAMP_LEN + 24;
+    var nkStart = z + 130;
+    var i;
+    three.battle = { towerZ:z, t:0, nkAnnounced:false };
+    if(memorialCleared()) return; // already won in a previous session: no battle
+    for(i=0;i<MEMORIAL_ENEMY_COUNT;i++){
+      var id = "grunt"+i;
+      if(state.defeated.has(id)) continue;
+      var nx = ((i%4)-1.5)*11, row = Math.floor(i/4);
+      makeUnit(id, "nkSoldier", nx, nkStart + row*10, { spawnDelay: i*2.4, laneX: nx, holdZ: bridgeExit + 15 + (i%4)*6 + row*12 });
+    }
+    if(!state.defeated.has("boss")){
+      makeUnit("boss", "nkTank", 0, nkStart + 6, { spawnDelay: 20, laneX: 0, holdZ: bridgeExit + 45 });
+    }
+    for(i=0;i<MEMORIAL_ENEMY_COUNT;i++){
+      var rx = ((i%4)-1.5)*11, rrow = Math.floor(i/4);
+      makeUnit("rok"+i, "rokSoldier", rx, bridgeExit - rrow*10, { spawnDelay: i*2.4, laneX: rx, stopZ: z - 95 - (i%4)*6 - rrow*12 });
+    }
+    makeUnit("rokTank", "rokTank", 0, bridgeExit - 6, { spawnDelay: 20, laneX: 0, stopZ: z - 125 });
+  }
+
+  var builders = { town:buildTown, bridge:buildBridge, fortress:buildFortress, temple:buildTemple, river:buildRiverPark, memorial:buildMemorial };
+  var markers = []; // {id, sign:{x,z}, stamp:{x,z}, mesh}
+  LANDMARKS.forEach(function(m){
+    var mx = m.x || 0;
+    builders[m.theme](m.z, mx);
+    var signX = mx + 20, stampX = mx - 20, stampZ = m.z + 16;
+    // sign post
+    cyl(0.5,0.5,7,0x8C6E4A, signX, 3.5, m.z, 6);
+    box(8,4.4,0.6,0xFFF8EE, signX, 6.6, m.z);
+    // stamp collectible (gold octahedron, floats + spins)
+    var stampMesh = new THREE.Mesh(new THREE.OctahedronGeometry(2.4,0), mat(0xF3D874));
+    stampMesh.position.set(stampX, 4, stampZ);
+    world.add(stampMesh);
+    markers.push({ id:m.id, signX:signX, signZ:m.z, stampX:stampX, stampZ:stampZ, stampMesh:stampMesh });
+  });
+
+  // ---- mountain-road fork: a side path breaking off the main riverside
+  // spine toward 가산산성/송림사, since both sit inland rather than along
+  // the river. Built once, wide enough to cover both branch landmarks. ----
+  (function buildMountainFork(){
+    var branchLandmarks = LANDMARKS.filter(function(m){ return m.branch; });
+    if(!branchLandmarks.length) return;
+    var minX = Math.min.apply(null, branchLandmarks.map(function(m){ return m.x; }));
+    var forkZ = branchLandmarks.reduce(function(s,m){ return s+m.z; },0) / branchLandmarks.length;
+    var forkTex = photoTex("path", 8, 1.4);
+    var forkW = Math.abs(minX) + 60, forkD = 110;
+    plane(forkW, forkD, 0xE7D9AE, minX/2 + 10, 0.021, forkZ, forkTex?{map:forkTex}:null);
+  })();
+
+  // ================= 가산: climbable mountain behind the fortress gate =================
+  (function buildGasanMountain(){
+    var segX = 87, segZ = 99, W = (MT.ax + 8)*2, D = (MT.az + 8)*2;
+    var geo = new THREE.PlaneGeometry(W, D, segX, segZ);
+    geo.rotateX(-Math.PI/2);
+    var pos = geo.attributes.position, cols = new Float32Array(pos.count*3);
+    for(var i=0;i<pos.count;i++){
+      var wx = pos.getX(i) + MT.cx, wz = pos.getZ(i) + MT.cz;
+      var h = mountainHeight(wx, wz);
+      pos.setXYZ(i, pos.getX(i), h + 0.05, pos.getZ(i));
+      // tint by height and steepness: lawn -> forest -> bare grey rock near the top / on steep faces
+      var e = 2.5, sl = Math.hypot(mountainHeight(wx+e,wz)-mountainHeight(wx-e,wz), mountainHeight(wx,wz+e)-mountainHeight(wx,wz-e))/(2*e);
+      var t = Math.min(1, h/MT.H), rock = Math.max(0, Math.min(1, (sl-0.55)*2.2 + (t-0.78)*3));
+      var r = 1 - 0.28*t, g = 1 - 0.1*t, b = 1 - 0.34*t;
+      r += (0.78 - r)*rock; g += (0.74 - g)*rock; b += (0.70 - b)*rock;
+      cols[i*3] = r; cols[i*3+1] = g; cols[i*3+2] = b;
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(cols, 3));
+    geo.computeVertexNormals();
+    var grassMt = photoTex("grass", 26, 29);
+    var mtMat = new THREE.MeshStandardMaterial({ map:grassMt||null, color:0xffffff, vertexColors:true, flatShading:true, roughness:0.95, metalness:0 });
+    var mtMesh = new THREE.Mesh(geo, mtMat);
+    mtMesh.position.set(MT.cx, 0, MT.cz);
+    mtMesh.castShadow = true; mtMesh.receiveShadow = true;
+    world.add(mtMesh);
+
+    // switchback trail ribbon hugging the surface
+    var tpos = [], tidx = [], tcol = [];
+    var half = 3.4, step = 4;
+    var ptsOut = [];
+    for(var s=0; s<MT_TRAIL.length-1; s++){
+      var a = MT_TRAIL[s], b2 = MT_TRAIL[s+1];
+      var len = Math.hypot(b2[0]-a[0], b2[1]-a[1]), n = Math.max(1, Math.ceil(len/step));
+      for(var k=0;k<n;k++){ var u = k/n; ptsOut.push([a[0]+(b2[0]-a[0])*u, a[1]+(b2[1]-a[1])*u]); }
+    }
+    ptsOut.push(MT_TRAIL[MT_TRAIL.length-1].slice());
+    for(var pI=0; pI<ptsOut.length; pI++){
+      var cur = ptsOut[pI], prv = ptsOut[Math.max(0,pI-1)], nxt = ptsOut[Math.min(ptsOut.length-1,pI+1)];
+      var dx = nxt[0]-prv[0], dz = nxt[1]-prv[1], dl = Math.hypot(dx,dz) || 1, nx = -dz/dl, nz = dx/dl;
+      [-1,1].forEach(function(sd){
+        var px = cur[0] + nx*half*sd, pz = cur[1] + nz*half*sd, hh = mountainHeight(px, pz);
+        tpos.push(px, hh + 0.12 + Math.min(0.5, hh*0.05), pz);
+        tcol.push(0.86, 0.77, 0.58);
+      });
+      if(pI < ptsOut.length-1){ var q = pI*2; tidx.push(q, q+1, q+2, q+1, q+3, q+2); }
+    }
+    var tgeo = new THREE.BufferGeometry();
+    tgeo.setAttribute("position", new THREE.Float32BufferAttribute(tpos, 3));
+    tgeo.setAttribute("color", new THREE.Float32BufferAttribute(tcol, 3));
+    tgeo.setIndex(tidx); tgeo.computeVertexNormals();
+    var trail = new THREE.Mesh(tgeo, new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 }));
+    trail.receiveShadow = true;
+    world.add(trail);
+
+    // pines on the slope (kept clear of the trail), planted at the surface height
+    function distToTrail(x, z){
+      var best = 1e9;
+      for(var q=0;q<ptsOut.length;q++){ var d2 = Math.hypot(x-ptsOut[q][0], z-ptsOut[q][1]); if(d2 < best) best = d2; }
+      return best;
+    }
+    var seed = 11; function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
+    var planted = 0, tries = 0;
+    while(planted < 150 && tries < 1500){
+      tries++;
+      var tx = MT.cx + (rnd()*2-1)*MT.ax, tz = MT.cz + (rnd()*2-1)*MT.az;
+      if(!insideMountain(tx, tz, -14)) continue;
+      var th = mountainHeight(tx, tz);
+      if(distToTrail(tx, tz) < 12) continue;
+      if(th > MT.H*0.9) continue;                       // the summit stays open rock
+      var before = world.children.length;
+      makeTree(tx, tz, 0.75 + rnd()*0.7, Math.floor(rnd()*5), rnd() < 0.3);
+      for(var wi = before; wi < world.children.length; wi++) world.children[wi].position.y += th;
+      planted++;
+    }
+    // boulders along the route and a big rock outcrop ("가산바위") at the summit
+    var rockMat = new THREE.MeshStandardMaterial({ color:0x9a948a, flatShading:true, roughness:1 });
+    function boulder(x, z, r){
+      var m = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), rockMat);
+      m.position.set(x, mountainHeight(x, z) + r*0.45, z);
+      m.rotation.set(rnd()*3, rnd()*3, rnd()*3); m.scale.y = 0.7 + rnd()*0.4;
+      m.castShadow = true; m.receiveShadow = true; world.add(m);
+    }
+    for(var bI=0; bI<26; bI++){
+      var bx = MT.cx + (rnd()*2-1)*MT.ax*0.85, bz = MT.cz + (rnd()*2-1)*MT.az*0.85;
+      if(!insideMountain(bx, bz, -20) || distToTrail(bx, bz) < 8) continue;
+      boulder(bx, bz, 2 + rnd()*3.2);
+    }
+    var sx0 = MT_TRAIL[MT_TRAIL.length-1][0], sz0 = MT_TRAIL[MT_TRAIL.length-1][1];
+    [[10,6,9],[-12,-3,7],[2,-14,6],[16,-8,5],[-6,12,5.5]].forEach(function(o){ boulder(sx0+o[0], sz0+o[1], o[2]); });
+    // summit flag
+    var sy = mountainHeight(sx0, sz0);
+    cyl(0.5,0.5,18,0x8C6E4A, sx0, sy+9, sz0, 6);
+    var flagM = new THREE.Mesh(new THREE.PlaneGeometry(10,6), mat(0xE63946,{transparent:true,opacity:0.95}));
+    flagM.position.set(sx0+5, sy+15, sz0); flagM.rotation.y = Math.PI/2; world.add(flagM);
+  })();
+
+  // ================= distant mountain backdrop + low hills along the road =================
+  three.bg = [];
+  (function buildBackdrop(){
+    if(!window.MOUNTAINS) return;
+    function mtTex(key){
+      var t = texLoaderShared.load(window.MOUNTAINS[key]);
+      if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+    var ASPECT = { palgong:4.947, yuhak:5.622, chiki:4.348, gasan:3.646, hillA:7.65, hillB:4.403 };
+    var bgScene = new THREE.Group(); scene.add(bgScene);
+    // A huge, hazy lowland plain under the whole horizon, following the player.
+    // Without it the real ground ends at x=±650 / z=2720 and, from high up on
+    // the mountain, the mountain cards would hang above empty sky. It is a
+    // blend of grass and sky colour (unfogged), so it reads as distant haze.
+    var plain = new THREE.Mesh(new THREE.PlaneGeometry(16000, 16000), new THREE.MeshBasicMaterial({ color:0xAED5CB, fog:false }));
+    plain.rotation.x = -Math.PI/2; plain.position.y = -0.6; plain.frustumCulled = false;
+    bgScene.add(plain);
+    three.plain = plain;
+    // Distant ranges follow the player slowly (so they feel far away) and
+    // always turn to face the camera. Heights keep the real proportions:
+    // 팔공산 1.32 : 가산 1.00 : 유학산 0.93 : 치키봉 0.85. Nearer = clearer, farther = hazier.
+    function card(key, H, dist, dx, dz, opacity, order, flip){
+      var w = H*ASPECT[key];
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(w, H),
+        new THREE.MeshBasicMaterial({ map:mtTex(key), transparent:true, opacity:opacity, depthWrite:false, fog:false, side:THREE.DoubleSide }));
+      m.renderOrder = order;
+      m.frustumCulled = false;
+      var g = new THREE.Group(); g.add(m);
+      m.position.y = H/2 - Math.max(30, H*0.06);       // base buried below the ground line
+      if(flip) m.scale.x = -1;
+      bgScene.add(g);
+      three.bg.push({ g:g, dx:dx, dz:dz });
+    }
+    // north (the way you walk), in world offsets from the follow-point
+    card("palgong", 640, 1700, -150,  1700, 0.92, -9);
+    card("yuhak",   330, 1250,  820,  1250, 0.96, -8);
+    card("chiki",   250,  980, -800,   980, 1.00, -7);
+    card("gasan",   300,  940, -430,   940, 1.00, -6);
+    // south (visible when the camera swings round)
+    card("palgong", 600, 1700,  350, -1700, 0.92, -9, true);
+    card("yuhak",   330, 1250, -720, -1250, 0.96, -8, true);
+    card("chiki",   250, 1000,  760, -1000, 1.00, -7, true);
+    card("gasan",   290,  950, -250,  -950, 1.00, -6, true);
+  })();
+
+  // ================= walkable 3D hills flanking the road =================
+  (function buildRoadHills(){
+    var hillTex = photoTex("grass", 19, 19);
+    var seed = 31; function rnd(){ seed = (seed*16807) % 2147483647; return seed/2147483647; }
+    HILLS.forEach(function(h){
+      var cell = 8, nx = Math.ceil(h.ax*2/cell), nz = Math.ceil(h.az*2/cell);
+      var geo = new THREE.PlaneGeometry(h.ax*2, h.az*2, nx, nz);
+      geo.rotateX(-Math.PI/2);
+      var pos = geo.attributes.position, cols = new Float32Array(pos.count*3);
+      for(var i=0;i<pos.count;i++){
+        var wx = pos.getX(i) + h.cx, wz = pos.getZ(i) + h.cz;
+        var hh = hillHeightAt(wx, wz);
+        pos.setXYZ(i, pos.getX(i), hh + 0.05, pos.getZ(i));
+        var e = 3, sl = Math.hypot(hillHeightAt(wx+e,wz)-hillHeightAt(wx-e,wz), hillHeightAt(wx,wz+e)-hillHeightAt(wx,wz-e))/(2*e);
+        var t = Math.min(1, hh/h.H), rock = Math.max(0, Math.min(1, (sl-0.6)*2 + (t-0.85)*3));
+        // forest patches: a slow noise darkens some of the slope toward deep green
+        var patch = 0.5 + 0.5*Math.sin(wx*0.035 + h.ph)*Math.cos(wz*0.04 + h.ph*1.7);
+        var r = 1 - 0.25*t - 0.2*patch*t, g = 1 - 0.08*t - 0.08*patch*t, b = 1 - 0.3*t - 0.2*patch*t;
+        r += (0.78 - r)*rock; g += (0.74 - g)*rock; b += (0.7 - b)*rock;
+        cols[i*3] = r; cols[i*3+1] = g; cols[i*3+2] = b;
+      }
+      geo.setAttribute("color", new THREE.BufferAttribute(cols, 3));
+      geo.computeVertexNormals();
+      var m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map:hillTex||null, vertexColors:true, flatShading:true, roughness:0.95, metalness:0 }));
+      m.position.set(h.cx, 0, h.cz);
+      m.castShadow = true; m.receiveShadow = true;
+      world.add(m);
+      // a few trees dotted on the slopes
+      var planted = 0, tries = 0;
+      while(planted < 7 && tries < 80){
+        tries++;
+        var tx = h.cx + (rnd()*2-1)*h.ax*0.8, tz = h.cz + (rnd()*2-1)*h.az*0.8;
+        var th = hillHeightAt(tx, tz);
+        if(th < 6 || !insideAnyHill(tx, tz, -10)) continue;
+        var before = world.children.length;
+        makeTree(tx, tz, 0.9 + rnd()*0.7, Math.floor(rnd()*5), rnd() < 0.3);
+        for(var wi = before; wi < world.children.length; wi++) world.children[wi].position.y += th;
+        planted++;
+      }
+    });
+  })();
+
+  // ---- player billboard sprite, split into a torso/head piece and a legs
+  // piece so walking can actually swing the legs instead of just bobbing
+  // the whole flat cutout up and down. Both pieces sample the SAME
+  // directional artwork, just windowed to a different vertical strip via
+  // texture repeat/offset, so no extra art is needed. ----
+  var LEG_FRAC = 0.30; // bottom 30% of the crop is treated as the "legs"
+  var texLoader = new THREE.TextureLoader();
+  var playerTopMat = new THREE.SpriteMaterial({ map:null, transparent:true });
+  var playerLegMat = new THREE.SpriteMaterial({ map:null, transparent:true });
+  var playerTopSprite = new THREE.Sprite(playerTopMat);
+  var playerLegSprite = new THREE.Sprite(playerLegMat);
+  var SPRITE_SIZE = 10.5; // target on-screen height; width follows each
+                            // character's own full-body crop aspect ratio
+  scene.add(playerTopSprite);
+  scene.add(playerLegSprite);
+
+  // Each character has 4 directional crops (front/back/left/right) so the
+  // billboard actually shows the right side of the character instead of
+  // always facing the camera with one static pose.
+  var DIRS = ["front","back","left","right"];
+  function loadCharTextures(id){
+    var set = window.SPRITES_DIR && window.SPRITES_DIR[id];
+    var texMap = {}, aspectMap = {};
+    if(!set){
+      // fallback to the single front-facing sprite used elsewhere in the UI
+      set = { front: window.SPRITES[id], back: window.SPRITES[id], left: window.SPRITES[id], right: window.SPRITES[id] };
+    }
+    DIRS.forEach(function(d){
+      var img = new Image();
+      img.onload = function(){
+        var tex = new THREE.Texture(img);
+        tex.needsUpdate = true;
+        tex.colorSpace = THREE.SRGBColorSpace || undefined;
+        texMap[d] = tex;
+        aspectMap[d] = img.naturalWidth / img.naturalHeight;
+        if(three.ready && three.playerDirTex === texMap){
+          // refresh the currently-shown texture once its image is ready
+          applyDirTexture(state.player.dir || "front");
+        }
+      };
+      img.src = set[d];
+    });
+    return { texMap: texMap, aspectMap: aspectMap };
+  }
+  window._applyPlayerTexture = function(){
+    var loaded = loadCharTextures(state.charId);
+    three.playerDirTex = loaded.texMap;
+    three.playerDirAspect = loaded.aspectMap;
+    three._lastAppliedTex = null;
+  };
+
+  // player shadow (flat circle)
+  var shadowMesh = new THREE.Mesh(
+    new THREE.CircleGeometry(3.2, 16),
+    new THREE.MeshBasicMaterial({ color:0x14100a, transparent:true, opacity:0.28 })
+  );
+  shadowMesh.rotation.x = -Math.PI/2;
+  shadowMesh.position.y = 0.03;
+  scene.add(shadowMesh);
+
+  // NOTE: three.waterMats/boats/enemies/projectiles were already populated
+  // by the builders above (via property assignment on this same object) —
+  // this must MERGE, not replace, or all of that gets silently discarded.
+  Object.assign(three, {
+    ready:true, scene:scene, camera:camera, renderer:renderer, sun:sun, world:world,
+    playerTopSprite:playerTopSprite, playerLegSprite:playerLegSprite,
+    shadowMesh:shadowMesh, markers:markers,
+    spriteBaseSize: SPRITE_SIZE, spriteAspect: 1, legFrac: LEG_FRAC,
+    playerTopMat: playerTopMat, playerLegMat: playerLegMat,
+    playerDirTex: null, playerDirAspect: null, _lastAppliedTex: null
+  });
+  window._applyPlayerTexture();
+  loadingNote.hidden = true;
+  resizeRenderer();
+  window.addEventListener("resize", resizeRenderer);
+}
+
+function resizeRenderer(){
+  if(!three.ready) return;
+  var w = canvasHolder.clientWidth, h = canvasHolder.clientHeight;
+  if(w<10 || h<10) return;
+  three.renderer.setSize(w,h,true);
+  three.camera.aspect = w/h;
+  three.camera.updateProjectionMatrix();
+}
+
+function applyPlayerTexture(){
+  if(window._applyPlayerTexture) window._applyPlayerTexture();
+}
+
+function enterGameScreen(){
+  state.cam.fx = null; // snap the camera to the character on (re)entry, e.g. after quick travel
+  if(!three.ready){ initThree(); }
+  else { resizeRenderer(); }
+  updateHud(true);
+  factCard.hidden = true;
+  if(!rafId) rafId = requestAnimationFrame(loop);
+}
+
+function updateHud(force){
+  var m = currentLandmark();
+  if(force || m.id !== lastZoneId){
+    hudPlace.textContent = m.name;
+    hudSub.textContent = m.sub;
+    stampDots(stampRow2);
+    if(!force && lastZoneId !== null){
+      zoneToastEl.textContent = "📍 " + m.name;
+      zoneToastEl.hidden = false;
+      clearTimeout(zoneTimer);
+      zoneTimer = setTimeout(function(){ zoneToastEl.hidden = true; }, 1600);
+    }
+    lastZoneId = m.id;
+  }
+}
+
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.hidden = true; }, 1800);
+}
+
+/* ---------------- Input ---------------- */
+/* Left/right are SCREEN-relative: the camera can face +Z or -Z (it turns to
+   follow the way the character is walking), which mirrors world X on screen,
+   so update() converts the screen direction to a world direction using the
+   camera's current heading. Up/down are fixed to the world's +Z / -Z. */
+var KEYMAP = {
+  "arrowleft":"left","a":"left",
+  "arrowright":"right","d":"right",
+  "arrowup":"up","w":"up",
+  "arrowdown":"down","s":"down"
+};
+window.addEventListener("keydown", function(e){
+  if(screens.game.hidden) return;
+  var k = e.key.toLowerCase();
+  if(KEYMAP[k] || k===" " || k==="e" || k==="m") e.preventDefault();
+  if(KEYMAP[k]) state.keys[KEYMAP[k]] = true;
+  if(k===" ") state.keys.jump = true;
+  if(k==="e") tryInteract();
+  if(k==="m") showScreen("world");
+});
+window.addEventListener("keyup", function(e){
+  var k = e.key.toLowerCase();
+  if(KEYMAP[k]) state.keys[KEYMAP[k]] = false;
+});
+
+/* ---------------- Expand the map to fill the whole window ----------------
+   Fills the whole page with the game view, and also asks the browser for
+   real fullscreen (which may be refused when the page is embedded). */
+var expandBtn = document.getElementById("expandBtn");
+var mapExpanded = false, fsRequested = false;
+function setMapExpanded(on){
+  if(on === mapExpanded) return;
+  mapExpanded = on;
+  canvasHolder.classList.toggle("expanded", on);
+  document.body.classList.toggle("expanded-game", on);
+  expandBtn.textContent = on ? "⤡ 축소하기" : "⛶ 맵 확장하기";
+  try{
+    if(on){
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(req){ var pr = req.call(el); fsRequested = true; if(pr && pr.catch) pr.catch(function(){ fsRequested = false; }); }
+    } else if(document.fullscreenElement || document.webkitFullscreenElement){
+      fsRequested = false;
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+  }catch(e){ fsRequested = false; }
+  resizeRenderer();
+  setTimeout(resizeRenderer, 60);   // once the browser has finished resizing
+}
+expandBtn.addEventListener("click", function(){ setMapExpanded(!mapExpanded); expandBtn.blur(); });
+document.addEventListener("fullscreenchange", function(){
+  // leaving real fullscreen with Esc also collapses the expanded view
+  if(!document.fullscreenElement && fsRequested && mapExpanded){ fsRequested = false; setMapExpanded(false); }
+  resizeRenderer();
+});
+window.addEventListener("keydown", function(e){
+  if(screens.game.hidden) return;
+  var k = e.key.toLowerCase();
+  if(k === "f"){ setMapExpanded(!mapExpanded); }
+  else if(k === "escape" && mapExpanded){ setMapExpanded(false); }
+});
+
+function bindHold(elId, key){
+  var el = document.getElementById(elId);
+  var set = function(v){ return function(ev){ ev.preventDefault(); state.keys[key]=v; }; };
+  el.addEventListener("touchstart", set(true), {passive:false});
+  el.addEventListener("touchend", set(false));
+  el.addEventListener("touchcancel", set(false));
+  el.addEventListener("mousedown", set(true));
+  el.addEventListener("mouseup", set(false));
+  el.addEventListener("mouseleave", set(false));
+}
+bindHold("btnLeft","left");
+bindHold("btnRight","right");
+bindHold("btnUp","up");
+bindHold("btnDown","down");
+document.getElementById("btnJump").addEventListener("click", function(){ state.keys.jump = true; });
+document.getElementById("btnInteract").addEventListener("click", tryInteract);
+
+var summitShown = false;
+var ATTACK_RANGE = 18, ATTACK_DMG = 12, ATTACK_CD = 0.35;
+// nearest living, spawned 북한군 unit the player can hit (a unit's own half-width counts, so big tanks are hittable)
+function nearestHittableEnemy(p){
+  var best = null, bestD = Infinity;
+  three.units.forEach(function(u){
+    if(u.side !== "nk" || !u.alive || !u.active) return;
+    var d = Math.hypot(p.x-u.x, p.z-u.z) - u.w*0.4;
+    if(d < ATTACK_RANGE && d < bestD){ bestD = d; best = u; }
+  });
+  return best;
+}
+// shared by the player and by 국군 shots: apply damage and handle a defeat
+function damageUnit(u, dmg, byPlayer){
+  if(!u.alive) return;
+  u.hp -= dmg;
+  if(u.hp > 0) return;
+  u.alive = false;
+  u.group.visible = false;
+  u.shadow.visible = false;
+  if(u.side === "nk"){
+    state.defeated.add(u.id);
+    writeSave();
+    showToast((u.kind==="tank" ? "🎖 적 전차 격파!" : (byPlayer ? "적 격파!" : "국군이 적을 격파!")) + " (" + state.defeated.size + "/" + (MEMORIAL_ENEMY_COUNT+1) + ")");
+    if(memorialCleared()){
+      setTimeout(function(){ showToast("✅ 기념관 수호 완료! 스탬프를 주우러 가보세요"); }, 900);
+    }
+  }
+}
+function tryInteract(){
+  if(screens.game.hidden) return;
+  var p = state.player;
+
+  // attacking a nearby enemy takes priority over sign/stamp interactions
+  var target = nearestHittableEnemy(p);
+  if(target){
+    if(p.attackCd > 0) return;
+    p.attackCd = ATTACK_CD;
+    p.squash = 0.25;
+    damageUnit(target, ATTACK_DMG, true);
+    return;
+  }
+
+  var handled = false;
+  three.markers.forEach(function(mk){
+    if(handled) return;
+    var dSign = Math.hypot(p.x-mk.signX, p.z-mk.signZ);
+    var dStamp = Math.hypot(p.x-mk.stampX, p.z-mk.stampZ);
+    if(dSign < 13){
+      var m = LANDMARKS.find(function(l){return l.id===mk.id;});
+      factTitle.textContent = m.npcLabel + " · " + m.sub;
+      factBody.textContent = m.fact;
+      factCard.hidden = false;
+      handled = true;
+    } else if(dStamp < 10 && !state.stamps.has(mk.id)){
+      if(mk.id === MEMORIAL_LANDMARK_ID && !memorialCleared()){
+        showToast("🚫 북한군을 모두 물리쳐야 스탬프를 얻을 수 있어요!");
+        handled = true;
+        return;
+      }
+      state.stamps.add(mk.id);
+      writeSave();
+      var m2 = LANDMARKS.find(function(l){return l.id===mk.id;});
+      showToast("📍 스탬프 획득! " + m2.name);
+      stampDots(stampRow2);
+      handled = true;
+    }
+  });
+}
+
+/* ---------------- Physics + movement ----------------
+   All rates below are expressed per SECOND (not per frame), and every
+   update advances by the real elapsed time (dt). This keeps walking speed
+   consistent no matter the frame rate — including right after the tab was
+   backgrounded and a big gap in frames occurs, which is clamped below so a
+   stall never shows up as the character leaping/teleporting forward. */
+var SPEED = 93;      // world units per second
+var JUMP_V = 186;    // launch velocity, units per second
+// Acceleration converts from the old fixed-frame values by fps^2, not fps:
+// velocity (JUMP_V) is applied once through one dt, but gravity is applied
+// through two chained integrations (vy, then y), so it picks up the fps
+// factor twice. Using fps^1 here (an earlier mistake) made gravity ~60x too
+// weak, so the character launched way too high and hung in the air far
+// too long before coming down.
+var GRAVITY = -576;  // units per second^2
+// Widened (from ±420) so the 가산산성/송림사 mountain-road branch, which
+// reaches out to x≈-430/-550 with its own building footprints, is fully
+// walkable instead of getting clipped by the old movement bound.
+var X_MIN=-620, X_MAX=620;
+
+function update(dt){
+  var p = state.player;
+  var wasOnGround = p.onGround;
+  p.walking = false;
+  var cs = state.cam;
+  var sx = (state.keys.right?1:0) - (state.keys.left?1:0);   // screen-relative: + = screen right
+  var rawV = (state.keys.up?1:0) - (state.keys.down?1:0);    // screen-relative: + = up on screen
+  // Up/down are screen-relative too: "up" always walks away from the camera.
+  // The mapping is latched when the key goes down, so when the camera swings
+  // around mid-walk (below) the held key keeps walking the same way instead
+  // of reversing; the next press uses the new view.
+  if(rawV !== cs.prevV){ cs.latchFacing = (cs.target === 0) ? 1 : -1; cs.prevV = rawV; }
+  var mvz = rawV * cs.latchFacing;                            // world +Z / -Z
+  // The camera turns to look the way the character is walking: after walking
+  // toward the camera for a moment, it swings around to the character's
+  // viewpoint so the walk reads as "up" on screen. A short hold avoids
+  // flipping on a tap.
+  if(mvz !== 0){
+    var wantYaw = mvz > 0 ? 0 : Math.PI;
+    if(wantYaw !== cs.target){
+      cs.flipT += dt;
+      if(cs.flipT >= 0.3){ cs.target = wantYaw; cs.flipT = 0; }
+    } else { cs.flipT = 0; }
+  } else { cs.flipT = 0; }
+  var camFacing = (cs.target === 0) ? 1 : -1;   // world z-direction the camera looks along
+  var mvx = sx * -camFacing;                    // yaw 0: screen right = world -X; yaw PI: screen right = world +X
+  if(mvx || mvz){
+    var len = Math.hypot(mvx,mvz);
+    p.x += (mvx/len) * SPEED * dt;
+    p.z += (mvz/len) * SPEED * dt;
+    p.walking = true;
+    // face the direction actually walked, in SCREEN terms: away from the
+    // camera shows the back, toward it shows the front, sideways shows the
+    // matching side sprite.
+    if(mvz !== 0) p.dir = (mvz*camFacing > 0) ? "back" : "front";
+    else if(sx > 0) p.dir = "right";
+    else if(sx < 0) p.dir = "left";
+  }
+  p.x = Math.max(X_MIN, Math.min(X_MAX, p.x));
+  p.z = Math.max(PATH_MIN_Z, Math.min(PATH_MAX_Z, p.z));
+
+  if(state.keys.jump && p.onGround){
+    p.vy = JUMP_V; p.onGround = false; p.squash = 0.35;
+  }
+  state.keys.jump = false;
+
+  p.vy += GRAVITY * dt;
+  p.y += p.vy * dt;
+  if(p.y <= 0){
+    p.y = 0; p.vy = 0;
+    if(!wasOnGround){ p.squash = -0.4; }
+    p.onGround = true;
+  }
+  p.squash = (p.squash||0) * Math.pow(0.82, dt*60);
+  if(Math.abs(p.squash) < 0.01) p.squash = 0;
+
+  updateHud(false);
+  updateBattle(dt);
+
+  // reaching the top of 가산
+  if(!summitShown){
+    var top = MT_TRAIL[MT_TRAIL.length-1];
+    if(Math.hypot(p.x - top[0], p.z - top[1]) < 26){
+      summitShown = true;
+      showToast("🏔 가산 정상! 팔공산과 낙동강이 한눈에 내려다보여요");
+    }
+  }
+
+  var nearEnemy = !!nearestHittableEnemy(p);
+  var nearAny = nearEnemy || three.markers.some(function(mk){
+    var dSign = Math.hypot(p.x-mk.signX, p.z-mk.signZ);
+    var dStamp = Math.hypot(p.x-mk.stampX, p.z-mk.stampZ);
+    return dSign < 13 || (dStamp < 10 && !state.stamps.has(mk.id));
+  });
+  interactHint.textContent = nearEnemy ? "E 눌러 공격!" : "E 눌러 살펴보기";
+  interactHint.hidden = !nearAny;
+}
+
+/* ---------------- 6·25 battle: unit AI, shots, player HP ---------------- */
+var PLAYER_HIT_RADIUS = 3.2;
+var PLAYER_INVULN_TIME = 0.9;
+var bulletGeo = null, bulletMats = {};
+
+function fireShot(u, tx, tz){
+  if(!bulletGeo) bulletGeo = new THREE.SphereGeometry(1, 8, 6);
+  var bm = bulletMats[u.color] || (bulletMats[u.color] = new THREE.MeshBasicMaterial({ color:u.color }));
+  var m = new THREE.Mesh(bulletGeo, bm);
+  m.scale.setScalar(u.shell);
+  m.position.set(u.x, u.h*0.5, u.z);
+  var ang = Math.atan2(tx-u.x, tz-u.z) + (Math.random()-0.5)*(u.kind === "tank" ? 0.03 : 0.08);
+  three.world.add(m);
+  three.projectiles.push({
+    mesh:m, vx:Math.sin(ang)*u.shellSpeed, vz:Math.cos(ang)*u.shellSpeed,
+    dmg:u.dmg, side:u.side, r:u.shell, life:Math.min(4.5, u.range*1.35/u.shellSpeed)
+  });
+}
+
+function updateBattle(dt){
+  var B = three.battle;
+  var p = state.player;
+  p.attackCd = Math.max(0, p.attackCd - dt);
+  p.invuln = Math.max(0, p.invuln - dt);
+  if(!B || !three.units.length){ hpWrap.hidden = (p.hp >= p.maxHp); hpFill.style.width = (p.hp/p.maxHp*100)+"%"; return; }
+  B.t += dt;
+  var camSide = Math.cos(state.cam.yaw) >= 0 ? -1 : 1;  // world +X is screen-left at yaw 0, screen-right at yaw PI
+  var units = three.units;
+
+  units.forEach(function(u){
+    if(!u.alive) return;
+    if(!u.active){
+      // both sides spawn on the same timer, from opposite ends of the road
+      if(B.t >= u.spawnDelay){
+        u.active = true; u.group.visible = true; u.shadow.visible = true; u.pop = 0;
+        if(u.side === "nk" && !B.nkAnnounced){ B.nkAnnounced = true; showToast("⚠ 북한군이 호국탑 위쪽에서 내려와요!"); }
+      }
+      return;
+    }
+    // nearest enemy: opposite-side units, plus the player for 북한군
+    var tgt = null, td = Infinity, tIsPlayer = false;
+    units.forEach(function(o){
+      if(o.side === u.side || !o.alive || !o.active) return;
+      var d = Math.hypot(o.x-u.x, o.z-u.z);
+      if(d < td){ td = d; tgt = o; tIsPlayer = false; }
+    });
+    if(u.side === "nk"){
+      var dp = Math.hypot(p.x-u.x, p.z-u.z);
+      if(dp < td){ td = dp; tgt = p; tIsPlayer = true; }
+    }
+    var vx = 0, vz = 0;
+    u.cdT -= dt;
+    if(tgt && td <= u.range){
+      if(u.cdT <= 0){ u.cdT = u.cd * (0.85 + Math.random()*0.3); fireShot(u, tgt.x, tgt.z); }
+    } else if(tgt && td <= u.aggro){
+      vx = (tgt.x-u.x)/td * u.speed; vz = (tgt.z-u.z)/td * u.speed;
+    } else if(u.side === "rok" && u.z < u.stopZ){
+      var rlane = u.laneX;
+      if(Math.abs(u.z - B.towerZ) < 110 && Math.abs(rlane) < 50) rlane = (rlane >= 0 ? 1 : -1) * 50;
+      vz = u.speed;
+      vx = Math.max(-1, Math.min(1, (rlane - u.x)/6)) * u.speed * 0.9;
+    } else if(u.side === "nk" && u.z > u.holdZ){
+      // coming down from beyond the tower: swing wide around its base instead
+      // of walking into it (units pushed out of the tower's circle would
+      // otherwise pile up behind it and trickle through)
+      var lane = u.laneX;
+      if(Math.abs(u.z - B.towerZ) < 110 && Math.abs(lane) < 50) lane = (lane >= 0 ? 1 : -1) * 50;
+      vz = -u.speed;
+      vx = Math.max(-1, Math.min(1, (lane - u.x)/6)) * u.speed * 0.9;
+    }
+    // which way the soldier faces in the world: its movement, else its target;
+    // 국군 start facing north (+z), 북한군 south (-z)
+    if(Math.abs(vz) > u.speed*0.25) u.faceZ = vz > 0 ? 1 : -1;
+    else if(tgt && Math.abs(tgt.z - u.z) > 4) u.faceZ = tgt.z > u.z ? 1 : -1;
+    if(u.kind === "tank"){
+      // heading: where it is moving, else toward its target, else the way it last pointed
+      if(Math.abs(vx) + Math.abs(vz) > 0.5){ u.hx = vx; u.hz = vz; }
+      else if(tgt){ u.hx = tgt.x - u.x; u.hz = tgt.z - u.z; }
+      var camF = Math.cos(state.cam.yaw) >= 0 ? 1 : -1;
+      var away = u.hz * camF, side = u.hx * camSide;       // + away = heading away from the camera; + side = toward screen-right
+      var cur = u.tview;
+      // pick the dominant axis, with some hysteresis so it doesn't flicker on diagonals
+      var biasA = cur === "side" ? 0.7 : 1.3;
+      var view = (Math.abs(away)*biasA > Math.abs(side)) ? (away > 0 ? "rear" : "front") : "side";
+      if(!u.tankViews.rear || !u.tankViews.side) view = "front";
+      if(view !== cur){
+        u.tview = view;
+        for(var vk in u.tankViews) u.tankViews[vk].visible = (vk === view);
+      }
+      // the front and side art face screen-left; mirror them toward screen-right
+      u.body.scale.x = (view !== "rear" && side > 0) ? -1 : 1;
+    }
+    u.moving = (vx !== 0 || vz !== 0);
+    u.x += vx*dt; u.z += vz*dt;
+    // keep clear of the tower itself and of each other
+    var tdx = u.x, tdz = u.z - B.towerZ, tr = Math.hypot(tdx, tdz);
+    if(tr < 32){ var k = 32/(tr||1); u.x = tdx*k; u.z = B.towerZ + tdz*k; }
+    units.forEach(function(o){
+      if(o === u || !o.alive || !o.active || o.side !== u.side) return;
+      var ox = u.x-o.x, oz = u.z-o.z, od = Math.hypot(ox, oz), min = (u.w + o.w)*0.45;
+      if(od > 0 && od < min){ var push = (min-od)*0.5; u.x += ox/od*push*0.5; u.z += oz/od*push*0.5; }
+    });
+    u.x = Math.max(X_MIN, Math.min(X_MAX, u.x));
+  });
+
+  // visuals: position, pop-in, walk bob, health bar
+  units.forEach(function(u){
+    if(!u.alive || !u.active) return;
+    u.pop = Math.min(1, u.pop + dt*2.2);
+    u.group.position.set(u.x, 0, u.z);
+    u.group.scale.setScalar(0.35 + 0.65*u.pop);
+    u.shadow.position.set(u.x, 0.06, u.z);
+    if(u.kind === "tank"){
+      if(u.moving) u.walkT += dt*6;
+      u.body.position.y = u.baseY + (u.moving ? Math.abs(Math.sin(u.walkT))*0.12 : 0);
+      u.body.rotation.z = u.moving ? Math.sin(u.walkT*1.7)*0.012 : 0;   // engine rumble
+    } else {
+      // run cycle: stride rate follows ground speed, so the feet don't skate
+      // one step covers about one body height of ground (a long running
+      // stride), so the cadence is slower than the old quick shuffle
+      var rate = u.moving ? (u.speed / (u.h*1.0)) * Math.PI : 0;
+      if(u.moving){ u.walkT += dt*rate; u.run = Math.min(1, (u.run||0) + dt*8); }
+      else { u.run = Math.max(0, (u.run||0) - dt*8); }
+      var s = Math.sin(u.walkT), run = u.run;
+      // front view (running toward the camera): the art is one standing pose,
+      // so instead of scissoring the legs apart it gets a springy forward
+      // hop — small alternating foot lifts, a strong bounce, a lean/sway and a
+      // squash on landing — until front-facing run frames are available
+      u.legL.rotation.z =  s*0.14*run;
+      u.legR.rotation.z = -s*0.14*run;
+      u.legL.position.y = u.h*0.44 + Math.max(0, -s)*0.5*run;
+      u.legR.position.y = u.h*0.44 + Math.max(0,  s)*0.5*run;
+      var hop = Math.abs(Math.cos(u.walkT));
+      u.body.position.y = u.baseY + hop*1.0*run;
+      u.body.rotation.z = Math.sin(u.walkT)*0.07*run;
+      u.body.scale.y = 1 + (0.5 - hop)*0.07*run;                  // stretch in the air, squash on landing
+      if(u.backFrames){
+        // walking away from the camera -> show the back-view art; the camera
+        // swings 180 degrees, so "away" depends on its current heading
+        var away = u.faceZ * (Math.cos(state.cam.yaw) >= 0 ? 1 : -1) > 0;
+        u.frontG.visible = !away;
+        u.backG.visible = away;
+        if(away){
+          // 4-beat run: run A, passing (standing), run B, passing
+          var beat = Math.floor(((u.walkT / Math.PI) % 2 + 2) % 2 * 2);   // 0..3 = A, S, B, S
+          var show = (u.moving && run > 0.3) ? ["A","S","B","S"][beat] : "S";
+          ["A","B","S"].forEach(function(f){ u.backFrames[f].visible = (f === show); });
+          u.body.position.y = u.baseY;       // the run frames already carry their own airborne pose
+          u.body.rotation.z = Math.sin(u.walkT)*0.03*run;
+          u.body.scale.y = 1;
+        }
+      }
+    }
+    var frac = Math.max(0.001, u.hp/u.maxHp);
+    u.barFill.scale.x = frac;
+    u.barFill.position.x = -(u.barW*(1-frac))/2;
+  });
+
+  for(var i=three.projectiles.length-1; i>=0; i--){
+    var pr = three.projectiles[i];
+    pr.mesh.position.x += pr.vx*dt;
+    pr.mesh.position.z += pr.vz*dt;
+    pr.life -= dt;
+    var used = pr.life <= 0;
+    if(!used){
+      if(pr.side === "nk"){
+        if(p.invuln <= 0 && Math.hypot(pr.mesh.position.x-p.x, pr.mesh.position.z-p.z) < PLAYER_HIT_RADIUS + pr.r){
+          p.hp = Math.max(0, p.hp - pr.dmg);
+          p.invuln = PLAYER_INVULN_TIME;
+          p.squash = -0.3;
+          used = true;
+        }
+      }
+      if(!used){
+        for(var j=0; j<units.length; j++){
+          var o = units[j];
+          if(o.side === pr.side || !o.alive || !o.active) continue;
+          if(Math.hypot(pr.mesh.position.x-o.x, pr.mesh.position.z-o.z) < o.hitR + pr.r){
+            damageUnit(o, pr.dmg, false);
+            used = true; break;
+          }
+        }
+      }
+    }
+    if(used){
+      three.world.remove(pr.mesh);
+      three.projectiles.splice(i,1);
+    }
+  }
+
+  if(p.hp <= 0){
+    p.hp = p.maxHp;
+    p.invuln = 2;
+    p.z = Math.max(PATH_MIN_Z, p.z - 40); // knocked back to safety, not a hard game-over
+    showToast("😵 쓰러졌다가 회복해서 뒤로 물러났어요!");
+  }
+
+  // HUD: shown while a 북한군 unit is near, or while health is below full
+  var nearFoe = units.some(function(u){
+    return u.side === "nk" && u.alive && u.active && Math.hypot(p.x-u.x, p.z-u.z) < 300;
+  });
+  if(!nearFoe && p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + 5*dt);
+  hpWrap.hidden = !(nearFoe || p.hp < p.maxHp);
+  hpFill.style.width = (p.hp/p.maxHp*100) + "%";
+  hpLevel.textContent = p.level;
+  var boss = units.filter(function(u){ return u.id === "boss"; })[0];
+  var bossVisible = boss && boss.alive && boss.active && Math.hypot(p.x-boss.x, p.z-boss.z) < 320;
+  bossBarWrap.hidden = !bossVisible;
+  if(bossVisible) bossFill.style.width = (boss.hp/boss.maxHp*100) + "%";
+}
+
+/* ---------------- Flowing water + drifting boats ---------------- */
+var WATER_FLOW_SPEED = 0.12; // UV units per second
+function updateWaterAndBoats(t, dt){
+  if(three.waterMats){
+    three.waterMats.forEach(function(m){
+      if(m.map){ m.map.offset.y -= WATER_FLOW_SPEED*dt; }
+    });
+  }
+  if(three.boats){
+    three.boats.forEach(function(b){
+      var tt = t/1000 + b.phase;
+      b.mesh.position.y = 0.4 + Math.sin(tt*1.3)*0.15;
+      b.mesh.position.x = b.baseX + Math.sin(tt*0.25)*7;
+      b.mesh.position.z = b.baseZ + Math.cos(tt*0.18)*4;
+      b.mesh.rotation.z = Math.sin(tt*1.3)*0.05;
+      b.mesh.rotation.y = Math.sin(tt*0.25)*0.15;
+    });
+  }
+}
+
+/* ---------------- Render ---------------- */
+function render(dt){
+  var p = state.player;
+  var t = Date.now();
+  // A plain sine bob swings BELOW the rest height half the time, which (with
+  // nothing else changing) reads as the character sinking into the ground
+  // and drifting back up rather than taking steps — the "levitating" look.
+  // Using abs(sin) keeps the bounce at or above 0 always, like a foot lifting
+  // and landing, and stepBounce (0..1) also drives a matching squash/stretch
+  // and a shadow that shrinks when the foot is lifted, so the ground contact
+  // actually reads.
+  var stepPhase = t/100;
+  var stepBounce = p.walking ? Math.abs(Math.sin(stepPhase)) : 0;
+  var walkBob = stepBounce * 0.9;
+  var idleBob = (!p.walking && p.onGround) ? (Math.sin(t/650)+1)/2*0.22 : 0;
+  var bob = p.onGround ? (walkBob+idleBob) : 0;
+  var gaitSquash = (p.walking && p.onGround) ? (stepBounce-0.5)*0.24 : 0;
+
+  applyDirTexture(p.dir || "front");
+
+  // Swing the legs piece like a pendulum in time with each footfall, and
+  // counter-tilt the torso/arms piece a little the other way, so walking
+  // reads as an actual stride instead of the whole flat cutout just
+  // bobbing in place. Both alternate every half of the step cycle, the
+  // same rhythm the ground-contact bounce already uses.
+  var legSwing = p.walking ? Math.sin(stepPhase) * 0.32 : 0;
+  var armSwing = p.walking ? -Math.sin(stepPhase) * 0.11 : 0;
+
+  var sq = (p.squash || 0) + gaitSquash;
+  var baseH = three.spriteBaseSize;
+  var baseW = baseH * (three.spriteAspect || 1);
+  var legFrac = three.legFrac;
+  var legH = baseH * legFrac, topH = baseH * (1 - legFrac);
+  var sxFactor = (1 - sq*0.5), syFactor = (1 + sq*0.5);
+  var groundY = groundHeightAt(p.x, p.z);
+  var riseY = groundY + p.y + bob;
+
+  three.playerLegSprite.scale.set(baseW*sxFactor, legH*syFactor, 1);
+  three.playerLegSprite.position.set(p.x, riseY + legH/2, p.z);
+  three.playerLegSprite.material.rotation = legSwing;
+
+  three.playerTopSprite.scale.set(baseW*sxFactor, topH*syFactor, 1);
+  three.playerTopSprite.position.set(p.x, riseY + legH + topH/2, p.z);
+  three.playerTopSprite.material.rotation = armSwing;
+
+  // The world is thousands of units long, far more than one shadow map can
+  // cover at usable resolution, so the sun's shadow "window" is recentered
+  // on the player every frame instead of trying to cover the whole map —
+  // shadows stay sharp right around the character no matter where they are.
+  three.sun.position.set(p.x + 110, 55, p.z - 30);
+  three.sun.target.position.set(p.x, 0, p.z);
+
+  var airT = Math.min(1, p.y/6);
+  three.shadowMesh.position.set(p.x, groundY + 0.03, p.z);
+  var shGait = (p.walking && p.onGround) ? (1 - stepBounce*0.3) : 1;
+  var shScale = (1 - airT*0.5) * shGait;
+  three.shadowMesh.scale.set(shScale, shScale, 1);
+
+  // stamp collectibles: spin + bob, hide if collected. The memorial's stamp
+  // stays visible but dark/still (locked) until all enemies are defeated.
+  three.markers.forEach(function(mk){
+    var got = state.stamps.has(mk.id);
+    var locked = (mk.id === MEMORIAL_LANDMARK_ID) && !memorialCleared();
+    mk.stampMesh.visible = !got;
+    mk.stampMesh.material.color.set(locked ? 0x555555 : 0xF3D874);
+    if(!got){
+      mk.stampMesh.rotation.y = locked ? 0 : t/500;
+      mk.stampMesh.position.y = 4 + (locked ? 0 : Math.sin(t/300)*0.6);
+    }
+  });
+
+  updateWaterAndBoats(t, dt);
+
+  // chase camera: stays behind the player along +/-Z, slightly above.
+  // Follows x fully (not a fraction of it) so the character stays centered
+  // on screen no matter how far it strays from x=0 — with only a fraction
+  // of x followed, walking out along the mountain-road branch (which
+  // reaches ±400+ in x) left the camera lagging behind, making the
+  // character look like it was shrinking into the distance instead of
+  // just walking sideways.
+  // The camera orbits around the character to the side it is walking away
+  // from: heading yaw 0 looks toward +Z (camera behind at -Z), yaw PI looks
+  // toward -Z (camera at +Z). The yaw eases toward state.cam.target.
+  var cam = three.camera;
+  var cs = state.cam;
+  var camLerp = 1 - Math.pow(1-0.08, dt*60);
+  cs.yaw += (cs.target - cs.yaw) * (1 - Math.pow(0.003, dt));
+  if(Math.abs(cs.target - cs.yaw) < 0.002) cs.yaw = cs.target;
+  if(cs.fx === null){ cs.fx = p.x; cs.fz = p.z; }
+  cs.fx += (p.x - cs.fx) * camLerp;
+  cs.fz += (p.z - cs.fz) * camLerp;
+  var sinY = Math.sin(cs.yaw), cosY = Math.cos(cs.yaw);
+  // battle units are upright cards that always turn to face the camera
+  for(var fi=0; fi<three.facers.length; fi++) three.facers[fi].rotation.y = cs.yaw + Math.PI;
+  // distant mountains drift slowly past (they follow the player at ~90%) and face the camera
+  if(three.plain) three.plain.position.set(p.x, -0.6, p.z);
+  var bgx = p.x*0.85, bgz = p.z*0.93;
+  for(var bi=0; bi<three.bg.length; bi++){
+    var bgc = three.bg[bi];
+    bgc.g.position.set(bgx + bgc.dx, 0, bgz + bgc.dz);
+    bgc.g.rotation.y = cs.yaw + Math.PI;
+  }
+  var desiredY = 16 + groundY + p.y*0.4;
+  cam.position.x = cs.fx - sinY*32;
+  cam.position.z = cs.fz - cosY*32;
+  // never let the camera sink into a hillside (it can end up behind a slope when looking downhill)
+  desiredY = Math.max(desiredY, groundHeightAt(cam.position.x, cam.position.z) + 9);
+  cam.position.y += (desiredY - cam.position.y) * camLerp;
+  cam.lookAt(p.x + sinY*14, groundY + 3 + p.y, p.z + cosY*14);
+
+  three.renderer.render(three.scene, three.camera);
+}
+
+var lastFrameT = null;
+function loop(){
+  var now = performance.now();
+  // clamp dt so a background tab / dropped-frame stall never turns into a
+  // single huge catch-up step (which would look like teleporting)
+  var dt = lastFrameT !== null ? Math.min((now - lastFrameT) / 1000, 1/20) : 1/60;
+  lastFrameT = now;
+  if(three.ready){
+    update(dt);
+    render(dt);
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+/* ---------------- Boot ---------------- */
+// nothing else to init; screens start on title
+})();
+</script>
+

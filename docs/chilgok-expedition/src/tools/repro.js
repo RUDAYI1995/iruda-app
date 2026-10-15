@@ -1,0 +1,25 @@
+const { chromium } = require('playwright-core');
+const fs = require('fs');
+const SP = process.argv[2];
+const ROOT = SP + '/upload1/칠곡원정대/';
+const THREE = fs.readFileSync(SP + '/three-pkg/package/build/three.min.js');
+(async () => {
+  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  page.on('console', m => console.log('[console.' + m.type() + ']', m.text().slice(0, 300)));
+  page.on('pageerror', e => console.log('[PAGEERROR]', String(e.stack || e).slice(0, 800)));
+  await page.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ contentType: 'application/javascript', body: THREE }));
+  await page.goto('file://' + ROOT + 'index.html');
+  await page.waitForTimeout(800);
+  await page.click('#btnStart');
+  await page.click('#btnToWorld');
+  await page.waitForTimeout(300);
+  const n = await page.$$eval('#worldNodes .node-btn', els => els.length);
+  console.log('world node buttons:', n);
+  await page.click('#worldNodes .node-btn >> nth=0');
+  await page.waitForTimeout(3000);
+  console.log('screen-game hidden:', await page.$eval('#screen-game', e => e.hidden));
+  console.log('loadingNote:', await page.$eval('#loadingNote', e => e.hidden ? '(hidden)' : e.textContent));
+  await page.screenshot({ path: SP + '/repro-game.png' });
+  await browser.close();
+})();

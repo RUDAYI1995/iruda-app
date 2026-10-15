@@ -1,0 +1,24 @@
+const { chromium } = require('playwright-core');
+const SP = process.argv[2];
+(async () => {
+  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] });
+  const page = await browser.newPage({ viewport: { width: 1300, height: 760 } });
+  const errs = []; page.on('pageerror', e => errs.push(String(e.stack||e).slice(0,300)));
+  page.on('console', m => { if (/error|warn/i.test(m.type()) ) errs.push(m.text().slice(0,300)); });
+  await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
+  await page.goto('file://' + SP + '/test_new/index.html'); await page.waitForTimeout(500);
+  await page.click('#btnStart'); await page.click('#btnToWorld'); await page.click('#worldNodes .node-btn >> nth=-1'); await page.waitForTimeout(3000);
+  const go = async (x, z, name) => { await page.evaluate(([x, z]) => { const D = window.__dbg, s = D.state, p = s.player; D.setRef(0); p.x = x; p.z = z; p.y = 0; s.cam.yaw = 0; s.cam.target = 0; s.cam.turn = null; s.cam.fx = null; s.cam.fy = null; D.three.camera.position.set(x, 16, z - 32); for (let i = 0; i < 40; i++) D.render(1/60); }, [x, z]); await page.waitForTimeout(300); if (name) await page.screenshot({ path: SP + '/rice_' + name + '.png' }); };
+  await go(-860, 2030, 'a');
+  const r = await page.evaluate(() => { const D = window.__dbg, p = D.state.player, F = D.VIL_FARM, o = [];
+    F.sickle = 0; F.rice = 0; o.push('hint nosickle=' + D.villageHint(p)); D.villageInteract(p); o.push('rice=' + F.rice);
+    p.x = -930; p.z = 2056; for (let i = 0; i < 5; i++) D.render(1/60); o.push('sickle hint=' + D.villageHint(p)); D.villageInteract(p); o.push('sickle=' + F.sickle);
+    p.x = -860; p.z = 2030; for (let i = 0; i < 5; i++) D.render(1/60); o.push('cut hint=' + D.villageHint(p)); D.villageInteract(p); D.villageInteract(p); o.push('rice=' + F.rice);
+    return o; });
+  console.log(r.join('\n'));
+  await go(-860, 2030, 'b');
+  const info = await page.evaluate(() => { const i = window.__dbg.three.renderer.info; return i.render.calls + ' calls, ' + i.render.triangles + ' tris'; });
+  console.log(info);
+  await go(-1000, 1900, 'c');
+  console.log(errs.length ? 'ERR ' + errs.join('|') : 'no page errors'); await browser.close();
+})();

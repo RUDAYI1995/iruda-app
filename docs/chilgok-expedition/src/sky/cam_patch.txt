@@ -1,0 +1,147 @@
+
+# ================= 카메라: 걷는 방향을 따라 도는 시점 =================
+# C1: camera state
+sub(
+    "  cam: { yaw:0, target:0, flipT:0, fx:null, fz:null, prevV:0, latchFacing:1 }\n",
+    "  cam: { yaw:0, target:0, turn:null, fx:null, fz:null, prevV:0, prevSx:0, mvx:0, mvz:0 }\n",
+    "C1 cam state",
+)
+
+# C2: helpers (turn timing constants, angle wrap, turn start)
+sub(
+    "var SPEED = 93;      // world units per second\n",
+    "// 카메라는 걷는 방향을 따라 돌아요: 위/아래는 거의 바로, 왼쪽/오른쪽은 1초에 걸쳐 부드럽게\n"
+    "var CAM_FLIP_SEC = 0.25;\n"
+    "var CAM_SIDE_SEC = 1.0;\n"
+    "function wrapAngle(a){ a = (a + Math.PI) % (2*Math.PI); if(a < 0) a += 2*Math.PI; return a - Math.PI; }\n"
+    "function turnCameraTo(heading, sec){\n"
+    "  var cs = state.cam;\n"
+    "  var to = wrapAngle(heading);\n"
+    "  cs.target = to;\n"
+    "  cs.turn = { from: cs.yaw, to: cs.yaw + wrapAngle(to - cs.yaw), t: 0, dur: Math.max(0.001, sec) };\n"
+    "}\n"
+    "var SPEED = 93;      // world units per second\n",
+    "C2 helpers",
+)
+
+# C3: input -> walking direction + camera heading (replaces the old 0/180-degree flip logic)
+a = src.index("  var sx = (state.keys.right?1:0) - (state.keys.left?1:0);")
+b = src.index("  p.x = Math.max(X_MIN, Math.min(X_MAX, p.x));")
+new_input = """  var sx = (state.keys.right?1:0) - (state.keys.left?1:0);   // screen-relative: + = screen right
+  var rawV = (state.keys.up?1:0) - (state.keys.down?1:0);    // screen-relative: + = up on screen
+  // 걷는 방향은 방향키 조합이 바뀔 때 한 번 정하고, 키를 누르고 있는 동안은 그대로 유지해요
+  // (카메라가 도는 동안에도 길이 휘지 않게). 카메라는 그 방향을 앞으로 보도록 돌아요:
+  //  - 아래: 바로(CAM_FLIP_SEC) 뒤돌아서 캐릭터가 앞을 보게
+  //  - 왼쪽/오른쪽: CAM_SIDE_SEC(1초) 동안 옆으로 돌아서 캐릭터가 앞을 보게
+  if(sx !== cs.prevSx || rawV !== cs.prevV){
+    cs.prevSx = sx; cs.prevV = rawV;
+    var H = cs.target;                                 // 지금 보는 방향 (화면의 "위"가 가리키는 월드 방향)
+    var fwdX = Math.sin(H), fwdZ = Math.cos(H);
+    var rgtX = -Math.cos(H), rgtZ = Math.sin(H);       // 화면 오른쪽이 가리키는 월드 방향
+    cs.mvx = rawV*fwdX + sx*rgtX;
+    cs.mvz = rawV*fwdZ + sx*rgtZ;
+    if(Math.abs(cs.mvx) < 1e-9) cs.mvx = 0;
+    if(Math.abs(cs.mvz) < 1e-9) cs.mvz = 0;
+    if(rawV < 0) turnCameraTo(H + Math.PI, CAM_FLIP_SEC);
+    else if(rawV === 0 && sx !== 0) turnCameraTo(H - sx*Math.PI/2, CAM_SIDE_SEC);
+  }
+  if(cs.mvx || cs.mvz){
+    var len = Math.hypot(cs.mvx, cs.mvz), dxw = cs.mvx/len, dzw = cs.mvz/len;
+    p.x += dxw * SPEED * dt;
+    p.z += dzw * SPEED * dt;
+    p.walking = true;
+    // 실제로 걸어간 방향을 "화면 기준"으로 보여줘요: 카메라에서 멀어지면 뒷모습, 다가오면 앞모습,
+    // 옆으로 가면 옆모습 (카메라가 돌아가는 중에도 지금 보는 각도 기준)
+    var sY = Math.sin(cs.yaw), cY = Math.cos(cs.yaw);
+    var away = dxw*sY + dzw*cY, across = -dxw*cY + dzw*sY;   // + across = 화면 오른쪽
+    if(Math.abs(away) >= Math.abs(across) - 1e-6) p.dir = away > 0 ? "back" : "front";
+    else p.dir = across > 0 ? "right" : "left";
+  }
+"""
+src = src[:a] + new_input + src[b:]
+
+# C4: smooth, time-based camera turn (replaces the old exponential easing toward 0/PI)
+sub(
+    "  cs.yaw += (cs.target - cs.yaw) * (1 - Math.pow(0.003, dt));\n  if(Math.abs(cs.target - cs.yaw) < 0.002) cs.yaw = cs.target;\n",
+    "  if(cs.turn){\n"
+    "    cs.turn.t += dt;\n"
+    "    var tk = Math.min(1, cs.turn.t / cs.turn.dur);\n"
+    "    tk = tk*tk*(3 - 2*tk);\n"
+    "    cs.yaw = cs.turn.from + (cs.turn.to - cs.turn.from)*tk;\n"
+    "    if(cs.turn.t >= cs.turn.dur){ cs.yaw = wrapAngle(cs.turn.to); cs.turn = null; }\n"
+    "  }\n",
+    "C4 yaw turn",
+)
+
+# C5: units pick front/back/side art from the real camera angle (was: only 0 or 180 degrees)
+sub(
+    "  var camSide = Math.cos(state.cam.yaw) >= 0 ? -1 : 1;  // world +X is screen-left at yaw 0, screen-right at yaw PI\n",
+    "  var camSinY = Math.sin(state.cam.yaw), camCosY = Math.cos(state.cam.yaw);   // world +X is screen-left at yaw 0, screen-right at yaw PI\n",
+    "C5a camSide",
+)
+sub(
+    "      var camF = Math.cos(state.cam.yaw) >= 0 ? 1 : -1;\n      var away = u.hz * camF, side = u.hx * camSide;       // + away = heading away from the camera; + side = toward screen-right\n",
+    "      var away = u.hx*camSinY + u.hz*camCosY, side = -u.hx*camCosY + u.hz*camSinY;   // + away = heading away from the camera; + side = toward screen-right\n",
+    "C5b tank view",
+)
+sub(
+    "        var away = u.faceZ * (Math.cos(state.cam.yaw) >= 0 ? 1 : -1) > 0;\n",
+    "        var away = u.faceZ * Math.cos(state.cam.yaw) > 1e-6;\n",
+    "C5c soldier view",
+)
+
+# C6: flat tree pictures turn with the camera so they don't turn edge-on (vanish) when viewed from the side
+sub(
+    "  three.facers = [];      // groups that turn to face the camera every frame\n",
+    "  three.facers = [];      // groups that turn to face the camera every frame\n  three.treeCards = [];   // flat tree pictures that turn with the camera heading\n",
+    "C6a treeCards list",
+)
+sub(
+    "    mesh.position.set(x, h/2 - h*TREE_SINK, z);\n    world.add(mesh);\n",
+    "    mesh.position.set(x, h/2 - h*TREE_SINK, z);\n    world.add(mesh);\n    three.treeCards.push(mesh);\n",
+    "C6b register tree",
+)
+sub(
+    "  for(var fi=0; fi<three.facers.length; fi++) three.facers[fi].rotation.y = cs.yaw + Math.PI;\n",
+    "  for(var fi=0; fi<three.facers.length; fi++) three.facers[fi].rotation.y = cs.yaw + Math.PI;\n"
+    "  for(var ti=0; ti<three.treeCards.length; ti++) three.treeCards[ti].rotation.y = cs.yaw;\n",
+    "C6c turn trees",
+)
+
+# C7: distant mountains also to the east/west, only visible while the camera looks sideways
+sub(
+    "    function card(key, H, dist, dx, dz, opacity, order, flip){\n",
+    "    function card(key, H, dist, dx, dz, opacity, order, flip, ew){\n",
+    "C7a card signature",
+)
+sub(
+    "      three.bg.push({ g:g, dx:dx, dz:dz });\n",
+    "      three.bg.push({ g:g, dx:dx, dz:dz, mat:m.material, op:opacity, ew:!!ew });\n",
+    "C7b card push",
+)
+sub(
+    "    card(\"gasan\",   290,  950, -250,  -950, 1.00, -6, true);\n",
+    "    card(\"gasan\",   290,  950, -250,  -950, 1.00, -6, true);\n"
+    "    // east (+x) and west (-x): the same ranges turned to the side. They fade in only while the\n"
+    "    // camera looks sideways, so the forward/backward views are exactly as before.\n"
+    "    card(\"palgong\", 640, 1700,  1700,  150, 0.92, -9, false, true);\n"
+    "    card(\"yuhak\",   330, 1250,  1250, -820, 0.96, -8, false, true);\n"
+    "    card(\"chiki\",   250,  980,   980,  800, 1.00, -7, false, true);\n"
+    "    card(\"gasan\",   300,  940,   940,  430, 1.00, -6, false, true);\n"
+    "    card(\"palgong\", 600, 1700, -1700, -150, 0.92, -9, true, true);\n"
+    "    card(\"yuhak\",   330, 1250, -1250,  820, 0.96, -8, true, true);\n"
+    "    card(\"chiki\",   250, 1000,  -980, -800, 1.00, -7, true, true);\n"
+    "    card(\"gasan\",   290,  950,  -940, -430, 1.00, -6, true, true);\n",
+    "C7c east/west cards",
+)
+sub(
+    "    bgc.g.rotation.y = cs.yaw + Math.PI;\n",
+    "    bgc.g.rotation.y = cs.yaw + Math.PI;\n"
+    "    if(bgc.ew){\n"
+    "      var ek = Math.max(0, Math.min(1, (Math.abs(Math.sin(cs.yaw)) - 0.1) / 0.5));\n"
+    "      bgc.g.visible = ek > 0.001;\n"
+    "      bgc.mat.opacity = bgc.op * ek;\n"
+    "    }\n",
+    "C7d fade east/west cards",
+)
+
