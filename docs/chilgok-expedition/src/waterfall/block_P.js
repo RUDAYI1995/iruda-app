@@ -114,6 +114,7 @@
         lamp(0xff3030, -72, 3, -112, 1.6); lamp(0x30ff60, -72, 3, 112, 1.6); strobe = lamp(0xffffff, -103, 14, 0, 2.2);
         built = true;
       }
+      window.catPlaneClone = function(){ if(!built) build(); var c = G.clone(true); c.visible = true; c.position.set(0, 0, 0); c.rotation.set(0, 0, 0); c.userData = {}; c.children[0].rotation.set(0, 0, 0); return c; };
       window.planeStart = function(p){ if(!built) build(); active = true; t0 = (typeof performance !== "undefined" ? performance.now() : 0); x0 = p.x + SPAN/2; lane = p.z + 600; };
       window.planePlace = function(x, y, z, yaw){ if(!built) build(); G.visible = true; G.position.set(x, y, z); G.rotation.y = yaw; inner.rotation.set(0, 0, 0); };
       window.planeTick = function(t, dt, p){

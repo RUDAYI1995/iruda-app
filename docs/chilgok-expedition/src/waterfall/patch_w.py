@@ -2,7 +2,7 @@ import sys, os, shutil
 SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/pub/index.html", encoding="utf-8").read()
 import base64
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read()
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + open(SP + "/w/block_X.js", encoding="utf-8").read()
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
@@ -40,9 +40,17 @@ sub("  three.playerTopSprite.material.rotation = armSwing;\n  if(swK > 0){",
     "  three.playerTopSprite.material.rotation = armSwing;\n  var hamOn = window.hamgokiUpdate ? window.hamgokiUpdate(p, dt, t, groundY, runK, swK, swimPh, state.cam.yaw) : false;\n  if(swK > 0){", "ham call")
 
 sub("  // The world is thousands of units long, far more than one shadow map can\n", "  three.playerTopSprite.visible = !hamOn; if(hamOn) three.playerLegSprite.visible = false;      // 3D 캐릭터일 때는 그림 조각을 숨겨요\n  // The world is thousands of units long, far more than one shadow map can\n", "ham vis")
+
+sub("function skyBranchCands(x, z, c){\n  var i, hw2 = SKY_BR_HW*SKY_BR_HW;\n", "function skyBranchCands(x, z, c){\n  var i, hw2 = SKY_BR_HW*SKY_BR_HW;\n  if(window.airCands) window.airCands(x, z, c);      // 스카이캣 공항 섬 / 기내\n", "air cands")
+sub("function villageHint(p){                     // 마을에서 E 를 누르면 무엇을 하는지 알려줘요 (없으면 null)\n", "function villageHint(p){                     // 마을에서 E 를 누르면 무엇을 하는지 알려줘요 (없으면 null)\n  var ah = window.airHint ? window.airHint(p) : null; if(ah) return ah;\n", "air hint")
+sub("function villageInteract0(p){                 // 처리했으면 true\n", "function villageInteract0(p){                 // 처리했으면 true\n  if(window.airInteract && window.airInteract(p)) return true;\n", "air interact")
+sub("  if(k===\"m\") showScreen(\"world\");\n", "  if(k===\"m\") showScreen(\"world\");\n  if(k===\"j\" && window.airKey) window.airKey();\n", "J key")
+sub("  var m = (state.player.x > SKY.edgeX) ? SKY_PLACE :", "  var m = (state.player.x > SKY.edgeX) ? ((window.airPlace && window.airPlace(state.player)) || SKY_PLACE) :", "air place")
+sub("        if(window.riverTick) window.riverTick(t, dt, p);\n", "        if(window.riverTick) window.riverTick(t, dt, p);\n        if(window.airTick) window.airTick(t, dt, p);\n", "air tick")
+sub("E 살펴보기 · M 지도 · F 맵 확장<br>마우스 위아래 시점 · C 시점 고정", "E 살펴보기 · M 지도 · F 맵 확장<br>마우스 위아래 시점 · C 시점 고정 · J 선장님 호출(비행기 안)", "help j")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
-HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt};\n"
+HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt, SKY:SKY, SKY_PROPS:SKY_PROPS, SKY_SPIRAL:SKY_SPIRAL, skyWalkable:skyWalkable, tryInteract:tryInteract, villageHint:villageHint, CHARACTERS:CHARACTERS, setRef:function(v){SKY_REF=v;}};\n"
 MARK = "/* ---------------- Boot ---------------- */"
 assert src.count(MARK) == 1
 open(SP + "/w/test/index.html", "w", encoding="utf-8").write(src.replace(MARK, HOOK + MARK))
