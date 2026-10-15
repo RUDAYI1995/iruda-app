@@ -5,7 +5,7 @@
       var AX = 1175, AZ = 2330, AR = 170, AY = 600;                         // 공항 섬 (월드 좌표)
       var BRG = { x:AX, z0:2100, z1:AZ - AR + 6, hw:5 };                    // crown 가장자리 → 공항 섬 다리
       var CX = 1960, CZ = 1500, CY = 1000, CW = 70, CL = 240, CH = 24;     // 기내 방 (중심, 폭, 길이, 벽 높이) — 아무것도 없는 허공
-      var built = false, GA = null, GC = null, tmrs = {}, S = { state:"none", t:0, place:0 };
+      var built = false, GA = null, GC = null, SKYB = null, tmrs = {}, S = { state:"none", t:0, place:0 };
       var rnd = (function(){ var s = 9137; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; })();
       function std(col, o){ o = o || {}; var m = new THREE.MeshStandardMaterial({ color:col, roughness:o.r !== undefined ? o.r : 0.6, metalness:o.m || 0, side:o.side || THREE.FrontSide, transparent:!!o.tr, opacity:o.op !== undefined ? o.op : 1, flatShading:!!o.flat }); m.emissive = o.e !== undefined ? new THREE.Color(o.e) : new THREE.Color(col).multiplyScalar(o.em !== undefined ? o.em : 0.3); if(o.map){ m.map = o.map; m.emissiveMap = o.map; m.emissive = new THREE.Color(o.em !== undefined ? o.em*3 : 0.6); } return m; }
       function ct(w, h, fn, rep){ var c = document.createElement("canvas"); c.width = w; c.height = h; fn(c.getContext("2d"), w, h); var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; if(rep) t.repeat.set(rep[0], rep[1]); if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
@@ -77,11 +77,16 @@
         G.userData.lamps = lamps; return G;
       }
       function bridgeMesh(){ var g = new THREE.Group(); g.name = "airportBridge"; var len = BRG.z1 - BRG.z0; var m = std(0xe8e1d2, { r:0.7, em:0.3 }), r = std(0xf1ece0, { r:0.6, em:0.3 }); bx(g, BRG.hw*2 + 2, 2, len, m, BRG.x, AY - 1, (BRG.z0 + BRG.z1)/2); [-1, 1].forEach(function(s){ bx(g, 1.4, 5, len, r, BRG.x + s*(BRG.hw + 0.4), AY + 1.5, (BRG.z0 + BRG.z1)/2); }); var u = new THREE.Mesh(new THREE.BoxGeometry(BRG.hw*1.4, 8, len), std(0x8d8478, { r:0.95, em:0.15 })); u.position.set(BRG.x, AY - 6, (BRG.z0 + BRG.z1)/2); g.add(u); return g; }
+      // ---------- 공항 하늘 배경 (참고 이미지 1번: 보라빛 구름하늘 + 떠 있는 성 섬) ----------
+      var SKYT = null;
+      function skyTex(mirror){ var im = new Image(); var t = new THREE.Texture(im); t.wrapS = mirror ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; im.onload = function(){ t.needsUpdate = true; }; im.src = "data:image/webp;base64,__SKYTEX__"; if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+      function skyBackdrop(){ var HC = 1700, R = 1750, t = skyTex(true); t.repeat.set(2, 1); var m = new THREE.MeshBasicMaterial({ map:t, side:THREE.BackSide, fog:false, depthWrite:false, depthTest:false, color:0xffffff, transparent:true, opacity:1 }); var cyl = new THREE.Mesh(new THREE.CylinderGeometry(R, R, HC, 64, 1, true), m); cyl.renderOrder = -90; cyl.frustumCulled = false; cyl.name = "airportSky"; cyl.userData.t = t; cyl.userData.HC = HC; return cyl; }
       // ---------- 기내 ----------
-      function cloudTex(){ return ct(1024, 512, function(g, w, h){ var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#5da6f0"); gr.addColorStop(0.55, "#a6d3ff"); gr.addColorStop(1, "#f3f8ff"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      function cloudTexOld(){ return ct(1024, 512, function(g, w, h){ var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#5da6f0"); gr.addColorStop(0.55, "#a6d3ff"); gr.addColorStop(1, "#f3f8ff"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
           function island(x, y, s, hue){ g.fillStyle = "rgba(60,48,80,0.25)"; g.beginPath(); g.moveTo(x - s, y); g.lineTo(x + s, y); g.lineTo(x, y + s*1.1); g.closePath(); g.fill(); g.fillStyle = "#c9b8e8"; g.beginPath(); g.moveTo(x - s*0.9, y); g.lineTo(x + s*0.9, y); g.lineTo(x + s*0.2, y + s*0.8); g.lineTo(x - s*0.3, y + s*0.9); g.closePath(); g.fill(); g.fillStyle = hue; g.beginPath(); g.ellipse(x, y - 2, s, s*0.22, 0, 0, 7); g.fill(); for(var k = 0; k < 5; k++){ g.fillStyle = "#e9a9c8"; g.beginPath(); g.arc(x + (k - 2)*s*0.3, y - s*0.3, s*0.17, 0, 7); g.fill(); } g.fillStyle = "#f4efe6"; g.fillRect(x - s*0.12, y - s*0.55, s*0.24, s*0.4); g.fillStyle = "#4b5c9a"; g.beginPath(); g.moveTo(x - s*0.2, y - s*0.55); g.lineTo(x, y - s*0.85); g.lineTo(x + s*0.2, y - s*0.55); g.fill(); }
           island(180, 120, 90, "#8fd08a"); island(560, 70, 55, "#8fd08a"); island(820, 150, 80, "#9ad98f"); island(380, 200, 30, "#8fd08a");
           for(var i = 0; i < 46; i++){ var cx = rnd()*w, cyy = h*(0.5 + rnd()*0.5), cr = 40 + rnd()*70; for(var q = 0; q < 6; q++){ g.fillStyle = "rgba(255,255,255," + (0.5 + rnd()*0.3) + ")"; g.beginPath(); g.arc(cx + (q - 3)*cr*0.45, cyy + Math.sin(q*2)*cr*0.2, cr*(0.5 + rnd()*0.4), 0, 7); g.fill(); } } }); }
+      function cloudTex(){ var t = skyTex(false); t.repeat.set(1, 1); return t; }
       function carpetTex(){ return ct(256, 512, function(g, w, h){ g.fillStyle = "#4a69b0"; g.fillRect(0, 0, w, h); for(var i = 0; i < 1800; i++){ g.fillStyle = "rgba(" + (40 + rnd()*40) + "," + (70 + rnd()*40) + "," + (140 + rnd()*40) + ",0.18)"; g.fillRect(rnd()*w, rnd()*h, 6, 2); } g.fillStyle = "#efe3c8"; g.fillRect(18, 0, 6, h); g.fillRect(w - 24, 0, 6, h); paw(g, w/2, 120, 34, "rgba(240,232,214,0.85)"); paw(g, w/2 + 24, 330, 30, "rgba(240,232,214,0.85)"); }, [1, 6]); }
       function seatMesh(p, x, z, ry){ var g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry || 0; g.scale.setScalar(0.74); p.add(g); var blue = std(0x2f58b0, { r:0.95, em:0.32 }), cream = std(0xefe8da, { r:0.6, em:0.3 }), gold = std(0xd8b04a, { r:0.35, m:0.6, em:0.25 });
         bx(g, 9, 3.2, 8, blue, 0, 3.2, 0); bx(g, 9, 11, 3, blue, 0, 8.4, 3.4); [-1, 1].forEach(function(s){ bx(g, 1.8, 6, 7.5, cream, s*5.4, 4.6, 0); bx(g, 1.8, 0.7, 7.6, gold, s*5.4, 7.7, 0); var e = new THREE.Mesh(new THREE.ConeGeometry(1.9, 3.4, 4), blue); e.position.set(s*3.4, 15.4, 3.4); g.add(e); });
@@ -101,7 +106,7 @@
         var pic = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), std(0xffffff, { map:cloudTex(), em:0.9 })); pic.position.set(-10, 15, CL/2 - 0.6); pic.rotation.y = Math.PI; G.add(pic); bx(G, 21.6, 13.6, 0.6, gold, -10, 15, CL/2 - 0.3);
         var dd = new THREE.Mesh(new THREE.PlaneGeometry(14, 24), std(0xffffff, { map:ct(128, 256, function(g, w, h){ g.fillStyle = "#e9edf5"; g.fillRect(0, 0, w, h); g.strokeStyle = "#d8b04a"; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12); cat(g, w/2, 100, 38, "#2b3a6a", false); g.fillStyle = "#2b3a6a"; g.font = "bold 18px Arial"; g.textAlign = "center"; g.fillText("EXIT", w/2, 200); }), em:0.6 })); dd.position.set(0, 12, -CL/2 + 0.6); G.add(dd);
         // 창문 (양쪽 각 12개): 금테 + 구름/하늘섬 그림 (흘러가요)
-        var ct1 = cloudTex(); ct1.repeat.set(0.25, 1); G.userData.cloud = ct1; var winMat = new THREE.MeshBasicMaterial({ map:ct1, side:THREE.DoubleSide, fog:false });
+        var ct1 = cloudTex(); ct1.repeat.set(0.1, 0.55); ct1.offset.set(0, 0.06); G.userData.cloud = ct1; var winMat = new THREE.MeshBasicMaterial({ map:ct1, side:THREE.DoubleSide, fog:false });
         [-1, 1].forEach(function(s){ for(var i = 0; i < 12; i++){ var wz = -100 + i*18.2; var w = new THREE.Mesh(new THREE.CircleGeometry(1, 28), winMat); w.scale.set(5.2, 8, 1); w.position.set(s*(CW/2 - 0.7), 15.5, wz); w.rotation.y = -s*Math.PI/2; G.add(w); var fr = new THREE.Mesh(new THREE.TorusGeometry(1, 0.1, 8, 28), gold); fr.scale.set(5.6, 8.4, 1); fr.position.copy(w.position); fr.position.x -= s*0.2; fr.rotation.y = w.rotation.y; G.add(fr);
             if(i % 3 === 0){ [-1, 1].forEach(function(t2){ bx(G, 0.6, 18, 2.2, navy, s*(CW/2 - 1.4), 14, wz + t2*6.2); }); } } });
         // 좌석 (고양이 귀, 파란 시트): 양쪽 통로 옆, 앞을 봐요
@@ -179,9 +184,10 @@
       // ---------- 매 프레임 ----------
       window.airTick = function(t, dt, p){
         if(!window.__riverBuilt && !window.__dbgForceAir) return;
-        if(!built){ built = true; GA = buildIsland(); scene.add(GA); GA.visible = false; var br = bridgeMesh(); GA.userData.br = br; scene.add(br); br.visible = false; GC = buildCabin(); scene.add(GC); GC.visible = false; camWalls(); }
+        if(!built){ built = true; SKYB = skyBackdrop(); scene.add(SKYB); SKYB.visible = false; GA = buildIsland(); scene.add(GA); GA.visible = false; var br = bridgeMesh(); GA.userData.br = br; scene.add(br); br.visible = false; GC = buildCabin(); scene.add(GC); GC.visible = false; camWalls(); }
         var nearA = p.x > 900 && p.z > 1900 && Math.abs(p.x - AX) < 700, nearC = inCabin(p);
         GA.visible = nearA || nearC; GA.userData.br.visible = nearA; GC.visible = nearC;
+        var cam = three.camera; SKYB.visible = nearA && !nearC; if(SKYB.visible){ SKYB.position.set(cam.position.x, cam.position.y + 0.15*SKYB.userData.HC, cam.position.z); }
         if(GA.visible && !GA.userData.plane && !GA.userData.planeTried && window.catPlaneClone){ GA.userData.planeTried = true; var pl = window.catPlaneClone(); if(pl){ pl.scale.multiplyScalar(0.64); pl.position.set(-85, 13.4, 58); GA.add(pl); GA.userData.plane = pl; } }
         if(GA.visible){ var ls = GA.userData.lamps, i; for(i = 0; i < ls.length; i++){ ls[i].userData.c.rotation.y = t/900 + i; ls[i].userData.c.position.y = 22 + Math.sin(t/700 + i)*0.8; } }
         if(S.state !== "none" && !nearC){ S.state = "none"; if(ui) ui.hud.style.display = "none"; }
