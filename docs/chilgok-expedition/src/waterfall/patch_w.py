@@ -2,7 +2,7 @@ import sys, os, shutil
 SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/pub/index.html", encoding="utf-8").read()
 import base64
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_front.webp","rb").read()).decode())
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode())
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
