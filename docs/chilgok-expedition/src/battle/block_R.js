@@ -49,7 +49,7 @@
             if(!u.vis || (u.die > 2.9)){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); continue; }
             var tint = u.brain > 0 ? 1 : (u.hit > 0 ? 2 : 0); if(tint !== st.tint) setColors(i, u, tint);
             if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.side === "rok" ? 0 : Math.PI; st.init = true; }
-            var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 60) sp = 0; st.px = u.x; st.pz = u.z;
+            var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = u.x; st.pz = u.z;
             var walkT = (sp > 2.2 && u.die < 0) ? 1 : 0; st.walk += (walkT - st.walk)*Math.min(1, dt*9); st.ph += (Math.min(sp, 14)*1.1 + (st.walk > 0.3 ? 0.4 : 0))*dt*1.55;
             var aimT = (u.fireT > 0 && u.die < 0) ? 1 : 0; st.aim += (aimT - st.aim)*Math.min(1, dt*14); if(u.cheer) st.cheer += (1 - st.cheer)*Math.min(1, dt*8); else st.cheer += (0 - st.cheer)*Math.min(1, dt*8);
             var fy = u.side === "rok" ? 0 : Math.PI, ty = fy; if(sp > 2.2) ty = Math.atan2(dx, dz); else if(u.fireT > 0 && u.fx !== undefined) ty = Math.atan2(u.fx - u.x, u.fz - u.z); else if(u.die < 0 && st.cheer < 0.1) ty = fy + Math.sin(tm*0.5 + st.off)*0.22;
@@ -141,7 +141,7 @@
         API.setVisible = function(v){ root.visible = v; };
         API.update = function(dt, tm, x, z, o){
           if(!root.visible) return; o = o || {}; if(!st.init){ st.px = x; st.pz = z; st.init = true; }
-          var dx = x - st.px, dz = z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 60) sp = 0; st.px = x; st.pz = z;
+          var dx = x - st.px, dz = z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = x; st.pz = z;
           var wT = sp > 1.8 ? 1 : 0; st.walk += (wT - st.walk)*Math.min(1, dt*8); st.ph += (Math.min(sp, 12)*0.9 + (st.walk > 0.3 ? 0.5 : 0))*dt*1.4; var w = st.walk, idle = 1 - w, s1 = Math.sin(st.ph), c1 = Math.cos(st.ph);
           var castT = o.cast || 0; st.cast += (castT - st.cast)*Math.min(1, dt*9); var ca = st.cast;
           var ty = Math.PI; if(sp > 1.8) ty = Math.atan2(dx, dz) ; var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 1.8 ? 9 : 5));

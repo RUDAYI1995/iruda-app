@@ -162,6 +162,34 @@
           };
           return T;
         };
+        // 연기+불꽃 꼬리(추락하는 비행기)
+        API.trail = function(x, y, z){ part(x + rr(1), y, z + rr(1), { life:1.4, vy:3, vx:rr(2), vz:rr(2), s0:3, s1:11, col:0x1e1c1a, a0:0.7 }); part(x, y, z, { life:0.3, s0:5, s1:1.5, col:0xff8a1c, add:true, vx:rr(4), vz:rr(4) }); };
+        // ---------- 3D 비행기 (프로펠러 전투기) ----------
+        API.makePlane = function(side){
+          var rok = side === "rok", PS = 2.1, mats = [], bodyC = rok ? 0xc9d3e0 : 0x66754a, accC = rok ? 0x2a4fa0 : 0x3f4a2e, dark = 0x2b2d30;
+          function M(c, r, o){ var m = stdM(c, r === undefined ? 0.5 : r); m.userData = { c0:c }; if(o){ m.transparent = true; m.opacity = o; } mats.push(m); return m; }
+          var g = new THREE.Group(), b = new THREE.Group(); g.add(b);
+          var fus = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.62, 9, 10), M(bodyC)); fus.rotation.x = Math.PI/2; fus.position.z = 0; b.add(fus);
+          var nose = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.95, 1.8, 10), M(accC)); nose.rotation.x = Math.PI/2; nose.position.z = 5.3; b.add(nose);
+          var spin = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.9, 8), M(0xd8c060, 0.4)); spin.rotation.x = Math.PI/2; spin.position.z = 6.5; b.add(spin);
+          var prop = new THREE.Group(); prop.position.z = 6.2; b.add(prop); var bl = new THREE.Mesh(new THREE.BoxGeometry(0.35, 5.0, 0.08), M(dark)); prop.add(bl); var bl2 = bl.clone(); bl2.rotation.z = Math.PI/2; prop.add(bl2);
+          var wing = new THREE.Mesh(new THREE.BoxGeometry(15.5, 0.3, 3.1), M(bodyC)); wing.position.set(0, -0.15, 0.6); b.add(wing);
+          [-1, 1].forEach(function(s){ var tip = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.32, 3.0), M(accC)); tip.position.set(s*6.6, -0.14, 0.55); b.add(tip); var ro = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0), new THREE.MeshBasicMaterial({ map:rok ? taeTex() : starTex("#d42a2a"), transparent:true, fog:false, side:THREE.DoubleSide })); ro.rotation.x = -Math.PI/2; ro.position.set(s*4.1, 0.03, 0.6); b.add(ro); });
+          var fin = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.6, 2.0), M(accC)); fin.position.set(0, 1.5, -4.2); fin.rotation.x = -0.25; b.add(fin);
+          var tp = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.22, 1.5), M(bodyC)); tp.position.set(0, 0.3, -4.3); b.add(tp);
+          var can = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), M(0x8fc4ff, 0.2, 0.75)); can.scale.set(0.8, 0.65, 1.7); can.position.set(0, 0.95, 0.7); b.add(can);
+          var gun = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.4, 6), M(dark)); gun.rotation.x = Math.PI/2; gun.position.set(2.4, -0.2, 2.2); b.add(gun); var gun2 = gun.clone(); gun2.position.x = -2.4; b.add(gun2);
+          g.scale.setScalar(PS); g.visible = false; G.add(g);
+          var sh = new THREE.Mesh(new THREE.CircleGeometry(1, 16), new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.32, depthWrite:false, fog:false })); sh.rotation.x = -Math.PI/2; sh.visible = false; G.add(sh);
+          var P = { g:g, wreck:0, wreckOn:false, sm:0, ps:0, vis:false };
+          P.setVisible = function(v){ P.vis = v; g.visible = v; sh.visible = v; };
+          P.place = function(x, y, z, yaw, pitch, roll, gy){ g.position.set(x, y, z); g.rotation.set(pitch, yaw, roll, "YXZ"); var h = Math.max(0, y - gy), k = 10*(1 + Math.min(1.2, h/60)*0.2); sh.position.set(x + h*0.18, gy + 0.2, z + h*0.1); sh.scale.set(k*0.9, k*0.45, 1); sh.material.opacity = Math.max(0.08, 0.34 - h*0.003); };
+          P.setWreck = function(on){ P.wreckOn = on; };
+          P.update = function(dt, tm, alive){ prop.rotation.z += dt*(alive ? 60 : 0); if(P.wreckOn){ P.wreck = Math.min(1, P.wreck + dt*2); } else P.wreck = Math.max(0, P.wreck - dt*4);
+            P.sm += dt; if(P.wreckOn && P.sm > 0.2){ P.sm = 0; part(g.position.x + rr(6), g.position.y + 3, g.position.z + rr(6), { life:2.2, vy:7, vx:rr(2), vz:rr(2), s0:5, s1:20, col:0x26231f, a0:0.65 }); if(Math.random() < 0.5) part(g.position.x + rr(5), g.position.y + 2, g.position.z + rr(5), { life:0.4, vy:4, s0:6, s1:2, col:0xff7a18, add:true }); }
+            for(var mi = 0; mi < mats.length; mi++){ var mm = mats[mi]; if(!mm.userData.t) mm.userData.t = new CO(); mm.color.setHex(mm.userData.c0).lerp(mm.userData.t.setHex(0x141210), P.wreck*0.85); } };
+          return P;
+        };
         return API;
       } };
     })();

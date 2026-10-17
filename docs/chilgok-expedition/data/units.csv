@@ -5,3 +5,5 @@ Rabbit,토끼(함곡이),300,30
 Lucia,루샤,300,40
 TankPlayer,국군 탱크,190,85
 TankEnemy,북한군 탱크,190,85
+PlanePlayer,국군 전투기,350,30
+PlaneEnemy,북한군 전투기,350,30

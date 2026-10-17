@@ -69,6 +69,21 @@ sub("    if(memorialCleared()) return; // already won in a previous session: no 
 sub("function update(dt){\n  var p = state.player;\n", "function update(dt){\n  if(window.tbActive && window.tbActive()){ window.tbFrame(dt); return; }\n  var p = state.player;\n", "update hook")
 sub("        if(window.mansionTick) window.mansionTick(t, dt, p);\n", "        if(window.mansionTick) window.mansionTick(t, dt, p);\n        if(window.tbTick) window.tbTick(t, dt, p);\n", "tb tick")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
+
+# --- 언덕 오류 수정: 그림자 번쩍임(셰도 아크네/떨림) + 캐릭터 그림자판이 비탈에 파묻히는 문제
+sub("      m.castShadow = true; m.receiveShadow = true;\n      world.add(m);\n      // a few trees dotted on the slopes", "      m.castShadow = false; m.receiveShadow = true;      // 언덕은 자기 그림자를 만들지 않아요 (비탈에서 하얀/검은 네모가 번쩍이던 원인)\n      world.add(m);\n      // a few trees dotted on the slopes", "hill self-shadow off")
+sub("  sun.shadow.bias = -0.0015;\n", "  sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.45;\n", "shadow bias")
+sub("  three.sun.position.set(p.x + 110, 55 + skyH, p.z - 30);\n  three.sun.target.position.set(p.x, skyH, p.z);\n", """  // 그림자 창을 그림자 한 칸(텍셀) 단위로만 움직여서 걸을 때 그림자 가장자리가 떨리지 않게 해요
+  var _sn = three._snap || (three._snap = { d:new THREE.Vector3(), r:new THREE.Vector3(), u:new THREE.Vector3(), t:new THREE.Vector3() });
+  _sn.d.set(110, 55, -30).normalize(); _sn.r.set(0, 1, 0).cross(_sn.d).normalize(); _sn.u.copy(_sn.d).cross(_sn.r).normalize(); _sn.t.set(p.x, skyH, p.z);
+  var _ts = 140/1024, _a = _sn.t.dot(_sn.r), _b = _sn.t.dot(_sn.u); _sn.t.addScaledVector(_sn.r, Math.round(_a/_ts)*_ts - _a).addScaledVector(_sn.u, Math.round(_b/_ts)*_ts - _b);
+  three.sun.position.set(_sn.t.x + 110, _sn.t.y + 55, _sn.t.z - 30);
+  three.sun.target.position.copy(_sn.t);
+""", "shadow snap")
+sub("  three.shadowMesh.position.set(p.x, groundY + 0.03, p.z);\n", """  { var _g1 = groundHeightAt(p.x + 1.5, p.z), _g2 = groundHeightAt(p.x - 1.5, p.z), _g3 = groundHeightAt(p.x, p.z + 1.5), _g4 = groundHeightAt(p.x, p.z - 1.5), _nv = three._shN || (three._shN = new THREE.Vector3());
+    _nv.set(-(_g1 - _g2)/3, 1, -(_g3 - _g4)/3).normalize(); three.shadowMesh.rotation.set(0, 0, 0); three.shadowMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), _nv);
+    three.shadowMesh.position.set(p.x + _nv.x*0.18, groundY + 0.03 + _nv.y*0.18, p.z + _nv.z*0.18); three.shadowMesh.material.polygonOffset = true; three.shadowMesh.material.polygonOffsetFactor = -4; three.shadowMesh.material.polygonOffsetUnits = -4; }
+""", "shadow blob slope")
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
 HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt, SKY:SKY, SKY_PROPS:SKY_PROPS, SKY_SPIRAL:SKY_SPIRAL, skyWalkable:skyWalkable, tryInteract:tryInteract, villageHint:villageHint, CHARACTERS:CHARACTERS, setRef:function(v){SKY_REF=v;}, HILLS:HILLS, insideAnyHill:insideAnyHill, LAND_RECTS:LAND_RECTS, TOWN_RECTS:TOWN_RECTS, LANDMARKS:LANDMARKS, MT:MT};\n"
 MARK = "/* ---------------- Boot ---------------- */"
