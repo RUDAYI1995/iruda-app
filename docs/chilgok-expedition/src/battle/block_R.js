@@ -48,11 +48,11 @@
             u = units[i]; st = ST[i]; if(!u) continue;
             if(!u.vis || (u.die > 2.9)){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); continue; }
             var tint = u.brain > 0 ? 1 : (u.hit > 0 ? 2 : 0); if(tint !== st.tint) setColors(i, u, tint);
-            if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.side === "rok" ? 0 : Math.PI; st.init = true; }
+            if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI); st.init = true; }
             var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = u.x; st.pz = u.z;
             var walkT = (sp > 2.2 && u.die < 0) ? 1 : 0; st.walk += (walkT - st.walk)*Math.min(1, dt*9); st.ph += (Math.min(sp, 14)*1.1 + (st.walk > 0.3 ? 0.4 : 0))*dt*1.55;
             var aimT = (u.fireT > 0 && u.die < 0) ? 1 : 0; st.aim += (aimT - st.aim)*Math.min(1, dt*14); if(u.cheer) st.cheer += (1 - st.cheer)*Math.min(1, dt*8); else st.cheer += (0 - st.cheer)*Math.min(1, dt*8);
-            var fy = u.side === "rok" ? 0 : Math.PI, ty = fy; if(sp > 2.2) ty = Math.atan2(dx, dz); else if(u.fireT > 0 && u.fx !== undefined) ty = Math.atan2(u.fx - u.x, u.fz - u.z); else if(u.die < 0 && st.cheer < 0.1) ty = fy + Math.sin(tm*0.5 + st.off)*0.22;
+            var fy = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI), ty = fy; if(sp > 2.2) ty = Math.atan2(dx, dz); else if(u.fireT > 0 && u.fx !== undefined) ty = Math.atan2(u.fx - u.x, u.fz - u.z); else if(u.die < 0 && st.cheer < 0.1) ty = fy + Math.sin(tm*0.5 + st.off)*0.22;
             var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 2.2 ? 12 : 8));
             var w = st.walk, ph = st.ph, s1 = Math.sin(ph), c1 = Math.cos(ph), idle = 1 - w;
             var bob = Math.abs(s1)*0.3*w + Math.sin(tm*1.6 + st.off)*0.05*idle + (st.cheer > 0.1 ? Math.abs(Math.sin(tm*8 + st.off))*0.9*st.cheer : 0);
@@ -60,7 +60,7 @@
             if(u.die >= 0){ var k = Math.min(1, u.die/0.55), e = k*k*(3 - 2*k); fall = e*(Math.PI/2); hy = e*1.0; lean = 0; flinch = 0; w = 0; }
             var scl = (u.die > 2.3) ? Math.max(0, 1 - (u.die - 2.3)/0.6) : 1;
             // 루트: 위치 + 방향 + 앞뒤로 기울임
-            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle, bob + hy, u.z); _s.set(S0*scl, S0*scl, S0*scl); root.compose(_p, _q2, _s);
+            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle, (u.y || 0) + bob + hy, u.z); _s.set(S0*scl, S0*scl, S0*scl); root.compose(_p, _q2, _s);
             var sway = Math.sin(tm*0.9 + st.off)*0.12*idle, brt = 1 + Math.sin(tm*1.9 + st.off)*0.018;
             // 다리(2관절 IK): 발이 땅을 딛고 무릎이 접혀요
             var stride = 1.7*w + 0.0, side, hip, kn, an;
@@ -88,7 +88,7 @@
             else { _q.setFromUnitVectors(_Z, rd); var cxp = rh.x + rd.x*1.2, cyp = rh.y + rd.y*1.2, czp = rh.z + rd.z*1.2; put(P.stock, i, cxp, cyp, czp, _q, 0.34, 0.5, 2.5); put(P.barrel, i, rh.x + rd.x*3.4, rh.y + rd.y*3.4, rh.z + rd.z*3.4, _q, 0.2, 0.22, 2.3);
               if(u.fireT > 0.4){ var fs = 0.5 + (u.fireT - 0.4)*4; put(P.flash, i, rh.x + rd.x*4.9, rh.y + rd.y*4.9, rh.z + rd.z*4.9, QI, fs, fs, fs*1.6); } else hide(P.flash, i); }
             // 그림자
-            _p.set(u.x, 0.06, u.z); _e.set(-Math.PI/2, 0, 0); _q.setFromEuler(_e); _s.set(3.3*scl, 2.6*scl, 1); _m.compose(_p, _q, _s); shadow.setMatrixAt(i, _m);
+            _p.set(u.x, (u.y || 0) + 0.2, u.z); _e.set(-Math.PI/2, 0, 0); _q.setFromEuler(_e); _s.set(3.3*scl, 2.6*scl, 1); _m.compose(_p, _q, _s); shadow.setMatrixAt(i, _m);
           }
           for(var q = 0; q < PK.length; q++) P[PK[q]].instanceMatrix.needsUpdate = true; shadow.instanceMatrix.needsUpdate = true;
         };

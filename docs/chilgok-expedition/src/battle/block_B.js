@@ -7,7 +7,7 @@
       var T = 5, Z0 = 1990, NSIDE = 100, UH = 10, RANGE = 5, DMG = 40, HP = 100, MOVES = 3;
       var BX = 22, BZ0 = -14, BZ1 = 26;
       var LUCIA_SRC = "data:image/webp;base64,__LUCIA__";
-      var built = false, G = null, ui = null, rok = [], nk = [], occ = {}, wall = null;
+      var built = false, G = null, ui = null, rok = [], nk = [], hrok = [], hnk = [], occ = {}, wall = null;
       var RAB = { kind:"rabbit", gx:0, gz:0, hp:300, vhp:300, shots:0, def:false, items:3, alive:true };
       var LUC = { kind:"lucia", gx:0, gz:21, hp:300, vhp:300, alive:true, cdQ:0, cdW:0, usedE:false, curse:0 };
       var S = { state:"idle", active:false, turn:1, moves:MOVES, acted:false, cd:{ q:0, w:0, e:0 }, anim:null, cool:0, log:[], menu:false, dlg:null, intro:0, prevKeys:{}, tw:null, ended:false };
@@ -21,7 +21,7 @@
       var UNIT_CSV = "__UNIT_CSV__";
       var UNIT_SHEET_URL = "";      // 구글 시트 '웹에 게시 → CSV' 주소를 넣으면 시작 때 그 표를 읽어요 (실패하면 내장 표 사용)
       function UnitData(id, name, hp, atk){ return { id:id, name:name, hp:hp, atk:atk }; }
-      var UD = { player:UnitData("Player", "국군 병사", 100, 40), enemy:UnitData("Enemy", "북한군 병사", 100, 40), rabbit:UnitData("Rabbit", "토끼", 300, 30), lucia:UnitData("Lucia", "루샤", 300, 40), tankplayer:UnitData("TankPlayer", "국군 탱크", 190, 85), tankenemy:UnitData("TankEnemy", "북한군 탱크", 190, 85), planeplayer:UnitData("PlanePlayer", "국군 전투기", 350, 30), planeenemy:UnitData("PlaneEnemy", "북한군 전투기", 350, 30) };
+      var UD = { player:UnitData("Player", "국군 병사", 100, 40), enemy:UnitData("Enemy", "북한군 병사", 100, 40), rabbit:UnitData("Rabbit", "토끼", 300, 30), lucia:UnitData("Lucia", "루샤", 300, 40), tankplayer:UnitData("TankPlayer", "국군 탱크", 190, 85), tankenemy:UnitData("TankEnemy", "북한군 탱크", 190, 85), planeplayer:UnitData("PlanePlayer", "국군 전투기", 350, 30), planeenemy:UnitData("PlaneEnemy", "북한군 전투기", 350, 30), mgplayer:UnitData("MgPlayer", "국군 기관총", 150, 25), mgenemy:UnitData("MgEnemy", "북한군 기관총", 150, 25), sniperplayer:UnitData("SniperPlayer", "국군 저격수", 60, 70), sniperenemy:UnitData("SniperEnemy", "북한군 저격수", 60, 70) };
       function parseUnitCsv(txt){
         var rows = String(txt || "").replace(/\r/g, "").split("\n").map(function(l){ return l.trim(); }).filter(function(l){ return l; }), n = 0; if(rows.length < 2) return 0;
         var head = rows[0].split(",").map(function(h){ return h.trim().toLowerCase(); }), ci = head.indexOf("id"), ch = head.indexOf("hp"), ca = head.indexOf("atk"), cn = head.indexOf("name"); if(ci < 0 || ch < 0 || ca < 0) return 0;
@@ -61,7 +61,7 @@
       function AttackCommand(att, tgt, dmg, pHit){
         var c = { kind:"attack", att:att, tgt:tgt, dmg:dmg, pHit:pHit, hit:undefined, dealt:0, prev:null,
           execute:function(){ var t = c.tgt; c.prev = { hp:t.hp, alive:t.alive }; if(c.hit === undefined) c.hit = rnd() < c.pHit; c.dealt = c.hit ? applyDmg(t, c.dmg) : 0; },
-          undo:function(){ var t = c.tgt, pv = c.prev; if(!pv) return; t.hp = pv.hp; t.vhp = pv.hp; if(pv.alive && !t.alive && t.kind !== "plane"){ occ[key(t.gx, t.gz)] = t; } t.alive = pv.alive; if(t.alive){ t.die = -1; t.hit = 0; if(t === LUC){ LV.die = -1; } if(t.kind === "tank" && t.t3) t.t3.setWreck(false); if(t.kind === "plane") planeReset(t); } } };
+          undo:function(){ var t = c.tgt, pv = c.prev; if(!pv) return; t.hp = pv.hp; t.vhp = pv.hp; if(pv.alive && !t.alive && t.kind !== "plane" && !t.hill){ occ[key(t.gx, t.gz)] = t; } t.alive = pv.alive; if(t.alive){ t.die = -1; t.hit = 0; if(t === LUC){ LV.die = -1; } if(t.kind === "tank" && t.t3) t.t3.setWreck(false); if(t.kind === "plane") planeReset(t); } } };
         return c;
       }
       function MoveCommand(u, nx, nz){
@@ -72,15 +72,15 @@
       }
       function snapshot(){
         var o = { S:{ turn:S.turn, moves:S.moves, acted:S.acted, q:S.cd.q, w:S.cd.w, e:S.cd.e, vd:!!S.volleyDone }, R:{ gx:RAB.gx, gz:RAB.gz, hp:RAB.hp, def:RAB.def, items:RAB.items }, L:{ gx:LUC.gx, gz:LUC.gz, hp:LUC.hp, alive:LUC.alive, cdQ:LUC.cdQ, cdW:LUC.cdW, usedE:LUC.usedE, curse:LUC.curse }, u:[], t:[] };
-        rok.concat(nk).forEach(function(u){ o.u.push([u.gx, u.gz, u.hp, u.alive, u.brain, u.charm]); }); TANKS.concat(PLANES).forEach(function(k){ o.t.push([k.hp, k.alive]); });
+        rok.concat(nk, hrok, hnk).forEach(function(u){ o.u.push([u.gx, u.gz, u.hp, u.alive, u.brain, u.charm]); }); TANKS.concat(PLANES).forEach(function(k){ o.t.push([k.hp, k.alive]); });
         return o;
       }
       function restoreSnap(o){
         S.turn = o.S.turn; S.moves = o.S.moves; S.acted = o.S.acted; S.cd.q = o.S.q; S.cd.w = o.S.w; S.cd.e = o.S.e; S.volleyDone = o.S.vd;
         RAB.gx = o.R.gx; RAB.gz = o.R.gz; RAB.hp = RAB.vhp = o.R.hp; RAB.def = o.R.def; RAB.items = o.R.items; tween(state.player, wx(RAB.gx), wz(RAB.gz), 0.2);
         LUC.gx = o.L.gx; LUC.gz = o.L.gz; LUC.hp = LUC.vhp = o.L.hp; LUC.alive = o.L.alive; LUC.cdQ = o.L.cdQ; LUC.cdW = o.L.cdW; LUC.usedE = o.L.usedE; LUC.curse = o.L.curse; if(LUC.alive) LV.die = -1;
-        var all = rok.concat(nk); occ = {};
-        all.forEach(function(u, i){ var r = o.u[i]; u.gx = r[0]; u.gz = r[1]; u.hp = u.vhp = r[2]; u.alive = r[3]; u.brain = r[4]; u.charm = r[5]; if(u.alive){ u.die = -1; u.hit = 0; occ[key(u.gx, u.gz)] = u; } else if(u.die < 0) u.die = 3; u.fireT = 0; u.fireWait = 0; u.shot = null; });
+        var all = rok.concat(nk, hrok, hnk); occ = {};
+        all.forEach(function(u, i){ var r = o.u[i]; u.gx = r[0]; u.gz = r[1]; u.hp = u.vhp = r[2]; u.alive = r[3]; u.brain = r[4]; u.charm = r[5]; if(u.alive){ u.die = -1; u.hit = 0; if(!u.hill) occ[key(u.gx, u.gz)] = u; } else if(u.die < 0) u.die = 3; u.fireT = 0; u.fireWait = 0; u.shot = null; });
         TANKS.concat(PLANES).forEach(function(k, i){ k.hp = k.vhp = o.t[i][0]; k.alive = o.t[i][1]; if(k.alive){ if(k.kind === "plane") planeReset(k); else { occ[key(k.gx, k.gz)] = k; if(k.t3) k.t3.setWreck(false); } } });
         occ[key(RAB.gx, RAB.gz)] = RAB; if(LUC.alive) occ[key(LUC.gx, LUC.gz)] = LUC;
       }
@@ -97,6 +97,28 @@
         var ud = side === "rok" ? UD.player : UD.enemy, u = { kind:"soldier", side:side, id:side + i, gx:gx, gz:gz, hp:ud.hp, vhp:ud.hp, maxHp:ud.hp, atk:ud.atk, shot:null, alive:true, x:wx(gx), z:wz(gz), fx:wx(gx), fz:wz(gz), brain:0, charm:0, bar:null, hit:0, die:-1, fireT:0, cheer:0, vis:side === "rok" };
         occ[key(gx, gz)] = u; return u;
       }
+      // ---------- 언덕 사수: 언덕마다 기관총 1명 + 저격수 2명 ----------
+      // 화면 왼쪽(+x) 언덕 = 북한군, 오른쪽(-x) 언덕 = 국군. 전투 구역(z 1700~2550) 안의 언덕만 써요.
+      var HILLSPOT = null;
+      function hillSpots(){
+        if(HILLSPOT) return HILLSPOT; HILLSPOT = { rok:[], nk:[] }; if(typeof HILLS === "undefined" || typeof groundHeightAt !== "function") return HILLSPOT;
+        HILLS.forEach(function(h){
+          if(h.cz < 1700 || h.cz > 2550) return; var side = h.cx > 0 ? "nk" : "rok", pts = [], k, sx = h.cx > 0 ? -1 : 1;     // 필드 중앙(x=0) 쪽 비탈을 우선
+          for(k = 0; k < 220; k++){ var ang = (k*2.399963) % 6.283, rad = Math.sqrt((k + 1)/220)*0.97, px = h.cx + Math.cos(ang)*h.ax*rad, pz = h.cz + Math.sin(ang)*h.az*rad; pts.push({ x:px, z:pz, y:groundHeightAt(px, pz) }); }
+          var mid = pts.filter(function(q){ return q.y >= 26 && q.y <= 55; }); if(mid.length < 3) mid = pts.slice().sort(function(a, b){ return a.y - b.y; }).filter(function(q){ return q.y > 8; });      // 중턱(눈에 잘 띄는 높이), 전장 쪽 비탈 우선
+          mid.sort(function(a, b){ return Math.abs(a.x) - Math.abs(b.x); }); var pick = [mid[0]]; for(k = 1; k < mid.length && pick.length < 3; k++){ if(pick.every(function(q){ return Math.hypot(q.x - mid[k].x, q.z - mid[k].z) > 22; })) pick.push(mid[k]); }
+          HILLSPOT[side].push(pick);
+        });
+        return HILLSPOT;
+      }
+      function mkHill(side, role, p, idx){
+        var ud = side === "rok" ? (role === "mg" ? UD.mgplayer : UD.sniperplayer) : (role === "mg" ? UD.mgenemy : UD.sniperenemy), yaw = Math.atan2(-p.x, (Z0 + 70) - p.z);
+        return { kind:"soldier", role:role, hill:true, side:side, id:side + role + idx, gx:-p.x/T, gz:(p.z - Z0)/T, hp:ud.hp, vhp:ud.hp, maxHp:ud.hp, atk:ud.atk, alive:true, x:p.x, z:p.z, y:p.y, fx:p.x, fz:p.z, brain:0, charm:0, hit:0, die:-1, fireT:0, fireWait:0, shot:null, shotQ:[], cheer:0, vis:true, yaw0:yaw, prop:null };
+      }
+      function buildHillUnits(){
+        var HS = hillSpots(), old = { rok:hrok.slice(), nk:hnk.slice() }; hrok.length = 0; hnk.length = 0;
+        ["rok", "nk"].forEach(function(side){ var arr = side === "rok" ? hrok : hnk; HS[side].forEach(function(pick, hi){ pick.forEach(function(p, j){ var u = mkHill(side, j === 0 ? "mg" : "sniper", p, hi*3 + j); var prev = old[side][arr.length]; u.prop = prev ? prev.prop : null; if(!u.prop && FX){ u.prop = FX.makeEmp(u.role, side, p.x + Math.sin(u.yaw0)*3.2, p.y, p.z + Math.cos(u.yaw0)*3.2, u.yaw0); } arr.push(u); }); }); });
+      }
       function setupFormation(){
         var i, c, r; rok.length = 0; nk.length = 0; occ = {};
         for(r = 0; r < 10; r++) for(c = 0; c < 10; c++){ var gx = c - 5, gz = -1 - r; if(gx === 0 && gz === -1 && false) continue; var u = mkUnit("rok", gx, gz, r*10 + c); rok.push(u); }
@@ -104,6 +126,7 @@
         RAB.gx = 0; RAB.gz = 0; RAB.maxHp = UD.rabbit.hp; RAB.atk = UD.rabbit.atk; RAB.hp = RAB.vhp = RAB.maxHp; RAB.def = false; RAB.items = 3; RAB.alive = true; RAB.shots = 0; occ[key(0, 0)] = RAB;
         LUC.gx = 0; LUC.gz = 21 + 40; LUC.maxHp = UD.lucia.hp; LUC.atk = UD.lucia.atk; LUC.hp = LUC.vhp = LUC.maxHp; LUC.alive = true; LUC.cdQ = 0; LUC.cdW = 0; LUC.usedE = false; LUC.curse = 0; occ[key(LUC.gx, LUC.gz)] = LUC;
         TANKS.forEach(function(k){ var tu = k.side === "rok" ? UD.tankplayer : UD.tankenemy; k.maxHp = tu.hp; k.atk = tu.atk; k.hp = k.vhp = tu.hp; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.engaged = false; k.gz = k.side === "rok" ? -19 : 31 + 40; k.gx = k.hx; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
+        buildHillUnits();
         PLANES.forEach(function(pl){ var pu = pl.side === "rok" ? UD.planeplayer : UD.planeenemy; pl.maxHp = pu.hp; pl.atk = pu.atk; pl.hp = pl.vhp = pu.hp; pl.alive = true; pl.die = -1; pl.mode = "patrol"; pl.shot = null; pl.mt = 0; pl.init = false; if(pl.p3){ pl.p3.setWreck(false); pl.p3.wreck = 0; pl.p3.setVisible(true); } });
         TM.clear(); S.volleyDone = false; TM.team = "player"; TM.group = 0;
       }
@@ -112,7 +135,7 @@
       function initFx(){
         var i; for(i = 0; i < 40; i++){ var gm = new THREE.BufferGeometry(); gm.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3)); var l = new THREE.Line(gm, new THREE.LineBasicMaterial({ color:0xffe27a, transparent:true, opacity:0, fog:false })); l.visible = false; l.frustumCulled = false; l.userData = { t:9 }; G.add(l); lines.push(l); }
         for(i = 0; i < 60; i++){ var cv = document.createElement("canvas"); cv.width = 128; cv.height = 48; var tx = new THREE.CanvasTexture(cv); var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tx, transparent:true, depthTest:false, fog:false })); sp.scale.set(12, 4.5, 1); sp.visible = false; sp.renderOrder = 50; sp.userData = { cv:cv, tx:tx, t:9 }; G.add(sp); texts.push(sp); }
-        RIG = window.TBRig.create(G, 200); LUC3 = window.TBLucia.create(G); FX = window.TBFx.create(G); TANKS.forEach(function(k){ k.t3 = FX.makeTank(k.side); if(k.side === "nk"){ k.t3.yaw = Math.PI; k.t3.aimYaw = Math.PI; } else k.t3.setVisible(true); }); PLANES.forEach(function(pl){ pl.p3 = FX.makePlane(pl.side); pl.p3.setVisible(true); });
+        RIG = window.TBRig.create(G, 240); LUC3 = window.TBLucia.create(G); FX = window.TBFx.create(G); TANKS.forEach(function(k){ k.t3 = FX.makeTank(k.side); if(k.side === "nk"){ k.t3.yaw = Math.PI; k.t3.aimYaw = Math.PI; } else k.t3.setVisible(true); }); PLANES.forEach(function(pl){ pl.p3 = FX.makePlane(pl.side); pl.p3.setVisible(true); });
       }
       function floatText(x, y, z, txt, col){ var s = null, i; for(i = 0; i < texts.length; i++) if(!texts[i].visible){ s = texts[i]; break; } if(!s) return; var c = s.userData.cv, g = c.getContext("2d"); g.clearRect(0, 0, 128, 48); g.font = "bold 30px Arial, sans-serif"; g.textAlign = "center"; g.lineWidth = 6; g.strokeStyle = "rgba(0,0,0,0.85)"; g.strokeText(txt, 64, 34); g.fillStyle = col || "#fff"; g.fillText(txt, 64, 34); s.userData.tx.needsUpdate = true; s.userData.t = 0; s.userData.y0 = y; s.position.set(x, y, z); s.material.opacity = 1; s.visible = true; }
       function tracer(a, b){ var l = null, i; for(i = 0; i < lines.length; i++) if(!lines[i].visible){ l = lines[i]; break; } if(!l) return; var P = l.geometry.attributes.position; P.setXYZ(0, a.x, UH*0.55, a.z); P.setXYZ(1, b.x, UH*0.5, b.z); P.needsUpdate = true; l.userData.t = 0; l.material.opacity = 1; l.visible = true; }
@@ -179,24 +202,24 @@
         TM.batch(function(){ TM.push(MoveCommand(RAB, nx, nz)); }); refreshUI();
       }
       function adjFoes(r){ var res = []; nk.forEach(function(u){ if(u.alive && dist(u, RAB) <= r) res.push(u); }); rok.forEach(function(u){ if(u.alive && u.brain > 0 && dist(u, RAB) <= r) res.push(u); }); if(LUC.alive && dist(LUC, RAB) <= r) res.push(LUC); res.sort(function(a, b){ return dist(a, RAB) - dist(b, RAB) || (a.hp - b.hp); }); return res; }
-      function tpos(t){ return t === RAB ? { x:state.player.x, z:state.player.z } : (t === LUC ? { x:LV.x || wx(LUC.gx), z:LV.z || wz(LUC.gz) } : (t.kind === "plane" ? { x:t.x + t.vx*0.25, z:t.z + t.vz*0.25, y:t.y } : { x:t.x, z:t.z })); }
-      function tyOf(t){ return t === LUC ? 22 : (t === RAB ? UH + 4 : (t.kind === "tank" ? 26 : (t.kind === "plane" ? t.y + 5 : UH + 3.6))); }
+      function tpos(t){ return t === RAB ? { x:state.player.x, z:state.player.z } : (t === LUC ? { x:LV.x || wx(LUC.gx), z:LV.z || wz(LUC.gz) } : (t.kind === "plane" ? { x:t.x + t.vx*0.25, z:t.z + t.vz*0.25, y:t.y } : (t.hill ? { x:t.x, z:t.z, y:t.y + 5.6 } : { x:t.x, z:t.z }))); }
+      function tyOf(t){ return t === LUC ? 22 : (t === RAB ? UH + 4 : (t.kind === "tank" ? 26 : (t.kind === "plane" ? t.y + 5 : UH + 3.6 + (t.y || 0)))); }
       // 맞았을 때 / 빗나갔을 때 연출 (논리 피해는 AttackCommand 가 이미 적용했어요)
       function impact(c, hit, hx, hy, hz){
         var t = c.tgt, pp = tpos(t);
         if(hit){
           var d = c.dealt; t.vhp = Math.max(0, (t.vhp === undefined ? t.hp : t.vhp) - d); t.hit = 0.3;
           var enemySide = t === RAB || (t.kind === "soldier" && t.side === "rok" && !(t.brain > 0)); floatText(pp.x, tyOf(t), pp.z, "-" + d, enemySide ? "#ff9a9a" : "#ffe27a");
-          if(FX) FX.puff(pp.x, t.kind === "tank" ? 8 : (t.kind === "plane" ? t.y : 6), pp.z, "spark");
+          if(FX) FX.puff(pp.x, t.kind === "tank" ? 8 : (t.kind === "plane" ? t.y : 6 + (t.y || 0)), pp.z, "spark");
           if(!t.alive && t.vhp <= 0.5){ if(t.kind === "soldier" && t.die < 0){ t.die = 0; t.fireT = 0; } else if(t.kind === "tank"){ t.die = 0; if(t.t3) t.t3.setWreck(true); if(FX) FX.puff(pp.x, 3, pp.z, "blast"); } else if(t.kind === "plane"){ startCrash(t); } }
         } else { floatText(hx !== undefined ? hx : pp.x, tyOf(t) + 0.5, hz !== undefined ? hz : pp.z, "MISS", "#ffffff"); if(FX && t.kind !== "plane") FX.puff(hx !== undefined ? hx : pp.x, 0.4, (hz !== undefined ? hz : pp.z) + (c.att && c.att.side === "rok" ? 4 : -4), "dust"); }
       }
       function dealTo(t, dmg){ var c = AttackCommand(RAB, t, dmg, 1); c.execute(); impact(c, true); if(t === LUC && LUC.hp <= 0){ LUC.alive = false; } }
       function fireShot(u){
         var c = u.shot; u.shot = null; if(!c || !FX) return; var tp = tpos(c.tgt), spread = 0;
-        FX.puff(u.x + Math.sin(Math.atan2(tp.x - u.x, tp.z - u.z))*3.4, 7.2, u.z + Math.cos(Math.atan2(tp.x - u.x, tp.z - u.z))*3.4, "muzzle");
-        FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:c.hit, ty:tp.y, cb:function(h, x, y, z){ impact(c, h, x, y, z); } });
-        FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:false, delay:0.09 + Math.random()*0.05, ty:tp.y !== undefined ? tp.y + Math.random()*2 - 1 : 5 + Math.random()*2 }); if(Math.random() < 0.6) FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:false, delay:0.2 + Math.random()*0.06, ty:tp.y });
+        FX.puff(u.x + Math.sin(Math.atan2(tp.x - u.x, tp.z - u.z))*3.4, (u.y || 0) + 7.2, u.z + Math.cos(Math.atan2(tp.x - u.x, tp.z - u.z))*3.4, "muzzle");
+        FX.bullet({ x:u.x, z:u.z, y:(u.y || 0) + 7.2 }, tp, { hit:c.hit, ty:tp.y, speed:u.hill ? 330 : 0, cb:function(h, x, y, z){ impact(c, h, x, y, z); } });
+        FX.bullet({ x:u.x, z:u.z, y:(u.y || 0) + 7.2 }, tp, { hit:false, speed:u.hill ? 330 : 0, delay:0.09 + Math.random()*0.05, ty:tp.y !== undefined ? tp.y + Math.random()*2 - 1 : 5 + Math.random()*2 }); if(Math.random() < 0.6) FX.bullet({ x:u.x, z:u.z, y:(u.y || 0) + 7.2 }, tp, { hit:false, speed:u.hill ? 330 : 0, delay:0.2 + Math.random()*0.06, ty:tp.y });
       }
       function fireTank(k){
         var sh = k.shot; k.shot = null; if(!sh || !k.t3 || !FX) return; var tp = tpos(sh.tgt), a = Math.atan2(tp.x - k.x, tp.z - k.z); k.t3.fire(); shake(0.4);
@@ -228,7 +251,7 @@
       }
       function nearest(u, list){ var best = null, bd = 99; for(var i = 0; i < list.length; i++){ var o = list[i]; if(!o.alive) continue; var d = dist(u, o); if(d < bd || (d === bd && best && o.hp < best.hp)){ bd = d; best = o; } } return best ? { o:best, d:bd } : null; }
       var atkCount = 0;
-      function isGround(o){ return o.kind !== "tank" && o.kind !== "plane"; }
+      function isGround(o){ return o.kind !== "tank" && o.kind !== "plane" && !o.hill; }
       // 대열을 지키지 않고 흩어져 움직여요: 적과 3~4칸 거리를 유지하며 빈 곳으로 퍼지고(산은 못 올라가요), 이동한 뒤 1번 사격
       function freeMove(u, tg){
         if(!tg.length) return; var near = 99, k; for(k = 0; k < tg.length; k++){ var dd = dist(u, tg[k]); if(dd < near) near = dd; }
@@ -252,6 +275,17 @@
         else { var tk = cand.filter(function(x){ return x.kind === "tank"; }); if(tk.length) bestL = tk[0]; }
         if(foes.indexOf(RAB) >= 0 && RAB.shots < 2 && dist(u, RAB) <= RANGE && (rnd() < 0.2 || !bestL)) bestL = RAB;      // 토끼는 가끔만 노려요
         if(bestL){ if(bestL === RAB) RAB.shots++; var ph = bestL === RAB ? 0.55 : (bestL === LUC ? 0.7 : (bestL.kind === "tank" ? 0.85 : (bestL.kind === "plane" ? 0.35 : 0.75))); u.shot = TM.push(AttackCommand(u, bestL, atkOf(u), ph)); u.fireWait = 0.05 + Math.random()*1.3; var tp = tpos(bestL); u.fx = tp.x; u.fz = tp.z; }
+      }
+      // 기관총: 한 차례 4연발(25) / 저격수: 1발(70, 멀리서 정확) — 언덕에서 전장 전체를 쏴요. 저격수는 가끔 적 언덕 사수·루샤·토끼를 노려요
+      function hillAct(u, enemyHill, ground){
+        if(!u.alive) return; var shots = u.role === "mg" ? 4 : 1, i, pool = ground.filter(function(o){ return o.alive; }); if(!pool.length) return;
+        for(i = 0; i < shots; i++){
+          var tgt = null, r = rnd(), eh = enemyHill.filter(function(o){ return o.alive; });
+          if(u.role === "sniper"){ if(eh.length && r < 0.3) tgt = eh[Math.floor(rnd()*eh.length)]; else if(u.side === "rok" && LUC.alive && r < 0.5) tgt = LUC; else if(u.side === "nk" && RAB.shots < 2 && r < 0.45){ tgt = RAB; RAB.shots++; } }
+          if(!tgt) tgt = pool[Math.floor(rnd()*pool.length)];
+          var ph = u.role === "sniper" ? 0.85 : 0.5; if(tgt === RAB) ph = 0.6;
+          u.shotQ.push({ cmd:TM.push(AttackCommand(u, tgt, u.atk, ph)), w:0.1 + i*0.2 + rnd()*0.5 });
+        }
       }
       // ---------- 전투기 ----------
       function planeReset(pl){ pl.mode = "patrol"; pl.mt = 0; pl.shot = null; pl.die = -1; pl.hit = 0; pl.init = false; if(pl.p3){ pl.p3.setWreck(false); pl.p3.wreck = 0; } }
@@ -294,7 +328,7 @@
       function tankAct(k, foes){
         if(!k.alive) return; var own = (k.side === "rok" ? rok : nk).filter(function(u){ return u.alive && !(u.brain > 0); }).length; if(own > 0) return;      // 앞줄(자기 편 군인)이 모두 쓰러진 뒤에야 나서요
         if(!k.engaged){ k.engaged = true; say(k.side === "rok" ? "🛡 국군 탱크가 앞으로 나섰어요!" : "🪖 북한군 탱크가 앞으로 나섰어요!"); }
-        var c = foes.filter(function(o){ return o.alive && (o.kind === "soldier" || o.kind === "rabbit"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = pool[Math.floor(rnd()*pool.length)];
+        var c = foes.filter(function(o){ return o.alive && !o.hill && (o.kind === "soldier" || o.kind === "rabbit"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = pool[Math.floor(rnd()*pool.length)];
         var near = c.filter(function(o){ return o !== tg; }).sort(function(a, b){ return dist(a, tg) - dist(b, tg); }).slice(0, 2), all = [tg].concat(near).map(function(o){ return TM.push(AttackCommand(k, o, k.atk, 1)); });      // 맞은 곳 근처 3명 모두 -85
         k.shot = { all:all, tgt:tg }; k.fireWait = 0.7; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
       }
@@ -303,11 +337,11 @@
       function runPhase(team){
         var i; atkCount = 0; RAB.shots = 0;
         if(team === "rok"){ TM.team = "player"; TM.group = ++TM.gid; TM.push(SnapCommand(function(){ S.volleyDone = true; }));
-          var dm = Math.round(UD.player.atk*(LUC.curse > 0 ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(){ return rnd() - 0.5; }); arr.forEach(function(u){ soldierAct(u, fo, dm); }); tankAct(ROKT, fo); tankAct(ROKT2, fo); planeAct(PLR, fo); say("🎖 국군 일제 사격! (공격 " + dm + ")"); }
+          var dm = Math.round(UD.player.atk*(LUC.curse > 0 ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(){ return rnd() - 0.5; }); arr.forEach(function(u){ soldierAct(u, fo, dm); }); tankAct(ROKT, fo); tankAct(ROKT2, fo); planeAct(PLR, fo); hrok.forEach(function(u){ hillAct(u, hnk, fo.filter(function(o){ return o.kind === "soldier" && !o.hill || o === LUC; })); }); say("🎖 국군 일제 사격! (공격 " + dm + ")"); }
         else {
           TM.team = "enemy"; TM.group = ++TM.gid;
           lucia();
-          var fo2 = foesOfNK(), arr2 = nk.filter(function(u){ return u.alive; }).concat(rok.filter(function(u){ return u.alive && u.brain > 0; })).sort(function(){ return rnd() - 0.5; }); arr2.forEach(function(u){ soldierAct(u, u.side === "rok" ? foesOfROKbrain() : fo2, DMG); }); tankAct(NKT, fo2); tankAct(NKT2, fo2); planeAct(PLN, fo2);
+          var fo2 = foesOfNK(), arr2 = nk.filter(function(u){ return u.alive; }).concat(rok.filter(function(u){ return u.alive && u.brain > 0; })).sort(function(){ return rnd() - 0.5; }); arr2.forEach(function(u){ soldierAct(u, u.side === "rok" ? foesOfROKbrain() : fo2, DMG); }); tankAct(NKT, fo2); tankAct(NKT2, fo2); planeAct(PLN, fo2); hnk.forEach(function(u){ hillAct(u, hrok, fo2.filter(function(o){ return o.kind === "soldier" && !o.hill; })); });
           say("🪖 북한군 일제 사격!");
         }
         S.anim = { t:0, dur:3.1, team:team };
@@ -344,7 +378,7 @@
         if(built) return; built = true; G = new THREE.Group(); G.name = "turnBattle"; scene.add(G); 
         initFx(); setupFormation(); loadRemoteSheet(); mkUI(); wall = { x:0, z:Z0 - 66, hx:80, hz:4 }; window.ROCK_RECTS.push(wall);
       }
-      window.__tbS = S; window.__tbDbg = { LUC:LUC, RAB:RAB, rok:rok, nk:nk, PLR:PLR, PLN:PLN, TANKS:TANKS }; window.tbActive = function(){ return S.active; };
+      window.__tbS = S; window.__tbDbg = { LUC:LUC, RAB:RAB, rok:rok, nk:nk, hrok:hrok, hnk:hnk, PLR:PLR, PLN:PLN, TANKS:TANKS }; window.tbActive = function(){ return S.active; };
       window.tbFrame = function(dt){
         // update() 대신 호출돼요: 키를 한 칸 이동으로 바꿔요 (한 번 눌러야 한 칸)
         var k = state.keys, pk = S.prevKeys, p = state.player; p.walking = !!S.tw; p.dir = "back"; state.keys.jump = false;
@@ -392,15 +426,16 @@
           else if(S.intro === 1){ LV.z -= 15*dt; if(LV.z <= wz(LUC.gz)){ LV.z = wz(LUC.gz); S.intro = 2; LV.walkIn = false; LV.laughT = 1.6; showDlg([["😈 루샤", "네 이 놈! 네놈이 내 유흥을 방해하는구나!"], ["😈 루샤", "저놈들을 없애라!"], ["🎖 국군", "우와아아! 전투 준비!"]], function(){ S.state = "player"; say("— 턴 1 시작 — 방향키로 이동, 행동을 고르세요"); refreshUI(); }); } }
         }
         // 군인 위치/연출 (몸의 움직임은 TBRig 가 그려요)
-        var all = rok.concat(nk);
+        var all = rok.concat(nk, hrok, hnk);
         for(i = 0; i < all.length; i++){ u = all[i];
-          if(!(S.state === "intro" && u.side === "nk" && S.intro === 0)) lerpTo(u, dt, 5);
+          if(!u.hill && !(S.state === "intro" && u.side === "nk" && S.intro === 0)) lerpTo(u, dt, 5);
           if(u.fireWait > 0){ u.fireWait -= dt; if(u.fireWait <= 0){ u.fireT = 0.5; u.fireWait = 0; fireShot(u); } } else if(u.fireT > 0) u.fireT -= dt;
+          if(u.shotQ && u.shotQ.length){ for(var sq = u.shotQ.length - 1; sq >= 0; sq--){ u.shotQ[sq].w -= dt; if(u.shotQ[sq].w <= 0){ var qs = u.shotQ.splice(sq, 1)[0]; u.shot = qs.cmd; var qp = tpos(qs.cmd.tgt); u.fx = qp.x; u.fz = qp.z; u.fireT = 0.5; fireShot(u); } } }
           if(u.hit > 0) u.hit -= dt; if(u.die >= 0) u.die += dt;
 }
         if(RIG) RIG.update(all, tm, dt);
         TANKS.forEach(function(k){ if(!(S.state === "intro" && k.side === "nk" && S.intro === 0)) lerpTo(k, dt, 5); if(k.fireWait > 0){ k.fireWait -= dt; if(k.fireWait <= 0){ k.fireWait = 0; fireTank(k); } } if(k.hit > 0) k.hit -= dt; if(k.t3){ k.t3.place(k.x, k.z); k.t3.update(dt, tm); } }); planesTick(dt, tm);
-        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 3.0, z:u.z, w:3.6, h:0.45, frac:u.vhp/u.maxHp, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
+        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk, hrok, hnk).forEach(function(u){ bl.push({ x:u.x, y:(u.y || 0) + UH + 3.0, z:u.z, w:u.role === "mg" ? 5 : 3.6, h:0.45, frac:u.vhp/u.maxHp, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
           bl.push({ x:state.player.x, y:UH + 5.2, z:state.player.z, w:8, h:0.8, frac:RAB.vhp/RAB.maxHp, col:0x4aa3ff, vis:S.active && RAB.vhp > 0 });
           bl.push({ x:LV.x, y:23.5, z:LV.z, w:8, h:0.8, frac:LUC.vhp/LUC.maxHp, col:0xb06aff, vis:S.active && LV.vis && LUC.vhp > 0 && LV.die < 0 });
           TANKS.forEach(function(k){ bl.push({ x:k.x, y:33, z:k.z, w:20, h:1.5, frac:k.vhp/k.maxHp, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });

@@ -55,7 +55,7 @@
           var sx = from.x + ux*3.0, sy = from.y !== undefined ? from.y : 7.0, sz = from.z + uz*3.0, tx = to.x, ty = o.ty !== undefined ? o.ty : 5.6, tz = to.z;
           if(!o.hit){ var side = (Math.random() < 0.5 ? -1 : 1)*(1.6 + Math.random()*2.6); tx += -uz*side; tz += ux*side; ty += (Math.random() - 0.3)*3; }
           _d.set(tx - sx, ty - sy, tz - sz); var D = _d.length() || 1; _d.multiplyScalar(1/D);
-          k.on = true; k.x = sx; k.y = sy; k.z = sz; k.dx = _d.x; k.dy = _d.y; k.dz = _d.z; k.D = D; k.end = o.hit ? D : D + 16; k.d = 0; k.delay = o.delay || 0; k.cb = o.cb || null; k.fired = false; k.v = 150 + Math.random()*40; k.hit = !!o.hit; k.tx = tx; k.ty = ty; k.tz = tz; k.vis = o.vis !== false;
+          k.on = true; k.x = sx; k.y = sy; k.z = sz; k.dx = _d.x; k.dy = _d.y; k.dz = _d.z; k.D = D; k.end = o.hit ? D : D + 16; k.d = 0; k.delay = o.delay || 0; k.cb = o.cb || null; k.fired = false; k.v = o.speed ? o.speed + Math.random()*40 : 150 + Math.random()*40; k.hit = !!o.hit; k.tx = tx; k.ty = ty; k.tz = tz; k.vis = o.vis !== false;
         };
         function updBullets(dt){
           for(var j = 0; j < NB; j++){ var k = B[j]; if(!k.on) continue;
@@ -92,7 +92,7 @@
             var f = k.t/k.life, s = k.s0 + (k.s1 - k.s0)*f; k.vy += k.g*dt; k.s.position.x += k.vx*dt; k.s.position.y += k.vy*dt; k.s.position.z += k.vz*dt; if(k.s.position.y < 0.2) k.s.position.y = 0.2; k.s.scale.set(s, s, 1); k.s.material.opacity = k.a0*(1 - f)*(1 - f*0.3); }
         }
         // ---------- 체력바 (모든 유닛 머리 위, 작게) ----------
-        var NBR = 230, planeG = new THREE.PlaneGeometry(1, 1), bgM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.62, depthTest:false, depthWrite:false, fog:false }), NBR), fillM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ transparent:true, depthTest:false, depthWrite:false, fog:false }), NBR);
+        var NBR = 270, planeG = new THREE.PlaneGeometry(1, 1), bgM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.62, depthTest:false, depthWrite:false, fog:false }), NBR), fillM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ transparent:true, depthTest:false, depthWrite:false, fog:false }), NBR);
         bgM.frustumCulled = fillM.frustumCulled = false; bgM.renderOrder = 60; fillM.renderOrder = 61; bgM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); fillM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         var zc = new CO(1, 1, 1); for(i = 0; i < NBR; i++){ fillM.setColorAt(i, zc); _m.makeScale(0, 0, 0); bgM.setMatrixAt(i, _m); fillM.setMatrixAt(i, _m); } G.add(bgM); G.add(fillM);
         var tc = new CO();
@@ -161,6 +161,23 @@
             for(var mi = 0; mi < mats.length; mi++){ var mm = mats[mi]; if(!mm.userData.t) mm.userData.t = new CO(); mm.color.setHex(mm.userData.c0).lerp(mm.userData.t.setHex(0x161412), T.wreck*0.85); }
           };
           return T;
+        };
+        // ---------- 언덕 진지: 기관총(삼각대+모래주머니) / 저격수(위장 덤불+긴 총) ----------
+        API.makeEmp = function(role, side, x, y, z, yaw){
+          var g = new THREE.Group(), sand = new THREE.MeshStandardMaterial({ color:0xb7a06a, roughness:0.95, flatShading:true, fog:false, emissive:0x1a160c }), dark = new THREE.MeshStandardMaterial({ color:0x2a2c2e, roughness:0.5, metalness:0.3, flatShading:true, fog:false }), oli = new THREE.MeshStandardMaterial({ color:side === "rok" ? 0x4f5d34 : 0x6a5c3b, roughness:0.8, flatShading:true, fog:false, emissive:0x101008 }), i;
+          for(i = 0; i < 7; i++){ var a = -1.1 + i*0.37, sb = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 1.0), sand); sb.position.set(Math.sin(a)*4.6, 0.45 + (i % 2)*0.05, Math.cos(a)*4.6); sb.rotation.y = a; g.add(sb); }
+          if(role === "mg"){
+            for(i = 0; i < 3; i++){ var lg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.6, 5), dark), a2 = i*2.094; lg.position.set(Math.sin(a2)*0.9, 1.1, 3.0 + Math.cos(a2)*0.9); lg.rotation.set(Math.cos(a2)*0.35, 0, -Math.sin(a2)*0.35); g.add(lg); }
+            var body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 2.2), dark); body.position.set(0, 2.5, 3.0); g.add(body);
+            var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 3.6, 8), dark); bar.rotation.x = Math.PI/2; bar.position.set(0, 2.55, 5.4); g.add(bar);
+            var am = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 1.2), oli); am.position.set(1.0, 1.9, 2.5); g.add(am);
+          } else {
+            var bush = new THREE.MeshStandardMaterial({ color:0x4c6a34, roughness:1, flatShading:true, fog:false, emissive:0x0c1406 });
+            for(i = 0; i < 4; i++){ var bs = new THREE.Mesh(new THREE.SphereGeometry(1.4, 6, 5), bush); bs.position.set(-2.2 + i*1.5, 1.2, -1.8 + (i % 2)*0.8); bs.scale.y = 0.8; g.add(bs); }
+            var rf = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 6.0, 8), dark); rf.rotation.x = Math.PI/2; rf.position.set(0.3, 2.3, 3.6); g.add(rf);
+            var sc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.4, 8), dark); sc.rotation.x = Math.PI/2; sc.position.set(0.3, 2.65, 3.2); g.add(sc);
+          }
+          g.position.set(x, y, z); g.rotation.y = yaw; G.add(g); return g;
         };
         // 연기+불꽃 꼬리(추락하는 비행기)
         API.trail = function(x, y, z){ part(x + rr(1), y, z + rr(1), { life:1.4, vy:3, vx:rr(2), vz:rr(2), s0:3, s1:11, col:0x1e1c1a, a0:0.7 }); part(x, y, z, { life:0.3, s0:5, s1:1.5, col:0xff8a1c, add:true, vx:rr(4), vz:rr(4) }); };
