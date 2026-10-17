@@ -1,0 +1,11 @@
+const { chromium } = require('playwright-core'); const fs = require('fs');
+(async () => { const [inp, outp, prevp] = process.argv.slice(2); const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); const page = await b.newPage();
+  const src = 'data:image/webp;base64,' + fs.readFileSync(inp).toString('base64');
+  const r = await page.evaluate(async (src) => { const im = new Image(); im.src = src; await im.decode(); const S = 3, W = im.naturalWidth*S, H = im.naturalHeight*S;
+    const poly = [[281,38],[292,30],[310,34],[322,62],[330,56],[342,53],[392,53],[398,40],[412,28],[430,30],[437,50],[438,82],[430,100],[424,108],[440,113],[455,121],[452,131],[430,138],[421,146],[424,170],[420,190],[424,205],[433,222],[432,262],[428,290],[418,304],[410,316],[404,328],[372,331],[362,318],[352,330],[324,331],[318,318],[306,300],[300,260],[300,228],[310,212],[318,200],[320,185],[306,168],[302,150],[300,138],[272,130],[260,122],[276,114],[297,108],[290,90],[281,60]];
+    const mk = document.createElement('canvas'); mk.width = W; mk.height = H; const mg = mk.getContext('2d'); mg.fillStyle = '#000'; mg.beginPath(); poly.forEach((p, i) => i ? mg.lineTo(p[0]*S, p[1]*S) : mg.moveTo(p[0]*S, p[1]*S)); mg.closePath(); mg.fill(); mg.filter = 'blur(3px)'; mg.drawImage(mk, 0, 0);
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(im, 0, 0, W, H); g.globalCompositeOperation = 'destination-in'; g.drawImage(mk, 0, 0);
+    const x0 = 250*S, y0 = 20*S, x1 = 470*S, y1 = 340*S; const o = document.createElement('canvas'); o.width = x1 - x0; o.height = y1 - y0; o.getContext('2d').drawImage(c, x0, y0, x1 - x0, y1 - y0, 0, 0, x1 - x0, y1 - y0);
+    const pv = document.createElement('canvas'); pv.width = o.width; pv.height = o.height; const pg = pv.getContext('2d'); pg.fillStyle = '#86b84a'; pg.fillRect(0, 0, pv.width, pv.height); pg.drawImage(o, 0, 0);
+    return { w: o.width, h: o.height, d: o.toDataURL('image/webp', 0.92), p: pv.toDataURL('image/png') }; }, src);
+  fs.writeFileSync(outp, r.d.split(',')[1], 'base64'); fs.writeFileSync(prevp, r.p.split(',')[1], 'base64'); console.log(r.w, r.h); await b.close(); })();

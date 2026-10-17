@@ -3,7 +3,7 @@ SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/pub/index.html", encoding="utf-8").read()
 import base64
 MN = {k: base64.b64encode(open(SP + "/w/mn/" + k + ".webp","rb").read()).decode() for k in ("front","left","right","back","roof","gate")}
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode())
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_B.js", encoding="utf-8").read().replace("__LUCIA__", base64.b64encode(open(SP + "/w/rusha_cut.webp","rb").read()).decode()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode())
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
@@ -64,6 +64,10 @@ sub("    fallMat.map = fallStrip;", "    var fallMistTex = canvasTex(64, 64, fun
 sub("function villageHint(p){                     // 마을에서 E 를 누르면 무엇을 하는지 알려줘요 (없으면 null)\n  var ah = window.airHint ? window.airHint(p) : null; if(ah) return ah;\n", "function villageHint(p){                     // 마을에서 E 를 누르면 무엇을 하는지 알려줘요 (없으면 null)\n  var ah = window.airHint ? window.airHint(p) : null; if(ah) return ah;\n  var mh = window.mansionHint ? window.mansionHint(p) : null; if(mh) return mh;\n", "mansion hint")
 sub("  if(window.airInteract && window.airInteract(p)) return true;\n", "  if(window.airInteract && window.airInteract(p)) return true;\n  if(window.mansionInteract && window.mansionInteract(p)) return true;\n", "mansion interact")
 sub("        if(window.airTick) window.airTick(t, dt, p);\n", "        if(window.airTick) window.airTick(t, dt, p);\n        if(window.mansionTick) window.mansionTick(t, dt, p);\n", "mansion tick")
+
+sub("    if(memorialCleared()) return; // already won in a previous session: no battle\n", "    three.battle = null; return;      // 실시간 전투는 턴제 전투(block_B)로 바뀌었어요\n", "old battle off")
+sub("function update(dt){\n  var p = state.player;\n", "function update(dt){\n  if(window.tbActive && window.tbActive()){ window.tbFrame(dt); return; }\n  var p = state.player;\n", "update hook")
+sub("        if(window.mansionTick) window.mansionTick(t, dt, p);\n", "        if(window.mansionTick) window.mansionTick(t, dt, p);\n        if(window.tbTick) window.tbTick(t, dt, p);\n", "tb tick")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
 HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt, SKY:SKY, SKY_PROPS:SKY_PROPS, SKY_SPIRAL:SKY_SPIRAL, skyWalkable:skyWalkable, tryInteract:tryInteract, villageHint:villageHint, CHARACTERS:CHARACTERS, setRef:function(v){SKY_REF=v;}, HILLS:HILLS, insideAnyHill:insideAnyHill, LAND_RECTS:LAND_RECTS, TOWN_RECTS:TOWN_RECTS, LANDMARKS:LANDMARKS, MT:MT};\n"
