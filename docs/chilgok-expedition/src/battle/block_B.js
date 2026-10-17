@@ -13,6 +13,23 @@
       var S = { state:"idle", active:false, turn:1, moves:MOVES, acted:false, cd:{ q:0, w:0, e:0 }, anim:null, cool:0, log:[], menu:false, dlg:null, intro:0, prevKeys:{}, tw:null, ended:false };
       var ROKT = { kind:"tank", side:"rok", gx:0, gz:-19, hp:190, vhp:190, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
       var NKT = { kind:"tank", side:"nk", gx:0, gz:31, hp:190, vhp:190, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
+      // ---------- 유닛 데이터 시트 (UnitData: 체력/공격력) ----------
+      // 표는 data/units.csv (구글 시트/엑셀에서 열어 편집). 첫 두 행 Player / Enemy = 국군 병사 / 북한군 병사, 나머지는 토끼·루샤·탱크.
+      // 게임 시작(전투 편성) 때 이 체력으로 설정하고, 공격하면 공격력만큼 체력을 깎아요.
+      var UNIT_CSV = "__UNIT_CSV__";
+      var UNIT_SHEET_URL = "";      // 구글 시트 '웹에 게시 → CSV' 주소를 넣으면 시작 때 그 표를 읽어요 (실패하면 내장 표 사용)
+      function UnitData(id, name, hp, atk){ return { id:id, name:name, hp:hp, atk:atk }; }
+      var UD = { player:UnitData("Player", "국군 병사", 100, 40), enemy:UnitData("Enemy", "북한군 병사", 100, 40), rabbit:UnitData("Rabbit", "토끼", 300, 30), lucia:UnitData("Lucia", "루샤", 300, 40), tankplayer:UnitData("TankPlayer", "국군 탱크", 190, 85), tankenemy:UnitData("TankEnemy", "북한군 탱크", 190, 85) };
+      function parseUnitCsv(txt){
+        var rows = String(txt || "").replace(/\r/g, "").split("\n").map(function(l){ return l.trim(); }).filter(function(l){ return l; }), n = 0; if(rows.length < 2) return 0;
+        var head = rows[0].split(",").map(function(h){ return h.trim().toLowerCase(); }), ci = head.indexOf("id"), ch = head.indexOf("hp"), ca = head.indexOf("atk"), cn = head.indexOf("name"); if(ci < 0 || ch < 0 || ca < 0) return 0;
+        rows.slice(1).forEach(function(r){ var c = r.split(","), key = (c[ci] || "").trim().toLowerCase(), hp = parseFloat(c[ch]), atk = parseFloat(c[ca]); if(!UD[key] || !(hp >= 1) || !(atk >= 0)){ if(key && window.console) console.warn("유닛 시트: 건너뜀", r); return; } UD[key].hp = Math.round(hp); UD[key].atk = Math.round(atk); if(cn >= 0 && c[cn]) UD[key].name = c[cn].trim(); n++; });
+        return n;
+      }
+      parseUnitCsv(UNIT_CSV);
+      window.UnitSheet = { data:UD, csv:UNIT_CSV, load:function(txt){ var n = parseUnitCsv(txt); if(n && built && !S.active) setupFormation(); return n; } };
+      function loadRemoteSheet(){ var url = UNIT_SHEET_URL; try{ url = url || localStorage.getItem("unitSheetUrl") || ""; }catch(e){} if(!url || !window.fetch) return; fetch(url).then(function(r){ return r.text(); }).then(function(t){ window.UnitSheet.load(t); }).catch(function(){}); }
+      function atkOf(u){ return Math.round(u.atk*((u.side === "rok" && !(u.brain > 0) && LUC.curse > 0) ? 0.9 : 1)); }
       var FX = null, barList = [], pending = [], POSE = null;
       function later(sec, fn){ pending.push({ t:sec, fn:fn }); }
       function shake(p){ S.shake = Math.max(S.shake || 0, p); }
@@ -75,16 +92,16 @@
       function mkSprite(t, h, asp, tint){ var m = new THREE.SpriteMaterial({ map:t, transparent:true, alphaTest:0.4, fog:false, color:tint || 0xffffff }); var s = new THREE.Sprite(m); s.scale.set(h*asp, h, 1); s.center.set(0.5, 0); return s; }
       var RIG = null, LUC3 = null, LV = { x:0, z:0, vis:false, cast:0, die:-1, walkIn:false, laugh:false };
       function mkUnit(side, gx, gz, i){
-        var u = { kind:"soldier", side:side, id:side + i, gx:gx, gz:gz, hp:HP, vhp:HP, shot:null, alive:true, x:wx(gx), z:wz(gz), fx:wx(gx), fz:wz(gz), brain:0, charm:0, bar:null, hit:0, die:-1, fireT:0, cheer:0, vis:side === "rok" };
+        var ud = side === "rok" ? UD.player : UD.enemy, u = { kind:"soldier", side:side, id:side + i, gx:gx, gz:gz, hp:ud.hp, vhp:ud.hp, maxHp:ud.hp, atk:ud.atk, shot:null, alive:true, x:wx(gx), z:wz(gz), fx:wx(gx), fz:wz(gz), brain:0, charm:0, bar:null, hit:0, die:-1, fireT:0, cheer:0, vis:side === "rok" };
         occ[key(gx, gz)] = u; return u;
       }
       function setupFormation(){
         var i, c, r; rok.length = 0; nk.length = 0; occ = {};
         for(r = 0; r < 10; r++) for(c = 0; c < 10; c++){ var gx = c - 5, gz = -1 - r; if(gx === 0 && gz === -1 && false) continue; var u = mkUnit("rok", gx, gz, r*10 + c); rok.push(u); }
         for(r = 0; r < 10; r++) for(c = 0; c < 10; c++){ var gx2 = c - 5, gz2 = 8 + r; var n = mkUnit("nk", gx2, gz2 + 40, r*10 + c); nk.push(n); }
-        RAB.gx = 0; RAB.gz = 0; RAB.hp = RAB.vhp = 300; RAB.def = false; RAB.items = 3; RAB.alive = true; RAB.shots = 0; occ[key(0, 0)] = RAB;
-        LUC.gx = 0; LUC.gz = 21 + 40; LUC.hp = LUC.vhp = 300; LUC.alive = true; LUC.cdQ = 0; LUC.cdW = 0; LUC.usedE = false; LUC.curse = 0; occ[key(LUC.gx, LUC.gz)] = LUC;
-        [ROKT, NKT].forEach(function(k){ k.hp = k.vhp = 190; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.engaged = false; k.gz = k.side === "rok" ? -19 : 31 + 40; k.gx = 0; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
+        RAB.gx = 0; RAB.gz = 0; RAB.maxHp = UD.rabbit.hp; RAB.atk = UD.rabbit.atk; RAB.hp = RAB.vhp = RAB.maxHp; RAB.def = false; RAB.items = 3; RAB.alive = true; RAB.shots = 0; occ[key(0, 0)] = RAB;
+        LUC.gx = 0; LUC.gz = 21 + 40; LUC.maxHp = UD.lucia.hp; LUC.atk = UD.lucia.atk; LUC.hp = LUC.vhp = LUC.maxHp; LUC.alive = true; LUC.cdQ = 0; LUC.cdW = 0; LUC.usedE = false; LUC.curse = 0; occ[key(LUC.gx, LUC.gz)] = LUC;
+        [ROKT, NKT].forEach(function(k){ var tu = k.side === "rok" ? UD.tankplayer : UD.tankenemy; k.maxHp = tu.hp; k.atk = tu.atk; k.hp = k.vhp = tu.hp; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.engaged = false; k.gz = k.side === "rok" ? -19 : 31 + 40; k.gx = 0; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
         TM.clear(); S.volleyDone = false; TM.team = "player"; TM.group = 0;
       }
       // ---------- 이펙트 (선 / 글자 / 물방울) ----------
@@ -124,7 +141,7 @@
       function refreshUI(){
         if(!ui) return; var c = counts(), ph = S.state === "player" ? "<b style='color:#9fe0ff'>우리 차례</b>" : "<b style='color:#ff9f9f'>" + (S.state === "enemy" ? "적 차례" : "…") + "</b>";
         ui.top.style.display = S.active ? "block" : "none";
-        ui.top.innerHTML = "⚔ <b>턴 " + S.turn + "</b> · " + ph + "<br>🎖 국군 " + c.a + "/100 · 🪖 북한군 " + c.b + "/100<br>🐰 HP " + Math.max(0, RAB.hp) + "/300" + (RAB.def ? " 🛡" : "") + " · 😈 루샤 " + Math.max(0, LUC.hp) + "/300" + (LUC.curse > 0 ? " · 음침한 기운 " + LUC.curse + "턴" : "");
+        ui.top.innerHTML = "⚔ <b>턴 " + S.turn + "</b> · " + ph + "<br>🎖 국군 " + c.a + "/100 · 🪖 북한군 " + c.b + "/100<br>🐰 HP " + Math.max(0, RAB.hp) + "/" + RAB.maxHp + (RAB.def ? " 🛡" : "") + " · 😈 루샤 " + Math.max(0, LUC.hp) + "/" + LUC.maxHp + (LUC.curse > 0 ? " · 음침한 기운 " + LUC.curse + "턴" : "");
         var pt = S.active && S.state === "player"; ui.menu.style.display = pt ? "flex" : "none";
         ui.info.textContent = "이동 " + S.moves + "칸 남음 (방향키/WASD 한 칸씩) · " + (S.acted ? "행동 완료" : "행동 1회") + " · 우클릭: 되돌리기";
         ui.sQ.innerHTML = "🥕 당근 나눠주기 <small>Q" + (S.cd.q > 0 ? " ·" + S.cd.q + "턴" : "") + "</small>"; ui.sW.innerHTML = "🦵 뒷다리 걷어차기 <small>W" + (S.cd.w > 0 ? " ·" + S.cd.w + "턴" : "") + "</small>"; ui.sE.innerHTML = "💘 토끼의 유혹 <small>E" + (S.cd.e > 0 ? " ·" + S.cd.e + "턴" : "") + "</small>";
@@ -184,12 +201,12 @@
       }
       function afterAction(){ S.acted = true; S.menu = false; ui.skills.style.display = "none"; refreshUI(); if(LUC.hp <= 0){ S.state = "anim"; finishWin(); } }
       function doAttack(){ if(S.state !== "player" || S.acted) return; var f = adjFoes(1); if(!f.length){ say("적이 너무 멀어요. 방향키로 가까이 가세요"); return; } var t0 = f[0];
-        TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t0, 30, 1)); impact(c, true); TM.push(SnapCommand(afterAction)); }); say("⚔ 토끼의 공격! 30 데미지"); }
+        TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t0, RAB.atk, 1)); impact(c, true); TM.push(SnapCommand(afterAction)); }); say("⚔ 토끼의 공격! " + RAB.atk + " 데미지"); }
       function doDefend(){ if(S.state !== "player" || S.acted) return; TM.batch(function(){ TM.push(SnapCommand(function(){ RAB.def = true; afterAction(); })); }); say("🛡 방어 자세! 이번 적 차례 피해 절반"); }
-      function doItem(){ if(S.state !== "player" || S.acted) return; if(RAB.items <= 0){ say("아이템이 없어요"); return; } TM.batch(function(){ TM.push(SnapCommand(function(){ RAB.items--; RAB.hp = RAB.vhp = Math.min(300, RAB.hp + 50); floatText(state.player.x, UH + 3, state.player.z, "+50", "#9fffa8"); afterAction(); })); }); say("🍙 주먹밥으로 HP +50"); }
+      function doItem(){ if(S.state !== "player" || S.acted) return; if(RAB.items <= 0){ say("아이템이 없어요"); return; } TM.batch(function(){ TM.push(SnapCommand(function(){ RAB.items--; RAB.hp = RAB.vhp = Math.min(RAB.maxHp, RAB.hp + 50); floatText(state.player.x, UH + 3, state.player.z, "+50", "#9fffa8"); afterAction(); })); }); say("🍙 주먹밥으로 HP +50"); }
       function toggleSkills(){ if(S.state !== "player" || S.acted) return; S.menu = !S.menu; ui.skills.style.display = S.menu ? "flex" : "none"; }
       function skillQ(){ if(S.state !== "player" || S.acted) return; if(S.cd.q > 0){ say("당근은 " + S.cd.q + "턴 뒤에 다시 나눠줄 수 있어요"); return; } var n = 0;
-        TM.batch(function(){ TM.push(SnapCommand(function(){ rok.forEach(function(u){ if(u.alive && !(u.brain > 0) && dist(u, RAB) <= 6){ var h = Math.min(HP, u.hp + 30) - u.hp; if(h > 0){ u.hp += h; u.vhp = u.hp; n++; if(n <= 6) floatText(u.x, UH + 2, u.z, "+30", "#9fffa8"); } } }); RAB.hp = RAB.vhp = Math.min(300, RAB.hp + 30); S.cd.q = 3; afterAction(); })); }); say("🥕 당근 나눠주기! 주변 국군 " + n + "명 HP +30"); }
+        TM.batch(function(){ TM.push(SnapCommand(function(){ rok.forEach(function(u){ if(u.alive && !(u.brain > 0) && dist(u, RAB) <= 6){ var h = Math.min(u.maxHp, u.hp + 30) - u.hp; if(h > 0){ u.hp += h; u.vhp = u.hp; n++; if(n <= 6) floatText(u.x, UH + 2, u.z, "+30", "#9fffa8"); } } }); RAB.hp = RAB.vhp = Math.min(RAB.maxHp, RAB.hp + 30); S.cd.q = 3; afterAction(); })); }); say("🥕 당근 나눠주기! 주변 국군 " + n + "명 HP +30"); }
       function skillW(){ if(S.state !== "player" || S.acted) return; if(S.cd.w > 0){ say("뒷다리 걷어차기는 " + S.cd.w + "턴 뒤에 쓸 수 있어요"); return; } var f = adjFoes(1); if(!f.length){ say("북한군 바로 앞(1칸)으로 가서 쓰세요"); return; } var t = f[0];
         TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t, 80, 1)); var tp = tpos(t), pp = state.player; POSE = { kind:"kick", t:0, dur:1.25, yaw:Math.atan2(tp.x - pp.x, tp.z - pp.z) + Math.PI + 0.7 };
           later(0.47, function(){ impact(c, true); t.hit = 0.8; shake(0.5); if(FX){ FX.puff(tp.x, 6, tp.z, "boom"); FX.ring(tp.x, 5, tp.z, 22, 0.45); FX.puff(tp.x, 6, tp.z, "spark"); } floatText(tp.x, tyOf(t) + 4, tp.z, "💥 KICK!", "#fff2a0"); });
@@ -214,13 +231,13 @@
         if(n.d > 2){ stepToward(u, n.o.gx, n.o.gz); if(n.d > RANGE + 2) stepToward(u, n.o.gx, n.o.gz); }                        // 앞으로 한 칸 (적과 2칸이 될 때까지)
         var bestL = null, q, o; for(q = 0; q < foes.length; q++){ o = foes[q]; if(!o.alive || o === RAB || dist(u, o) > RANGE) continue; if(!bestL || o.hp < bestL.hp || (o.hp === bestL.hp && dist(u, o) < dist(u, bestL))) bestL = o; }
         if(foes.indexOf(RAB) >= 0 && RAB.shots < 2 && dist(u, RAB) <= RANGE && (rnd() < 0.2 || !bestL)) bestL = RAB;      // 토끼는 가끔만 노려요
-        if(bestL){ if(bestL === RAB) RAB.shots++; var ph = bestL === RAB ? 0.55 : (bestL === LUC ? 0.7 : (bestL.kind === "tank" ? 0.85 : 0.75)); u.shot = TM.push(AttackCommand(u, bestL, ownDmg, ph)); u.fireWait = 0.05 + Math.random()*1.05; var tp = tpos(bestL); u.fx = tp.x; u.fz = tp.z; }
+        if(bestL){ if(bestL === RAB) RAB.shots++; var ph = bestL === RAB ? 0.55 : (bestL === LUC ? 0.7 : (bestL.kind === "tank" ? 0.85 : 0.75)); u.shot = TM.push(AttackCommand(u, bestL, atkOf(u), ph)); u.fireWait = 0.05 + Math.random()*1.05; var tp = tpos(bestL); u.fx = tp.x; u.fz = tp.z; }
       }
       function tankAct(k, foes){
         if(!k.alive) return; var own = (k.side === "rok" ? rok : nk).filter(function(u){ return u.alive && !(u.brain > 0); }).length; if(own > 0) return;      // 앞줄(자기 편 군인)이 모두 쓰러진 뒤에야 나서요
         if(!k.engaged){ k.engaged = true; say(k.side === "rok" ? "🛡 국군 탱크가 앞으로 나섰어요!" : "🪖 북한군 탱크가 앞으로 나섰어요!"); }
         var c = foes.filter(function(o){ return o.alive && (o.kind === "soldier" || o.kind === "rabbit"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = pool[Math.floor(rnd()*pool.length)];
-        var near = c.filter(function(o){ return o !== tg; }).sort(function(a, b){ return dist(a, tg) - dist(b, tg); }).slice(0, 2), all = [tg].concat(near).map(function(o){ return TM.push(AttackCommand(k, o, 85, 1)); });      // 맞은 곳 근처 3명 모두 -85
+        var near = c.filter(function(o){ return o !== tg; }).sort(function(a, b){ return dist(a, tg) - dist(b, tg); }).slice(0, 2), all = [tg].concat(near).map(function(o){ return TM.push(AttackCommand(k, o, k.atk, 1)); });      // 맞은 곳 근처 3명 모두 -85
         k.shot = { all:all, tgt:tg }; k.fireWait = 0.7; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
       }
       function foesOfROK(){ var l = []; nk.forEach(function(u){ if(u.alive) l.push(u); }); rok.forEach(function(u){ if(u.alive && u.brain > 0) l.push(u); }); if(LUC.alive) l.push(LUC); if(NKT.alive) l.push(NKT); return l; }
@@ -228,7 +245,7 @@
       function runPhase(team){
         var i; atkCount = 0; RAB.shots = 0;
         if(team === "rok"){ TM.team = "player"; TM.group = ++TM.gid; TM.push(SnapCommand(function(){ S.volleyDone = true; }));
-          var dm = LUC.curse > 0 ? 36 : DMG, fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(a, b){ return b.gz - a.gz; }); arr.forEach(function(u){ soldierAct(u, fo, dm); }); tankAct(ROKT, fo); say("🎖 국군 일제 사격! (공격 " + dm + ")"); }
+          var dm = Math.round(UD.player.atk*(LUC.curse > 0 ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(a, b){ return b.gz - a.gz; }); arr.forEach(function(u){ soldierAct(u, fo, dm); }); tankAct(ROKT, fo); say("🎖 국군 일제 사격! (공격 " + dm + ")"); }
         else {
           TM.team = "enemy"; TM.group = ++TM.gid;
           lucia();
@@ -245,7 +262,7 @@
         if(!LUC.usedE && S.turn >= 10){ TM.push(SnapCommand(function(){ LUC.usedE = true; rok.forEach(function(u){ if(u.alive && !(u.brain > 0)){ dealTo(u, 10); } }); floatText(wx(LUC.gx), 22, wz(LUC.gz), "😈 사악한 미소", "#d9a0ff"); })); say("😈 루샤의 사악한 미소! 국군 전체 -10"); return; }
         if(LUC.cdQ <= 0 && LUC.curse <= 0){ TM.push(SnapCommand(function(){ LUC.curse = 3; LUC.cdQ = 6; floatText(wx(LUC.gx), 22, wz(LUC.gz), "음침한 기운", "#d9a0ff"); })); say("😈 음침한 기운! 3턴간 국군 공격 40 → 36"); return; }
         if(LUC.cdW <= 0){ var c = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(a, b){ return dist(a, LUC) - dist(b, LUC); })[0]; if(c){ TM.push(SnapCommand(function(){ c.brain = 2; LUC.cdW = 3; floatText(c.x, UH + 3, c.z, "세뇌!", "#d9a0ff"); })); say("😈 어둠의 손길! 국군 1명이 2턴 세뇌됐어요"); return; } }
-        if(tgt.d <= 5){ LV.cast = 0.5; var cm = TM.push(AttackCommand(LUC, tgt.o, DMG, 0.9)); if(FX){ var tp = tpos(tgt.o); FX.bullet({ x:wx(LUC.gx), z:wz(LUC.gz), y:14 }, tp, { hit:cm.hit, delay:0.3, cb:function(h, x, y, z){ impact(cm, h, x, y, z); } }); } say("😈 루샤의 공격!"); }
+        if(tgt.d <= 5){ LV.cast = 0.5; var cm = TM.push(AttackCommand(LUC, tgt.o, LUC.atk, 0.9)); if(FX){ var tp = tpos(tgt.o); FX.bullet({ x:wx(LUC.gx), z:wz(LUC.gz), y:14 }, tp, { hit:cm.hit, delay:0.3, cb:function(h, x, y, z){ impact(cm, h, x, y, z); } }); } say("😈 루샤의 공격!"); }
         else { stepToward(LUC, tgt.o.gx, tgt.o.gz); }
       }
       function afterPhase(team){
@@ -267,7 +284,7 @@
       // ---------- 매 프레임 ----------
       function buildAll(){
         if(built) return; built = true; G = new THREE.Group(); G.name = "turnBattle"; scene.add(G); 
-        initFx(); setupFormation(); mkUI(); wall = { x:0, z:Z0 - 66, hx:80, hz:4 }; window.ROCK_RECTS.push(wall);
+        initFx(); setupFormation(); loadRemoteSheet(); mkUI(); wall = { x:0, z:Z0 - 66, hx:80, hz:4 }; window.ROCK_RECTS.push(wall);
       }
       window.__tbS = S; window.__tbDbg = { LUC:LUC, RAB:RAB, rok:rok, nk:nk }; window.tbActive = function(){ return S.active; };
       window.tbFrame = function(dt){
@@ -325,10 +342,10 @@
 }
         if(RIG) RIG.update(all, tm, dt);
         [ROKT, NKT].forEach(function(k){ if(!(S.state === "intro" && k.side === "nk" && S.intro === 0)) lerpTo(k, dt, 5); if(k.fireWait > 0){ k.fireWait -= dt; if(k.fireWait <= 0){ k.fireWait = 0; fireTank(k); } } if(k.hit > 0) k.hit -= dt; if(k.t3){ k.t3.place(k.x, k.z); k.t3.update(dt, tm); } });
-        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 3.0, z:u.z, w:3.6, h:0.45, frac:u.vhp/HP, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
-          bl.push({ x:state.player.x, y:UH + 5.2, z:state.player.z, w:8, h:0.8, frac:RAB.vhp/300, col:0x4aa3ff, vis:S.active && RAB.vhp > 0 });
-          bl.push({ x:LV.x, y:23.5, z:LV.z, w:8, h:0.8, frac:LUC.vhp/300, col:0xb06aff, vis:S.active && LV.vis && LUC.vhp > 0 && LV.die < 0 });
-          [ROKT, NKT].forEach(function(k){ bl.push({ x:k.x, y:33, z:k.z, w:20, h:1.5, frac:k.vhp/190, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });
+        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 3.0, z:u.z, w:3.6, h:0.45, frac:u.vhp/u.maxHp, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
+          bl.push({ x:state.player.x, y:UH + 5.2, z:state.player.z, w:8, h:0.8, frac:RAB.vhp/RAB.maxHp, col:0x4aa3ff, vis:S.active && RAB.vhp > 0 });
+          bl.push({ x:LV.x, y:23.5, z:LV.z, w:8, h:0.8, frac:LUC.vhp/LUC.maxHp, col:0xb06aff, vis:S.active && LV.vis && LUC.vhp > 0 && LV.die < 0 });
+          [ROKT, NKT].forEach(function(k){ bl.push({ x:k.x, y:33, z:k.z, w:20, h:1.5, frac:k.vhp/k.maxHp, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });
           FX.bars(bl, three.camera); }
         // 루샤 (3D, 걷고 웃고 주문을 외워요)
         if(LUC3){ var ltz = wz(LUC.gz), ltx = wx(LUC.gx); if(LV.vis && !LV.walkIn){ LV.x += (ltx - LV.x)*Math.min(1, dt*3.0); LV.z += (ltz - LV.z)*Math.min(1, dt*3.0); }
