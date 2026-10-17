@@ -11,9 +11,19 @@
       var RAB = { kind:"rabbit", gx:0, gz:0, hp:300, vhp:300, shots:0, def:false, items:3, alive:true };
       var LUC = { kind:"lucia", gx:0, gz:21, hp:300, vhp:300, alive:true, cdQ:0, cdW:0, usedE:false, curse:0 };
       var S = { state:"idle", active:false, turn:1, moves:MOVES, acted:false, cd:{ q:0, w:0, e:0 }, anim:null, cool:0, log:[], menu:false, dlg:null, intro:0, prevKeys:{}, tw:null, ended:false };
-      var ROKT = { kind:"tank", side:"rok", gx:0, gz:-13, hp:300, vhp:300, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
-      var NKT = { kind:"tank", side:"nk", gx:0, gz:25, hp:300, vhp:300, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
-      var FX = null, barList = [];
+      var ROKT = { kind:"tank", side:"rok", gx:0, gz:-19, hp:190, vhp:190, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
+      var NKT = { kind:"tank", side:"nk", gx:0, gz:31, hp:190, vhp:190, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
+      var FX = null, barList = [], pending = [], POSE = null;
+      function later(sec, fn){ pending.push({ t:sec, fn:fn }); }
+      function shake(p){ S.shake = Math.max(S.shake || 0, p); }
+      function smooth(x){ x = Math.max(0, Math.min(1, x)); return x*x*(3 - 2*x); }
+      // 함곡이 3D 모델의 포즈 덮어쓰기 (block_H 의 hamgokiUpdate 가 불러요): 뒷다리 차기 / 유혹
+      window.hamPose = function(dt){
+        if(!POSE) return null; POSE.t += dt; var t = POSE.t; if(t > POSE.dur){ POSE = null; return null; }
+        if(POSE.kind === "kick"){ var wind = smooth(t/0.4), snap = smooth((t - 0.4)/0.09), rec = smooth((t - 0.85)/0.35), a = (0.15*wind + 1.45*snap)*(1 - rec), osc = (t > 0.45 && t < 0.85) ? Math.sin(t*46)*0.18 : 0;
+          return { legs:a + osc, legs2:a*0.9 - osc, lean:(0.25*wind + 0.85*snap)*(1 - rec), arm:-0.7*(wind)*(1 - rec), az:0.25, bob:(10*wind + 14*snap)*(1 - rec), yaw:POSE.yaw, ear:0.7 }; }
+        var up = smooth(t/0.25)*(1 - smooth((t - 0.95)/0.2)); return { arm:-2.9*up, az:0.5*up, lean:-0.12*up, bob:Math.abs(Math.sin(t*11))*13*up, legs:0, legs2:0, ear:0.35 };
+      }
       var rnd = (function(){ var s = 7771; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; })();
 
       // ---------- 명령 패턴: ICommand { execute(), undo() } / TurnManager.commandHistory (Stack<ICommand>) ----------
@@ -74,7 +84,7 @@
         for(r = 0; r < 10; r++) for(c = 0; c < 10; c++){ var gx2 = c - 5, gz2 = 8 + r; var n = mkUnit("nk", gx2, gz2 + 40, r*10 + c); nk.push(n); }
         RAB.gx = 0; RAB.gz = 0; RAB.hp = RAB.vhp = 300; RAB.def = false; RAB.items = 3; RAB.alive = true; RAB.shots = 0; occ[key(0, 0)] = RAB;
         LUC.gx = 0; LUC.gz = 21 + 40; LUC.hp = LUC.vhp = 300; LUC.alive = true; LUC.cdQ = 0; LUC.cdW = 0; LUC.usedE = false; LUC.curse = 0; occ[key(LUC.gx, LUC.gz)] = LUC;
-        [ROKT, NKT].forEach(function(k){ k.hp = k.vhp = 300; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.gz = k.side === "rok" ? -13 : 25 + 40; k.gx = 0; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
+        [ROKT, NKT].forEach(function(k){ k.hp = k.vhp = 190; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.engaged = false; k.gz = k.side === "rok" ? -19 : 31 + 40; k.gx = 0; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
         TM.clear(); S.volleyDone = false; TM.team = "player"; TM.group = 0;
       }
       // ---------- 이펙트 (선 / 글자 / 물방울) ----------
@@ -169,8 +179,8 @@
         FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:false, delay:0.09 + Math.random()*0.05, ty:5 + Math.random()*2 }); if(Math.random() < 0.6) FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:false, delay:0.2 + Math.random()*0.06 });
       }
       function fireTank(k){
-        var sh = k.shot; k.shot = null; if(!sh || !k.t3 || !FX) return; var tp = tpos(sh.main.tgt), a = Math.atan2(tp.x - k.x, tp.z - k.z); k.t3.fire();
-        FX.shell({ x:k.x + Math.sin(a)*12, y:5.2, z:k.z + Math.cos(a)*12 }, tp, { hit:sh.main.hit, cb:function(){ if(sh.main.hit) impact(sh.main, true); else impact(sh.main, false, tp.x + 6, 0, tp.z); sh.spl.forEach(function(sc){ impact(sc, true); }); } });
+        var sh = k.shot; k.shot = null; if(!sh || !k.t3 || !FX) return; var tp = tpos(sh.tgt), a = Math.atan2(tp.x - k.x, tp.z - k.z); k.t3.fire(); shake(0.4);
+        FX.shell({ x:k.x + Math.sin(a)*37, y:15, z:k.z + Math.cos(a)*37 }, tp, { hit:true, cb:function(){ shake(1); sh.all.forEach(function(c){ impact(c, true); c.tgt.hit = 0.7; }); } });
       }
       function afterAction(){ S.acted = true; S.menu = false; ui.skills.style.display = "none"; refreshUI(); if(LUC.hp <= 0){ S.state = "anim"; finishWin(); } }
       function doAttack(){ if(S.state !== "player" || S.acted) return; var f = adjFoes(1); if(!f.length){ say("적이 너무 멀어요. 방향키로 가까이 가세요"); return; } var t0 = f[0];
@@ -181,9 +191,12 @@
       function skillQ(){ if(S.state !== "player" || S.acted) return; if(S.cd.q > 0){ say("당근은 " + S.cd.q + "턴 뒤에 다시 나눠줄 수 있어요"); return; } var n = 0;
         TM.batch(function(){ TM.push(SnapCommand(function(){ rok.forEach(function(u){ if(u.alive && !(u.brain > 0) && dist(u, RAB) <= 6){ var h = Math.min(HP, u.hp + 30) - u.hp; if(h > 0){ u.hp += h; u.vhp = u.hp; n++; if(n <= 6) floatText(u.x, UH + 2, u.z, "+30", "#9fffa8"); } } }); RAB.hp = RAB.vhp = Math.min(300, RAB.hp + 30); S.cd.q = 3; afterAction(); })); }); say("🥕 당근 나눠주기! 주변 국군 " + n + "명 HP +30"); }
       function skillW(){ if(S.state !== "player" || S.acted) return; if(S.cd.w > 0){ say("뒷다리 걷어차기는 " + S.cd.w + "턴 뒤에 쓸 수 있어요"); return; } var f = adjFoes(1); if(!f.length){ say("북한군 바로 앞(1칸)으로 가서 쓰세요"); return; } var t = f[0];
-        TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t, 80, 1)); impact(c, true); TM.push(SnapCommand(function(){ S.cd.w = 2; afterAction(); })); }); say("🦵 뒷다리 걷어차기! 80 데미지"); }
+        TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t, 80, 1)); var tp = tpos(t), pp = state.player; POSE = { kind:"kick", t:0, dur:1.25, yaw:Math.atan2(tp.x - pp.x, tp.z - pp.z) + Math.PI + 0.7 };
+          later(0.47, function(){ impact(c, true); t.hit = 0.8; shake(0.5); if(FX){ FX.puff(tp.x, 6, tp.z, "boom"); FX.ring(tp.x, 5, tp.z, 22, 0.45); FX.puff(tp.x, 6, tp.z, "spark"); } floatText(tp.x, tyOf(t) + 4, tp.z, "💥 KICK!", "#fff2a0"); });
+          TM.push(SnapCommand(function(){ S.cd.w = 2; afterAction(); })); }); say("🦵 뒷다리 걷어차기! 80 데미지"); }
       function skillE(){ if(S.state !== "player" || S.acted) return; if(S.cd.e > 0){ say("유혹은 " + S.cd.e + "턴 뒤에 쓸 수 있어요"); return; } var c = nk.filter(function(u){ return u.alive && dist(u, RAB) <= 10; }).sort(function(a, b){ return dist(a, RAB) - dist(b, RAB); }).slice(0, 2); if(!c.length){ say("근처(10칸)에 북한군이 없어요"); return; }
-        TM.batch(function(){ TM.push(SnapCommand(function(){ c.forEach(function(u){ u.charm = 2; floatText(u.x, UH + 3, u.z, "💘", "#ff9fd0"); }); S.cd.e = 4; afterAction(); })); }); say("💘 토끼의 유혹! 북한군 " + c.length + "명이 2턴 동안 따라와요"); }
+        TM.batch(function(){ TM.push(SnapCommand(function(){ POSE = { kind:"charm", t:0, dur:1.3 }; var pp = state.player; later(0.25, function(){ if(FX){ FX.hearts(pp.x, 10, pp.z, 46, true); FX.ring(pp.x, 4, pp.z, 40, 0.8); } });
+          c.forEach(function(u){ u.charm = 2; later(0.7, function(){ if(FX) FX.hearts(u.x, 9, u.z, 8, false); floatText(u.x, UH + 6, u.z, "💘", "#ff9fd0"); }); }); S.cd.e = 4; afterAction(); })); }); say("💘 토끼의 유혹! 북한군 " + c.length + "명이 2턴 동안 따라와요"); }
       function doRetreat(){ if(S.state !== "player") return; window.__tbLose = "retreat"; if(!window.confirm || window.confirm("후퇴할까요? (전투가 처음부터 다시 시작돼요)")){ say("🏃 후퇴!"); S.state = "idle"; resetAfterLoss(); if(typeof showToast === "function") showToast("🏃 후퇴했어요. 다시 국군에게 가면 전투를 시작해요"); } }
       // ---------- 턴 진행 ----------
       function endPlayerTurn(){ if(S.state !== "player" || S.tw) return; S.menu = false; ui.skills.style.display = "none"; S.state = "anim"; if(S.volleyDone){ S.state = "enemy"; refreshUI(); runPhase("nk"); } else runPhase("rok"); }
@@ -204,10 +217,11 @@
         if(bestL){ if(bestL === RAB) RAB.shots++; var ph = bestL === RAB ? 0.55 : (bestL === LUC ? 0.7 : (bestL.kind === "tank" ? 0.85 : 0.75)); u.shot = TM.push(AttackCommand(u, bestL, ownDmg, ph)); u.fireWait = 0.05 + Math.random()*1.05; var tp = tpos(bestL); u.fx = tp.x; u.fz = tp.z; }
       }
       function tankAct(k, foes){
-        if(!k.alive) return; var c = foes.filter(function(o){ return o.alive && o.kind === "soldier"; }); if(!c.length) return; var near = c.filter(function(o){ return dist(k, o) <= 24; }), pool = near.length ? near : c, tg = pool[Math.floor(rnd()*pool.length)];
-        var main = TM.push(AttackCommand(k, tg, 60, 0.8)), spl = [];
-        foes.forEach(function(o){ if(o !== tg && o.alive && o.kind !== "lucia" && o.kind !== "tank" && dist(o, tg) <= 1 && spl.length < 8) spl.push(TM.push(AttackCommand(k, o, 25, 1))); });
-        k.shot = { main:main, spl:spl }; k.fireWait = 0.6; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
+        if(!k.alive) return; var own = (k.side === "rok" ? rok : nk).filter(function(u){ return u.alive && !(u.brain > 0); }).length; if(own > 0) return;      // 앞줄(자기 편 군인)이 모두 쓰러진 뒤에야 나서요
+        if(!k.engaged){ k.engaged = true; say(k.side === "rok" ? "🛡 국군 탱크가 앞으로 나섰어요!" : "🪖 북한군 탱크가 앞으로 나섰어요!"); }
+        var c = foes.filter(function(o){ return o.alive && (o.kind === "soldier" || o.kind === "rabbit"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = pool[Math.floor(rnd()*pool.length)];
+        var near = c.filter(function(o){ return o !== tg; }).sort(function(a, b){ return dist(a, tg) - dist(b, tg); }).slice(0, 2), all = [tg].concat(near).map(function(o){ return TM.push(AttackCommand(k, o, 85, 1)); });      // 맞은 곳 근처 3명 모두 -85
+        k.shot = { all:all, tgt:tg }; k.fireWait = 0.7; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
       }
       function foesOfROK(){ var l = []; nk.forEach(function(u){ if(u.alive) l.push(u); }); rok.forEach(function(u){ if(u.alive && u.brain > 0) l.push(u); }); if(LUC.alive) l.push(LUC); if(NKT.alive) l.push(NKT); return l; }
       function foesOfNK(){ var l = []; rok.forEach(function(u){ if(u.alive && !(u.brain > 0)) l.push(u); }); l.push(RAB); if(ROKT.alive) l.push(ROKT); return l; }
@@ -238,7 +252,7 @@
         var c = counts();
         if(LUC.hp <= 0 || LUC.alive === false){ finishWin(); return; }
         if(RAB.hp <= 0){ finishLose("토끼가 쓰러졌어요…"); return; }
-        if(c.a <= 0){ finishLose("국군이 모두 쓰러졌어요…"); return; }
+        if(c.a <= 0 && !ROKT.alive){ finishLose("국군이 모두 쓰러졌어요…"); return; }
         if(team === "rok"){ S.state = "enemy"; refreshUI(); runPhase("nk"); return; }
         // 라운드 끝: 효과 감소 (적 행동 묶음에 포함 → 우클릭으로 함께 되돌려요)
         TM.push(SnapCommand(function(){
@@ -271,6 +285,7 @@
         else say("↩ 행동을 되돌렸어요");
         S.menu = false; ui.skills.style.display = "none"; refreshUI(); return true;
       }
+      window.__tbPose = function(kind, yaw){ POSE = kind === "kick" ? { kind:"kick", t:0, dur:1.25, yaw:yaw } : { kind:"charm", t:0, dur:1.3 }; }; window.__tbFx = function(){ return FX; };
       window.__tbUndo = doUndo; window.__tbTM = TM;
       window.addEventListener("contextmenu", function(e){ if(!S.active) return; e.preventDefault(); e.stopImmediatePropagation(); doUndo(); }, true);
       window.addEventListener("keydown", function(e){
@@ -289,6 +304,8 @@
         var far = Math.hypot(p.x, p.z - Z0) > 520; if(G) G.visible = !far && S.state !== "won2";
         if(!G || !G.visible) return;
         var i, u, tm = t/1000;
+        for(i = pending.length - 1; i >= 0; i--){ pending[i].t -= dt; if(pending[i].t <= 0){ var pf = pending[i].fn; pending.splice(i, 1); pf(); } }
+        { var hh = document.getElementById("canvasHolder"); if(hh){ if(S.shake > 0){ S.shake = Math.max(0, S.shake - dt*1.7); var sh0 = S.shake*7; hh.style.transform = S.shake > 0 ? "translate(" + ((Math.random() - 0.5)*sh0).toFixed(1) + "px," + ((Math.random() - 0.5)*sh0).toFixed(1) + "px)" : ""; } } }
         // 대기 중: 가까이 가면 질문
         if(S.state === "idle"){ S.cool = Math.max(0, S.cool - dt); if(S.cool <= 0 && p.z > Z0 - 100 && p.z < Z0 + 40 && Math.abs(p.x) < 90 && typeof memorialCleared === "function" && !memorialCleared()) openPrompt(); }
         // 토끼 이동 트윈
@@ -308,10 +325,10 @@
 }
         if(RIG) RIG.update(all, tm, dt);
         [ROKT, NKT].forEach(function(k){ if(!(S.state === "intro" && k.side === "nk" && S.intro === 0)) lerpTo(k, dt, 5); if(k.fireWait > 0){ k.fireWait -= dt; if(k.fireWait <= 0){ k.fireWait = 0; fireTank(k); } } if(k.hit > 0) k.hit -= dt; if(k.t3){ k.t3.place(k.x, k.z); k.t3.update(dt, tm); } });
-        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 1.7, z:u.z, w:3.6, h:0.45, frac:u.vhp/HP, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
+        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 3.0, z:u.z, w:3.6, h:0.45, frac:u.vhp/HP, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
           bl.push({ x:state.player.x, y:UH + 5.2, z:state.player.z, w:8, h:0.8, frac:RAB.vhp/300, col:0x4aa3ff, vis:S.active && RAB.vhp > 0 });
           bl.push({ x:LV.x, y:23.5, z:LV.z, w:8, h:0.8, frac:LUC.vhp/300, col:0xb06aff, vis:S.active && LV.vis && LUC.vhp > 0 && LV.die < 0 });
-          [ROKT, NKT].forEach(function(k){ bl.push({ x:k.x, y:10.5, z:k.z, w:9, h:0.8, frac:k.vhp/300, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });
+          [ROKT, NKT].forEach(function(k){ bl.push({ x:k.x, y:33, z:k.z, w:20, h:1.5, frac:k.vhp/190, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });
           FX.bars(bl, three.camera); }
         // 루샤 (3D, 걷고 웃고 주문을 외워요)
         if(LUC3){ var ltz = wz(LUC.gz), ltx = wx(LUC.gx); if(LV.vis && !LV.walkIn){ LV.x += (ltx - LV.x)*Math.min(1, dt*3.0); LV.z += (ltz - LV.z)*Math.min(1, dt*3.0); }

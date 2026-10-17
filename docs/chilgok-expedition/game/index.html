@@ -5706,6 +5706,7 @@ function initThree(){
           alx = alx*(1 - s2) + (-1.55 + Math.sin(swimPh)*1.05*mv)*s2; arx = arx*(1 - s2) + (-1.55 - Math.sin(swimPh)*1.05*mv)*s2; az = az*(1 - s2) + 0.35*s2;
           leanX = leanX*(1 - s2) + (0.18 + 0.28*mv)*s2; bob = bob*(1 - s2) + (Math.sin(swimPh*0.5)*10)*s2; capeX = capeX*(1 - s2) + 0.5*s2; earBack = earBack*(1 - s2) - 0.15*s2;
         }
+        if(window.hamPose){ var kp = window.hamPose(dt); if(kp){ if(kp.legs !== undefined){ lx = kp.legs; rx_ = kp.legs2 !== undefined ? kp.legs2 : kp.legs; } if(kp.arm !== undefined){ alx = arx = kp.arm; az = kp.az || 0; } if(kp.lean !== undefined) leanX = kp.lean; if(kp.bob !== undefined) bob = kp.bob; if(kp.yaw !== undefined) o.yaw += wrap(kp.yaw - o.yaw)*Math.min(1, dt*14); if(kp.ear !== undefined) earBack = kp.ear; } }
         o.legL.rotation.x = lx; o.legR.rotation.x = rx_; o.legL.position.y = 115 + Math.max(0, -Math.sin(sw))*14*wk; o.legR.position.y = 115 + Math.max(0, Math.sin(sw))*14*wk;
         o.armL.rotation.x = alx; o.armR.rotation.x = arx; o.armL.rotation.z = az; o.armR.rotation.z = -az;
         o.lean.rotation.x = leanX; o.lean.position.y = 115 + bob + br*3*idle; o.lean.scale.set(1 - sqz*0.25 + br*0.008*idle, 1 + sqz*0.5 + br*0.014*idle, 1 - sqz*0.25);
@@ -5780,10 +5781,13 @@ function initThree(){
       function rnd1(seed){ var s = Math.sin(seed*12.9898)*43758.5453; return s - Math.floor(s); }
       function ctex(w, h, fn){ var c = document.createElement("canvas"); c.width = w; c.height = h; fn(c.getContext("2d"), w, h); var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
       function fabricTex(){ return ctex(128, 128, function(g, w, h){ g.fillStyle = "#f2f2f2"; g.fillRect(0, 0, w, h); var i; for(i = 0; i < 1400; i++){ var v = 205 + Math.floor(Math.random()*50); g.fillStyle = "rgb(" + v + "," + v + "," + v + ")"; g.fillRect(Math.random()*w, Math.random()*h, 2, 2); } g.strokeStyle = "rgba(120,120,120,0.16)"; g.lineWidth = 1; for(i = -h; i < w; i += 5){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); } }); }
-      function faceTex(){ return ctex(256, 128, function(g, w, h){ g.fillStyle = "#e9bb94"; g.fillRect(0, 0, w, h); var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "rgba(60,40,28,0.0)"); gr.addColorStop(1, "rgba(120,70,40,0.18)"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      function faceTex(side){ var cvT = null; var tx = ctex(256, 128, function(g, w, h){ g.fillStyle = "#e9bb94"; g.fillRect(0, 0, w, h); var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "rgba(60,40,28,0.0)"); gr.addColorStop(1, "rgba(120,70,40,0.18)"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
           g.fillStyle = "#33261c"; g.fillRect(96, 0, 190, 128); g.fillRect(0, 0, 26, 128); g.fillRect(0, 0, 256, 40);        // 머리카락(뒤/옆/위)
           g.fillStyle = "#f6f2ea"; g.beginPath(); g.ellipse(52, 66, 7, 4.4, 0, 0, 7); g.ellipse(76, 66, 7, 4.4, 0, 0, 7); g.fill(); g.fillStyle = "#2b1a10"; g.beginPath(); g.arc(53, 66, 3, 0, 7); g.arc(77, 66, 3, 0, 7); g.fill();
-          g.strokeStyle = "#3a2518"; g.lineWidth = 3; g.beginPath(); g.moveTo(43, 57); g.lineTo(60, 55); g.moveTo(68, 55); g.lineTo(86, 57); g.stroke(); g.strokeStyle = "rgba(150,90,62,0.8)"; g.lineWidth = 2; g.beginPath(); g.moveTo(64, 68); g.lineTo(62, 80); g.lineTo(67, 80); g.stroke(); g.strokeStyle = "#8a4a3a"; g.lineWidth = 3; g.beginPath(); g.moveTo(54, 92); g.quadraticCurveTo(64, 96, 74, 92); g.stroke(); }); }
+          g.strokeStyle = "#3a2518"; g.lineWidth = 3; g.beginPath(); g.moveTo(43, 57); g.lineTo(60, 55); g.moveTo(68, 55); g.lineTo(86, 57); g.stroke(); g.strokeStyle = "rgba(150,90,62,0.8)"; g.lineWidth = 2; g.beginPath(); g.moveTo(64, 68); g.lineTo(62, 80); g.lineTo(67, 80); g.stroke(); g.strokeStyle = "#8a4a3a"; g.lineWidth = 3; g.beginPath(); g.moveTo(54, 92); g.quadraticCurveTo(64, 96, 74, 92); g.stroke(); cvT = g.canvas; });
+        // 갓루다님이 준 국군/북한군 시트의 얼굴을 머리 앞(u=0.25)에 입혀요
+        var src = window.UNITS && window.UNITS[side + "Soldier"]; if(src){ var im = new Image(); im.onload = function(){ var g2 = cvT.getContext("2d"); g2.fillStyle = "#e9bb94"; g2.fillRect(20, 28, 90, 80); var sx = side === "rok" ? 86 : 90, sy = 38, sw = 68, sh = 66; g2.save(); g2.beginPath(); g2.ellipse(64, 72, 36, 40, 0, 0, 7); g2.clip(); g2.drawImage(im, sx, sy, sw, sh, 28, 40, 72, 70); g2.restore(); tx.needsUpdate = true; }; im.src = src; }
+        return tx; }
       function shadowTex(){ return ctex(64, 64, function(g, w, h){ var gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, "rgba(0,0,0,0.62)"); gr.addColorStop(0.6, "rgba(0,0,0,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.clearRect(0, 0, w, h); g.fillStyle = gr; g.fillRect(0, 0, w, h); }); }
       function ik2(sh, tg, l1, l2, pole, outElbow, outHand){
         var dx = tg.x - sh.x, dy = tg.y - sh.y, dz = tg.z - sh.z, d = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4, dm = (l1 + l2)*0.995; if(d > dm) d = dm; if(d < 0.25) d = 0.25; var nx = dx/(Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4), ny = dy/(Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4), nz = dz/(Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4);
@@ -5794,26 +5798,26 @@ function initThree(){
       var QI = new Q();
       function seg(mesh, i, a, b, rad){ _d.subVectors(b, a); var len = _d.length() || 0.01; _d.multiplyScalar(1/len); _q.setFromUnitVectors(_Y, _d); put(mesh, i, (a.x + b.x)/2, (a.y + b.y)/2, (a.z + b.z)/2, _q, rad, len, rad); }
       function hide(mesh, i){ _m.makeScale(0, 0, 0); mesh.setMatrixAt(i, _m); }
-      var COLS = { rok:{ cloth:0x56662f, pants:0x4f5c2b, helm:0x46522a, pack:0x424b26, boot:0x3b2b1e }, nk:{ cloth:0x8a6f33, pants:0x7a6129, helm:0x66592f, pack:0x5c4a26, boot:0x35271b } };
+      var COLS = { rok:{ cloth:0x6a6c3f, pants:0x62613a, helm:0x575a3a, pack:0x4c4e30, boot:0x5b3b25 }, nk:{ cloth:0x9a8040, pants:0x8a7338, helm:0x8c7a3e, pack:0x6e5a30, boot:0x5b3b25 } };
       var SKIN = 0xe0ad88, WOOD = 0x5b3b22, STEEL = 0x25272a;
       window.TBRig = { create:function(G, N){
-        var cloth = new THREE.MeshStandardMaterial({ map:fabricTex(), roughness:0.95, metalness:0, emissive:0x141414, fog:false }), plain = new THREE.MeshStandardMaterial({ roughness:0.8, metalness:0.05, emissive:0x101010, fog:false }), face = new THREE.MeshStandardMaterial({ map:faceTex(), roughness:0.75, emissive:0x1c1816, fog:false });
-        var sph = new THREE.SphereGeometry(1, 16, 12), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 10, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 16, 8, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
+        var cloth = new THREE.MeshStandardMaterial({ map:fabricTex(), roughness:0.95, metalness:0, emissive:0x141414, flatShading:true, fog:false }), plain = new THREE.MeshStandardMaterial({ roughness:0.8, metalness:0.05, emissive:0x101010, flatShading:true, fog:false }), face = new THREE.MeshStandardMaterial({ map:faceTex("rok"), roughness:0.75, emissive:0x1c1816, fog:false }), faceN = new THREE.MeshStandardMaterial({ map:faceTex("nk"), roughness:0.75, emissive:0x1c1816, fog:false });
+        var sph = new THREE.SphereGeometry(1, 8, 6), headGeo = new THREE.SphereGeometry(1, 20, 14), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 7, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 11, 5, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
         function mk(geo, mat, colored){ var m = new THREE.InstancedMesh(geo, mat, N); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; if(colored){ var c = new CO(1, 1, 1); for(var i = 0; i < N; i++) m.setColorAt(i, c); } G.add(m); return m; }
-        var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(sph, face, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
+        var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(headGeo, face, 1), headN:mk(headGeo, faceN, 1), pkL:mk(box, cloth, 1), pkR:mk(box, cloth, 1), stL:mk(box, plain, 1), stR:mk(box, plain, 1), star:mk(box, plain, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
         var shadow = new THREE.InstancedMesh(circ, new THREE.MeshBasicMaterial({ map:shadowTex(), transparent:true, depthWrite:false, fog:false }), N); shadow.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shadow.frustumCulled = false; shadow.renderOrder = 1; G.add(shadow);
         var ST = [], tmpC = new CO(), tint1 = new CO(0xb06aff), tint2 = new CO(0xff7a7a);
         for(var i = 0; i < N; i++) ST.push({ px:0, pz:0, yaw:0, ph:rnd1(i)*6.28, walk:0, aim:0, tint:-1, off:rnd1(i + 91)*6.28, init:false, cheer:0, br:0.92 + rnd1(i + 3)*0.16 });
         function setColors(i, u, tint){
           var C = COLS[u.side], st = ST[i], b = st.br, amt = tint === 1 ? 0.5 : (tint === 2 ? 0.45 : 0), tc = tint === 1 ? tint1 : tint2;
           function col(m, hex, extra){ tmpC.setHex(hex).multiplyScalar(b*(extra || 1)); if(amt) tmpC.lerp(tc, amt); m.setColorAt(i, tmpC); }
-          col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.barrel, STEEL, 1);
+          col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.headN, 0xffffff, 1.0); col(P.pkL, C.cloth, 0.8); col(P.pkR, C.cloth, 0.8); col(P.stL, 0x8a7a50, 1); col(P.stR, 0x8a7a50, 1); col(P.star, 0xd02a2a, 1); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.barrel, STEEL, 1);
           Object.keys(P).forEach(function(k){ if(P[k].instanceColor) P[k].instanceColor.needsUpdate = true; }); st.tint = tint;
         }
         var shL = new V3(-1.45, 8.1, 0.05), shR = new V3(1.45, 8.1, 0.05), hipL = new V3(-0.85, 5.4, 0), hipR = new V3(0.85, 5.4, 0), tg = new V3(), el = new V3(), hd = new V3(), poleA = new V3(), poleL = new V3(0, 0.15, 1), a0 = new V3(), a1 = new V3(), aL = new V3(), aR = new V3(), rh = new V3(), lh = new V3(), eLv = new V3(), eRv = new V3(), hLv = new V3(), hRv = new V3(), kL = new V3(), kR = new V3(), anL = new V3(), anR = new V3(), rd = new V3();
         var API = {}, PK = Object.keys(P);
         API.update = function(units, tm, dt){
-          var S0 = 0.92, i, u, st;
+          var S0 = 1.1, i, u, st;
           for(i = 0; i < N; i++){
             u = units[i]; st = ST[i]; if(!u) continue;
             if(!u.vis || (u.die > 2.9)){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); continue; }
@@ -5838,10 +5842,11 @@ function initThree(){
                         put(P.pel, i, 0 + sway*0.4, 5.55 - 0.0, 0.0, QI, 1.55, 0.95, 1.05); seg(P.tL, i, kL, hipL, 0.68); seg(P.tR, i, kR, hipR, 0.68); seg(P.sL, i, anL, kL, 0.55); seg(P.sR, i, anR, kR, 0.55);
             put(P.bL, i, anL.x, anL.y - 0.35, anL.z + 0.4, _q.setFromEuler(_e.set(-0.2*Math.max(0, Math.cos(ph))*w, 0, 0)), 0.95, 0.95, 1.8); put(P.bR, i, anR.x, anR.y - 0.35, anR.z + 0.4, _q.setFromEuler(_e.set(-0.2*Math.max(0, Math.cos(ph + Math.PI))*w, 0, 0)), 0.95, 0.95, 1.8);
             // 몸통 (걸을 때 어깨가 엇갈려 비틀림)
-            var tw = s1*0.16*w, trs = Math.sin(tw); _e.set(0.04*st.aim, tw, 0); _q.setFromEuler(_e); put(P.torso, i, 0, 7.15, 0, _q, 1.7, 1.75*brt, 1.05); put(P.sho, i, 0, 8.1, 0.02, _q, 2.25, 0.72, 1.0); put(P.pack, i, 0, 7.4, -1.3, _q, 2.0, 2.2, 0.95);
+            var tw = s1*0.16*w, trs = Math.sin(tw); _e.set(0.04*st.aim, tw, 0); _q.setFromEuler(_e); put(P.torso, i, 0, 7.15, 0, _q, 1.7, 1.75*brt, 1.05); put(P.sho, i, 0, 8.1, 0.02, _q, 2.25, 0.72, 1.0); put(P.pack, i, 0, 7.4, -1.3, _q, 2.0, 2.2, 0.95); put(P.pkL, i, -0.85, 6.35, 0.95, _q, 0.95, 0.95, 0.4); put(P.pkR, i, 0.85, 6.35, 0.95, _q, 0.95, 0.95, 0.4); put(P.stL, i, -0.95, 7.7, 0.98, _q, 0.3, 2.6, 0.18); put(P.stR, i, 0.95, 7.7, 0.98, _q, 0.3, 2.6, 0.18);
             // 머리 + 철모
             _e.set(0.08*w - 0.06*st.aim, Math.sin(tm*0.6 + st.off)*0.28*idle, 0); _q.setFromEuler(_e);
-            put(P.head, i, 0, 9.85 + 0.03*s1*w, 0.12, _q, 0.98, 1.08, 1.0); put(P.helm, i, 0, 10.05 + 0.03*s1*w, 0.1, _q, 1.28, 0.95, 1.3); put(P.rim, i, 0, 10.0, 0.1, _q, 1.4, 0.18, 1.45);
+            var isN = u.side === "nk"; put(isN ? P.headN : P.head, i, 0, 9.85 + 0.03*s1*w, 0.12, _q, 0.98, 1.08, 1.0); hide(isN ? P.head : P.headN, i);
+            if(isN){ put(P.helm, i, 0, 10.35 + 0.03*s1*w, 0.1, _q, 1.22, 0.55, 1.28); put(P.rim, i, 0, 10.15, 0.8, _q, 1.15, 0.12, 1.2); put(P.star, i, 0, 10.55, 1.38, _q, 0.4, 0.4, 0.14); } else { put(P.helm, i, 0, 10.05 + 0.03*s1*w, 0.1, _q, 1.28, 0.95, 1.3); put(P.rim, i, 0, 10.0, 0.1, _q, 1.4, 0.18, 1.45); hide(P.star, i); }
             // 팔: 총 들고 걷기(휴대) ↔ 조준(견착) ↔ 만세
             var a = st.aim, ch = st.cheer, rb = u.fireT > 0.38 ? (u.fireT - 0.38)*-3.0 : 0, rcoil = u.fireT > 0.36 && u.fireT < 0.5 ? 0.5 : 0;
             rh.set(0.75*(1 - a) + 1.05*a, 6.9*(1 - a) + 8.05*a, 1.55*(1 - a) + 1.75*a - rcoil*a); lh.set(-0.55*(1 - a) - 0.1*a, 7.6*(1 - a) + 8.4*a, 2.7*(1 - a) + 3.1*a - rcoil*0.5*a);
@@ -5947,9 +5952,11 @@ function initThree(){
       function radTex(){ return ctex(64, 64, function(g){ var gr = g.createRadialGradient(32, 32, 1, 32, 32, 31); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,0.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }); }
       function starTex(col){ return ctex(64, 64, function(g){ g.fillStyle = "rgba(0,0,0,0)"; g.clearRect(0, 0, 64, 64); g.fillStyle = col; g.beginPath(); for(var i = 0; i < 10; i++){ var a = -Math.PI/2 + i*Math.PI/5, r = i%2 ? 11 : 27; g.lineTo(32 + Math.cos(a)*r, 34 + Math.sin(a)*r); } g.closePath(); g.fill(); }); }
       function taeTex(){ return ctex(64, 64, function(g){ g.clearRect(0, 0, 64, 64); g.fillStyle = "#f4f1e6"; g.beginPath(); g.arc(32, 32, 26, 0, 7); g.fill(); g.fillStyle = "#c8312e"; g.beginPath(); g.arc(32, 32, 20, Math.PI, 0); g.fill(); g.fillStyle = "#2a4fa0"; g.beginPath(); g.arc(32, 32, 20, 0, Math.PI); g.fill(); g.fillStyle = "#c8312e"; g.beginPath(); g.arc(22, 32, 10, 0, 7); g.fill(); g.fillStyle = "#2a4fa0"; g.beginPath(); g.arc(42, 32, 10, 0, 7); g.fill(); }); }
-      var RT = null;
+      function heartTex(){ return ctex(64, 64, function(g){ g.clearRect(0, 0, 64, 64); g.fillStyle = "#ff2d55"; g.beginPath(); g.moveTo(32, 56); g.bezierCurveTo(2, 34, 6, 6, 24, 8); g.bezierCurveTo(30, 9, 32, 14, 32, 18); g.bezierCurveTo(32, 14, 34, 9, 40, 8); g.bezierCurveTo(58, 6, 62, 34, 32, 56); g.fill(); g.fillStyle = "rgba(255,255,255,0.55)"; g.beginPath(); g.ellipse(20, 20, 6, 4, -0.6, 0, 7); g.fill(); }); }
+      function ringTex(){ return ctex(128, 128, function(g){ var gr = g.createRadialGradient(64, 64, 40, 64, 64, 62); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.7, "rgba(255,255,255,0.85)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }); }
+      var RT = null, HT = null, GT = null;
       window.TBFx = { create:function(G){
-        RT = RT || radTex();
+        RT = RT || radTex(); HT = HT || heartTex(); GT = GT || ringTex();
         // ---------- 총알 ----------
         var NB = 260, bGeo = new THREE.BoxGeometry(0.16, 0.16, 1);
         var core = new THREE.InstancedMesh(bGeo, new THREE.MeshBasicMaterial({ color:0xfff4c8, fog:false }), NB), glow = new THREE.InstancedMesh(bGeo, new THREE.MeshBasicMaterial({ color:0xffa028, transparent:true, opacity:0.6, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }), NB);
@@ -5960,13 +5967,25 @@ function initThree(){
         for(i = 0; i < NP; i++){ var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:RT, transparent:true, depthWrite:false, fog:false })); sp.visible = false; sp.renderOrder = 30; G.add(sp); PA.push({ s:sp, on:false, t:0, life:1, vx:0, vy:0, vz:0, g:0, s0:1, s1:1, a0:1, add:false }); }
         function part(x, y, z, o){ var k = null, j; for(j = 0; j < NP; j++) if(!PA[j].on){ k = PA[j]; break; } if(!k) return; k.on = true; k.t = 0; k.life = o.life; k.vx = o.vx || 0; k.vy = o.vy || 0; k.vz = o.vz || 0; k.g = o.g || 0; k.s0 = o.s0; k.s1 = o.s1; k.a0 = o.a0 === undefined ? 1 : o.a0; var m = k.s.material; m.color.setHex(o.col); m.blending = o.add ? THREE.AdditiveBlending : THREE.NormalBlending; m.opacity = k.a0; m.needsUpdate = true; k.s.position.set(x, y, z); k.s.scale.set(o.s0, o.s0, 1); k.s.visible = true; }
         function rr(a){ return (Math.random() - 0.5)*a; }
+        // 빨간 하트: 사방으로 퍼져 나가요 (토끼의 유혹)
+        var HS = []; for(i = 0; i < 70; i++){ var hs = new THREE.Sprite(new THREE.SpriteMaterial({ map:HT, transparent:true, depthTest:false, depthWrite:false, fog:false })); hs.visible = false; hs.renderOrder = 36; G.add(hs); HS.push({ s:hs, on:false, t:0, life:1, vx:0, vy:0, vz:0, sz:3 }); }
+        var RG = []; for(i = 0; i < 6; i++){ var rg = new THREE.Sprite(new THREE.SpriteMaterial({ map:GT, color:0xffe2a0, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false })); rg.visible = false; rg.renderOrder = 31; G.add(rg); RG.push({ s:rg, on:false, t:0, life:0.6, r1:30 }); }
         var API = {};
+        API.hearts = function(x, y, z, n, big){ var c = 0, j; for(j = 0; j < HS.length && c < n; j++){ var k = HS[j]; if(k.on) continue; var th = Math.random()*6.283, ph = (Math.random() - 0.3)*1.5, sp = 14 + Math.random()*20; k.on = true; k.t = -Math.random()*0.2; k.life = 1.5 + Math.random()*0.5; k.vx = Math.cos(th)*Math.cos(ph)*sp; k.vz = Math.sin(th)*Math.cos(ph)*sp; k.vy = Math.sin(ph)*sp*0.8 + 6; k.sz = (big ? 5 : 3.2) + Math.random()*2.5; k.s.position.set(x, y, z); k.s.visible = false; c++; } };
+        API.ring = function(x, y, z, r1, life){ for(var j = 0; j < RG.length; j++){ var k = RG[j]; if(k.on) continue; k.on = true; k.t = 0; k.life = life || 0.6; k.r1 = r1; k.s.position.set(x, y, z); k.s.visible = true; return; } };
         API.puff = function(x, y, z, kind){
           var n;
           if(kind === "spark"){ for(n = 0; n < 4; n++) part(x, y, z, { life:0.28, vx:rr(16), vy:Math.random()*10, vz:rr(16), g:-30, s0:0.9, s1:0.2, col:0xffd870, add:true }); part(x, y, z, { life:0.12, s0:2.6, s1:1.2, col:0xfff0b0, add:true }); }
           else if(kind === "dust"){ for(n = 0; n < 3; n++) part(x + rr(1), y, z + rr(1), { life:0.7, vx:rr(3), vy:3 + Math.random()*2, vz:rr(3), s0:1.4, s1:4.2, col:0xb9a67a, a0:0.55 }); part(x, y, z, { life:0.1, s0:1.6, s1:0.8, col:0xffe9a0, add:true }); }
           else if(kind === "muzzle"){ part(x, y, z, { life:0.07, s0:3.2, s1:1.6, col:0xffd070, add:true }); part(x, y, z, { life:0.5, vy:1.2, vx:rr(1), vz:rr(1), s0:0.8, s1:2.4, col:0xcfcfcf, a0:0.35 }); }
           else if(kind === "big"){ part(x, y, z, { life:0.12, s0:12, s1:6, col:0xfff0b8, add:true }); for(n = 0; n < 4; n++) part(x + rr(1), y, z + rr(1), { life:1.4, vx:rr(5), vy:2 + Math.random()*2, vz:rr(5), s0:2.4, s1:9, col:0xd0d0d0, a0:0.5 }); }
+          else if(kind === "blast"){
+            part(x, y + 3, z, { life:0.2, s0:16, s1:56, col:0xfff6c8, add:true }); part(x, y + 5, z, { life:0.6, s0:12, s1:38, col:0xff7a18, add:true, a0:0.95 }); part(x, y + 8, z, { life:0.9, s0:8, s1:26, col:0xff4a10, add:true, a0:0.7 });
+            API.ring(x, y + 1.5, z, 46, 0.55);
+            for(n = 0; n < 16; n++) part(x + rr(5), y + 2, z + rr(5), { life:0.7 + Math.random()*0.5, vx:rr(70), vy:16 + Math.random()*40, vz:rr(70), g:-70, s0:3.4, s1:0.8, col:n % 3 ? 0xffa030 : 0x3a2c20, add:n % 3 > 0 });
+            for(n = 0; n < 12; n++) part(x + rr(10), y + 3 + Math.random()*6, z + rr(10), { life:2.0 + Math.random()*1.2, vx:rr(10), vy:6 + Math.random()*9, vz:rr(10), s0:7, s1:24 + Math.random()*10, col:n < 4 ? 0x24211e : 0x6a655e, a0:0.65 });
+            for(n = 0; n < 8; n++) part(x + rr(8), y + 0.6, z + rr(8), { life:1.3, vx:rr(40), vy:3 + Math.random()*4, vz:rr(40), s0:5, s1:14, col:0xa39064, a0:0.55 });
+          }
           else if(kind === "boom"){
             part(x, y + 1, z, { life:0.22, s0:6, s1:24, col:0xfff2b0, add:true }); part(x, y + 2, z, { life:0.45, s0:5, s1:17, col:0xff7a18, add:true, a0:0.9 });
             for(n = 0; n < 10; n++) part(x + rr(3), y + 1, z + rr(3), { life:0.5 + Math.random()*0.3, vx:rr(34), vy:10 + Math.random()*22, vz:rr(34), g:-45, s0:2, s1:0.5, col:0xffa030, add:true });
@@ -6010,7 +6029,7 @@ function initThree(){
             var f = Math.min(1, k.t/k.dur), x = k.x0 + (k.x1 - k.x0)*f, z = k.z0 + (k.z1 - k.z0)*f, y = k.y0*(1 - f) + 0.6*f + 4*k.h*f*(1 - f), dfx = (k.x1 - k.x0), dfz = (k.z1 - k.z0), dy = (0.6 - k.y0) + 4*k.h*(1 - 2*f);
             k.g.visible = true; k.g.position.set(x, y, z); _d.set(dfx, dy*k.dur*0.6, dfz).normalize(); _q.setFromUnitVectors(_Z, _d); k.g.quaternion.copy(_q);
             k.tr -= dt; if(k.tr <= 0){ k.tr = 0.035; part(x, y, z, { life:0.6, s0:1.0, s1:2.6, col:0xbfbfbf, a0:0.4 }); }
-            if(f >= 1){ k.on = false; k.g.visible = false; API.puff(k.x1, 0.5, k.z1, "boom"); if(k.cb) k.cb(); }
+            if(f >= 1){ k.on = false; k.g.visible = false; API.puff(k.x1, 0.5, k.z1, "blast"); if(k.cb) k.cb(); }
           }
         }
         function updParts(dt){
@@ -6034,11 +6053,15 @@ function initThree(){
           }
           bgM.instanceMatrix.needsUpdate = true; fillM.instanceMatrix.needsUpdate = true; if(fillM.instanceColor) fillM.instanceColor.needsUpdate = true;
         };
-        API.update = function(dt){ updBullets(dt); updShells(dt); updParts(dt); };
+        function updHearts(dt){
+          var j, k; for(j = 0; j < HS.length; j++){ k = HS[j]; if(!k.on) continue; k.t += dt; if(k.t < 0) continue; if(k.t >= k.life){ k.on = false; k.s.visible = false; continue; } var f = k.t/k.life; k.vy -= 5*dt; k.s.position.x += k.vx*dt; k.s.position.y += k.vy*dt; k.s.position.z += k.vz*dt; var sc = k.sz*(f < 0.15 ? f/0.15 : 1 + f*0.25); k.s.scale.set(sc, sc, 1); k.s.material.opacity = f < 0.7 ? 1 : (1 - f)/0.3; k.s.visible = true; }
+          for(j = 0; j < RG.length; j++){ k = RG[j]; if(!k.on) continue; k.t += dt; if(k.t >= k.life){ k.on = false; k.s.visible = false; continue; } var f2 = k.t/k.life, r = k.r1*(0.15 + 0.85*Math.sqrt(f2)); k.s.scale.set(r, r, 1); k.s.material.opacity = (1 - f2)*0.9; }
+        }
+        API.update = function(dt){ updBullets(dt); updShells(dt); updParts(dt); updHearts(dt); };
         // ---------- 3D 탱크 ----------
         function stdM(col, rough, em){ return new THREE.MeshStandardMaterial({ color:col, roughness:rough === undefined ? 0.78 : rough, metalness:0.15, emissive:em === undefined ? 0x101010 : em, fog:false }); }
         API.makeTank = function(side){
-          var rok = side === "rok", hullC = rok ? 0x4f5d34 : 0x6a5c3b, trackC = 0x23211e, darkC = rok ? 0x3c4828 : 0x514530, mats = [];
+          var TS = 3, rok = side === "rok", hullC = rok ? 0x4f5d34 : 0x6a5c3b, trackC = 0x23211e, darkC = rok ? 0x3c4828 : 0x514530, mats = [];
           function M(c, r){ var m = stdM(c, r); m.userData = { c0:c }; mats.push(m); return m; }
           var g = new THREE.Group(), hull = new THREE.Group(); g.add(hull);
           var lower = new THREE.Mesh(new THREE.BoxGeometry(7.4, 2.0, 13), M(hullC)); lower.position.y = 2.2; hull.add(lower);
@@ -6065,12 +6088,12 @@ function initThree(){
           var emb2 = emb.clone(); emb2.position.x = -3.35; tur.add(emb2);
           var plate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), emb.material); plate.position.set(0, 3.4, 3.3 + 1.6); plate.rotation.x = -0.42; hull.add(plate);
           var sh = new THREE.Mesh(new THREE.CircleGeometry(1, 20), new THREE.MeshBasicMaterial({ map:null, color:0x000000, transparent:true, opacity:0.4, depthWrite:false, fog:false })); sh.rotation.x = -Math.PI/2; sh.scale.set(8.5, 9.5, 1); sh.position.y = 0.08; g.add(sh);
-          g.visible = false; G.add(g);
+          g.scale.setScalar(TS); g.visible = false; G.add(g);
           var T = { g:g, hull:hull, tur:tur, bar:bar, yaw:rok ? 0 : Math.PI, aimYaw:0, recoil:0, wreck:0, wreckT:0, fireT:0, sm:0, side:side };
           T.setVisible = function(v){ g.visible = v; };
           T.place = function(x, z){ g.position.set(x, 0, z); };
           T.aim = function(x, z){ T.aimYaw = Math.atan2(x - g.position.x, z - g.position.z); };
-          T.fire = function(){ T.recoil = 1; T.fireT = 0.25; var a = T.aimYaw, bx = g.position.x + Math.sin(a)*12.4, bz = g.position.z + Math.cos(a)*12.4; API.puff(bx, 5.2, bz, "big"); };
+          T.fire = function(){ T.recoil = 1; T.fireT = 0.25; var a = T.aimYaw, bx = g.position.x + Math.sin(a)*12.4*TS, bz = g.position.z + Math.cos(a)*12.4*TS; API.puff(bx, 5.2*TS, bz, "big"); API.puff(bx, 5.2*TS, bz, "big"); API.puff(bx, 5.2*TS, bz, "muzzle"); };
           T.setWreck = function(on){ T.wreckOn = on; };
           T.update = function(dt, tm){
             g.rotation.y = T.yaw; var want = T.aimYaw - T.yaw; while(want > Math.PI) want -= 2*Math.PI; while(want < -Math.PI) want += 2*Math.PI;
@@ -6078,8 +6101,8 @@ function initThree(){
             var tw = T.tur.rotation.y; var dd = want - tw; while(dd > Math.PI) dd -= 2*Math.PI; while(dd < -Math.PI) dd += 2*Math.PI; T.tur.rotation.y = tw + dd*Math.min(1, dt*5);
             T.recoil = Math.max(0, T.recoil - dt*3.2); var rc = Math.sin(Math.min(1, T.recoil)*Math.PI*0.5); T.bar.position.z = 3.8 - rc*1.7; hull.position.z = -rc*0.35; hull.rotation.x = -rc*0.02;
             T.sm += dt; var idle = T.wreck > 0 ? 0 : 1; hull.position.y = idle*Math.sin(tm*17 + (rok ? 0 : 1))*0.025; T.tur.rotation.z = T.wreck*0.25; T.tur.position.y = 4.0 + T.wreck*0.9;
-            if(T.wreck > 0.05 && T.sm > 0.18){ T.sm = 0; part(g.position.x + rr(3), 5 + Math.random()*2, g.position.z + rr(3), { life:1.6, vy:5, vx:rr(2), vz:rr(2), s0:2.5, s1:8, col:0x2c2a28, a0:0.6 }); if(Math.random() < 0.4) part(g.position.x + rr(2), 4.5, g.position.z + rr(2), { life:0.35, vy:3, s0:2.5, s1:1, col:0xff8a1c, add:true }); }
-            else if(!T.wreckOn && T.sm > 0.45){ T.sm = 0; var a2 = T.yaw + Math.PI; part(g.position.x + Math.sin(a2)*6.4 + 1.8, 3.9, g.position.z + Math.cos(a2)*6.4, { life:0.9, vy:2.2, s0:0.7, s1:2.2, col:0xb4b4b4, a0:0.28 }); }
+            if(T.wreck > 0.05 && T.sm > 0.18){ T.sm = 0; part(g.position.x + rr(3*TS), (5 + Math.random()*2)*TS, g.position.z + rr(3*TS), { life:1.8, vy:9, vx:rr(3), vz:rr(3), s0:6, s1:22, col:0x2c2a28, a0:0.6 }); if(Math.random() < 0.4) part(g.position.x + rr(2*TS), 4.5*TS, g.position.z + rr(2*TS), { life:0.35, vy:4, s0:7, s1:2, col:0xff8a1c, add:true }); }
+            else if(!T.wreckOn && T.sm > 0.45){ T.sm = 0; var a2 = T.yaw + Math.PI; part(g.position.x + Math.sin(a2)*6.4*TS + 1.8*TS, 3.9*TS, g.position.z + Math.cos(a2)*6.4*TS, { life:1.0, vy:4, s0:2, s1:6.5, col:0xb4b4b4, a0:0.28 }); }
             for(var mi = 0; mi < mats.length; mi++){ var mm = mats[mi]; if(!mm.userData.t) mm.userData.t = new CO(); mm.color.setHex(mm.userData.c0).lerp(mm.userData.t.setHex(0x161412), T.wreck*0.85); }
           };
           return T;
@@ -6101,9 +6124,19 @@ function initThree(){
       var RAB = { kind:"rabbit", gx:0, gz:0, hp:300, vhp:300, shots:0, def:false, items:3, alive:true };
       var LUC = { kind:"lucia", gx:0, gz:21, hp:300, vhp:300, alive:true, cdQ:0, cdW:0, usedE:false, curse:0 };
       var S = { state:"idle", active:false, turn:1, moves:MOVES, acted:false, cd:{ q:0, w:0, e:0 }, anim:null, cool:0, log:[], menu:false, dlg:null, intro:0, prevKeys:{}, tw:null, ended:false };
-      var ROKT = { kind:"tank", side:"rok", gx:0, gz:-13, hp:300, vhp:300, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
-      var NKT = { kind:"tank", side:"nk", gx:0, gz:25, hp:300, vhp:300, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
-      var FX = null, barList = [];
+      var ROKT = { kind:"tank", side:"rok", gx:0, gz:-19, hp:190, vhp:190, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
+      var NKT = { kind:"tank", side:"nk", gx:0, gz:31, hp:190, vhp:190, alive:true, x:0, z:0, hit:0, die:-1, fireWait:0, shot:null, t3:null };
+      var FX = null, barList = [], pending = [], POSE = null;
+      function later(sec, fn){ pending.push({ t:sec, fn:fn }); }
+      function shake(p){ S.shake = Math.max(S.shake || 0, p); }
+      function smooth(x){ x = Math.max(0, Math.min(1, x)); return x*x*(3 - 2*x); }
+      // 함곡이 3D 모델의 포즈 덮어쓰기 (block_H 의 hamgokiUpdate 가 불러요): 뒷다리 차기 / 유혹
+      window.hamPose = function(dt){
+        if(!POSE) return null; POSE.t += dt; var t = POSE.t; if(t > POSE.dur){ POSE = null; return null; }
+        if(POSE.kind === "kick"){ var wind = smooth(t/0.4), snap = smooth((t - 0.4)/0.09), rec = smooth((t - 0.85)/0.35), a = (0.15*wind + 1.45*snap)*(1 - rec), osc = (t > 0.45 && t < 0.85) ? Math.sin(t*46)*0.18 : 0;
+          return { legs:a + osc, legs2:a*0.9 - osc, lean:(0.25*wind + 0.85*snap)*(1 - rec), arm:-0.7*(wind)*(1 - rec), az:0.25, bob:(10*wind + 14*snap)*(1 - rec), yaw:POSE.yaw, ear:0.7 }; }
+        var up = smooth(t/0.25)*(1 - smooth((t - 0.95)/0.2)); return { arm:-2.9*up, az:0.5*up, lean:-0.12*up, bob:Math.abs(Math.sin(t*11))*13*up, legs:0, legs2:0, ear:0.35 };
+      }
       var rnd = (function(){ var s = 7771; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; })();
 
       // ---------- 명령 패턴: ICommand { execute(), undo() } / TurnManager.commandHistory (Stack<ICommand>) ----------
@@ -6164,7 +6197,7 @@ function initThree(){
         for(r = 0; r < 10; r++) for(c = 0; c < 10; c++){ var gx2 = c - 5, gz2 = 8 + r; var n = mkUnit("nk", gx2, gz2 + 40, r*10 + c); nk.push(n); }
         RAB.gx = 0; RAB.gz = 0; RAB.hp = RAB.vhp = 300; RAB.def = false; RAB.items = 3; RAB.alive = true; RAB.shots = 0; occ[key(0, 0)] = RAB;
         LUC.gx = 0; LUC.gz = 21 + 40; LUC.hp = LUC.vhp = 300; LUC.alive = true; LUC.cdQ = 0; LUC.cdW = 0; LUC.usedE = false; LUC.curse = 0; occ[key(LUC.gx, LUC.gz)] = LUC;
-        [ROKT, NKT].forEach(function(k){ k.hp = k.vhp = 300; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.gz = k.side === "rok" ? -13 : 25 + 40; k.gx = 0; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
+        [ROKT, NKT].forEach(function(k){ k.hp = k.vhp = 190; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.engaged = false; k.gz = k.side === "rok" ? -19 : 31 + 40; k.gx = 0; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
         TM.clear(); S.volleyDone = false; TM.team = "player"; TM.group = 0;
       }
       // ---------- 이펙트 (선 / 글자 / 물방울) ----------
@@ -6259,8 +6292,8 @@ function initThree(){
         FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:false, delay:0.09 + Math.random()*0.05, ty:5 + Math.random()*2 }); if(Math.random() < 0.6) FX.bullet({ x:u.x, z:u.z, y:7.2 }, tp, { hit:false, delay:0.2 + Math.random()*0.06 });
       }
       function fireTank(k){
-        var sh = k.shot; k.shot = null; if(!sh || !k.t3 || !FX) return; var tp = tpos(sh.main.tgt), a = Math.atan2(tp.x - k.x, tp.z - k.z); k.t3.fire();
-        FX.shell({ x:k.x + Math.sin(a)*12, y:5.2, z:k.z + Math.cos(a)*12 }, tp, { hit:sh.main.hit, cb:function(){ if(sh.main.hit) impact(sh.main, true); else impact(sh.main, false, tp.x + 6, 0, tp.z); sh.spl.forEach(function(sc){ impact(sc, true); }); } });
+        var sh = k.shot; k.shot = null; if(!sh || !k.t3 || !FX) return; var tp = tpos(sh.tgt), a = Math.atan2(tp.x - k.x, tp.z - k.z); k.t3.fire(); shake(0.4);
+        FX.shell({ x:k.x + Math.sin(a)*37, y:15, z:k.z + Math.cos(a)*37 }, tp, { hit:true, cb:function(){ shake(1); sh.all.forEach(function(c){ impact(c, true); c.tgt.hit = 0.7; }); } });
       }
       function afterAction(){ S.acted = true; S.menu = false; ui.skills.style.display = "none"; refreshUI(); if(LUC.hp <= 0){ S.state = "anim"; finishWin(); } }
       function doAttack(){ if(S.state !== "player" || S.acted) return; var f = adjFoes(1); if(!f.length){ say("적이 너무 멀어요. 방향키로 가까이 가세요"); return; } var t0 = f[0];
@@ -6271,9 +6304,12 @@ function initThree(){
       function skillQ(){ if(S.state !== "player" || S.acted) return; if(S.cd.q > 0){ say("당근은 " + S.cd.q + "턴 뒤에 다시 나눠줄 수 있어요"); return; } var n = 0;
         TM.batch(function(){ TM.push(SnapCommand(function(){ rok.forEach(function(u){ if(u.alive && !(u.brain > 0) && dist(u, RAB) <= 6){ var h = Math.min(HP, u.hp + 30) - u.hp; if(h > 0){ u.hp += h; u.vhp = u.hp; n++; if(n <= 6) floatText(u.x, UH + 2, u.z, "+30", "#9fffa8"); } } }); RAB.hp = RAB.vhp = Math.min(300, RAB.hp + 30); S.cd.q = 3; afterAction(); })); }); say("🥕 당근 나눠주기! 주변 국군 " + n + "명 HP +30"); }
       function skillW(){ if(S.state !== "player" || S.acted) return; if(S.cd.w > 0){ say("뒷다리 걷어차기는 " + S.cd.w + "턴 뒤에 쓸 수 있어요"); return; } var f = adjFoes(1); if(!f.length){ say("북한군 바로 앞(1칸)으로 가서 쓰세요"); return; } var t = f[0];
-        TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t, 80, 1)); impact(c, true); TM.push(SnapCommand(function(){ S.cd.w = 2; afterAction(); })); }); say("🦵 뒷다리 걷어차기! 80 데미지"); }
+        TM.batch(function(){ var c = TM.push(AttackCommand(RAB, t, 80, 1)); var tp = tpos(t), pp = state.player; POSE = { kind:"kick", t:0, dur:1.25, yaw:Math.atan2(tp.x - pp.x, tp.z - pp.z) + Math.PI + 0.7 };
+          later(0.47, function(){ impact(c, true); t.hit = 0.8; shake(0.5); if(FX){ FX.puff(tp.x, 6, tp.z, "boom"); FX.ring(tp.x, 5, tp.z, 22, 0.45); FX.puff(tp.x, 6, tp.z, "spark"); } floatText(tp.x, tyOf(t) + 4, tp.z, "💥 KICK!", "#fff2a0"); });
+          TM.push(SnapCommand(function(){ S.cd.w = 2; afterAction(); })); }); say("🦵 뒷다리 걷어차기! 80 데미지"); }
       function skillE(){ if(S.state !== "player" || S.acted) return; if(S.cd.e > 0){ say("유혹은 " + S.cd.e + "턴 뒤에 쓸 수 있어요"); return; } var c = nk.filter(function(u){ return u.alive && dist(u, RAB) <= 10; }).sort(function(a, b){ return dist(a, RAB) - dist(b, RAB); }).slice(0, 2); if(!c.length){ say("근처(10칸)에 북한군이 없어요"); return; }
-        TM.batch(function(){ TM.push(SnapCommand(function(){ c.forEach(function(u){ u.charm = 2; floatText(u.x, UH + 3, u.z, "💘", "#ff9fd0"); }); S.cd.e = 4; afterAction(); })); }); say("💘 토끼의 유혹! 북한군 " + c.length + "명이 2턴 동안 따라와요"); }
+        TM.batch(function(){ TM.push(SnapCommand(function(){ POSE = { kind:"charm", t:0, dur:1.3 }; var pp = state.player; later(0.25, function(){ if(FX){ FX.hearts(pp.x, 10, pp.z, 46, true); FX.ring(pp.x, 4, pp.z, 40, 0.8); } });
+          c.forEach(function(u){ u.charm = 2; later(0.7, function(){ if(FX) FX.hearts(u.x, 9, u.z, 8, false); floatText(u.x, UH + 6, u.z, "💘", "#ff9fd0"); }); }); S.cd.e = 4; afterAction(); })); }); say("💘 토끼의 유혹! 북한군 " + c.length + "명이 2턴 동안 따라와요"); }
       function doRetreat(){ if(S.state !== "player") return; window.__tbLose = "retreat"; if(!window.confirm || window.confirm("후퇴할까요? (전투가 처음부터 다시 시작돼요)")){ say("🏃 후퇴!"); S.state = "idle"; resetAfterLoss(); if(typeof showToast === "function") showToast("🏃 후퇴했어요. 다시 국군에게 가면 전투를 시작해요"); } }
       // ---------- 턴 진행 ----------
       function endPlayerTurn(){ if(S.state !== "player" || S.tw) return; S.menu = false; ui.skills.style.display = "none"; S.state = "anim"; if(S.volleyDone){ S.state = "enemy"; refreshUI(); runPhase("nk"); } else runPhase("rok"); }
@@ -6294,10 +6330,11 @@ function initThree(){
         if(bestL){ if(bestL === RAB) RAB.shots++; var ph = bestL === RAB ? 0.55 : (bestL === LUC ? 0.7 : (bestL.kind === "tank" ? 0.85 : 0.75)); u.shot = TM.push(AttackCommand(u, bestL, ownDmg, ph)); u.fireWait = 0.05 + Math.random()*1.05; var tp = tpos(bestL); u.fx = tp.x; u.fz = tp.z; }
       }
       function tankAct(k, foes){
-        if(!k.alive) return; var c = foes.filter(function(o){ return o.alive && o.kind === "soldier"; }); if(!c.length) return; var near = c.filter(function(o){ return dist(k, o) <= 24; }), pool = near.length ? near : c, tg = pool[Math.floor(rnd()*pool.length)];
-        var main = TM.push(AttackCommand(k, tg, 60, 0.8)), spl = [];
-        foes.forEach(function(o){ if(o !== tg && o.alive && o.kind !== "lucia" && o.kind !== "tank" && dist(o, tg) <= 1 && spl.length < 8) spl.push(TM.push(AttackCommand(k, o, 25, 1))); });
-        k.shot = { main:main, spl:spl }; k.fireWait = 0.6; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
+        if(!k.alive) return; var own = (k.side === "rok" ? rok : nk).filter(function(u){ return u.alive && !(u.brain > 0); }).length; if(own > 0) return;      // 앞줄(자기 편 군인)이 모두 쓰러진 뒤에야 나서요
+        if(!k.engaged){ k.engaged = true; say(k.side === "rok" ? "🛡 국군 탱크가 앞으로 나섰어요!" : "🪖 북한군 탱크가 앞으로 나섰어요!"); }
+        var c = foes.filter(function(o){ return o.alive && (o.kind === "soldier" || o.kind === "rabbit"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = pool[Math.floor(rnd()*pool.length)];
+        var near = c.filter(function(o){ return o !== tg; }).sort(function(a, b){ return dist(a, tg) - dist(b, tg); }).slice(0, 2), all = [tg].concat(near).map(function(o){ return TM.push(AttackCommand(k, o, 85, 1)); });      // 맞은 곳 근처 3명 모두 -85
+        k.shot = { all:all, tgt:tg }; k.fireWait = 0.7; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
       }
       function foesOfROK(){ var l = []; nk.forEach(function(u){ if(u.alive) l.push(u); }); rok.forEach(function(u){ if(u.alive && u.brain > 0) l.push(u); }); if(LUC.alive) l.push(LUC); if(NKT.alive) l.push(NKT); return l; }
       function foesOfNK(){ var l = []; rok.forEach(function(u){ if(u.alive && !(u.brain > 0)) l.push(u); }); l.push(RAB); if(ROKT.alive) l.push(ROKT); return l; }
@@ -6328,7 +6365,7 @@ function initThree(){
         var c = counts();
         if(LUC.hp <= 0 || LUC.alive === false){ finishWin(); return; }
         if(RAB.hp <= 0){ finishLose("토끼가 쓰러졌어요…"); return; }
-        if(c.a <= 0){ finishLose("국군이 모두 쓰러졌어요…"); return; }
+        if(c.a <= 0 && !ROKT.alive){ finishLose("국군이 모두 쓰러졌어요…"); return; }
         if(team === "rok"){ S.state = "enemy"; refreshUI(); runPhase("nk"); return; }
         // 라운드 끝: 효과 감소 (적 행동 묶음에 포함 → 우클릭으로 함께 되돌려요)
         TM.push(SnapCommand(function(){
@@ -6361,6 +6398,7 @@ function initThree(){
         else say("↩ 행동을 되돌렸어요");
         S.menu = false; ui.skills.style.display = "none"; refreshUI(); return true;
       }
+      window.__tbPose = function(kind, yaw){ POSE = kind === "kick" ? { kind:"kick", t:0, dur:1.25, yaw:yaw } : { kind:"charm", t:0, dur:1.3 }; }; window.__tbFx = function(){ return FX; };
       window.__tbUndo = doUndo; window.__tbTM = TM;
       window.addEventListener("contextmenu", function(e){ if(!S.active) return; e.preventDefault(); e.stopImmediatePropagation(); doUndo(); }, true);
       window.addEventListener("keydown", function(e){
@@ -6379,6 +6417,8 @@ function initThree(){
         var far = Math.hypot(p.x, p.z - Z0) > 520; if(G) G.visible = !far && S.state !== "won2";
         if(!G || !G.visible) return;
         var i, u, tm = t/1000;
+        for(i = pending.length - 1; i >= 0; i--){ pending[i].t -= dt; if(pending[i].t <= 0){ var pf = pending[i].fn; pending.splice(i, 1); pf(); } }
+        { var hh = document.getElementById("canvasHolder"); if(hh){ if(S.shake > 0){ S.shake = Math.max(0, S.shake - dt*1.7); var sh0 = S.shake*7; hh.style.transform = S.shake > 0 ? "translate(" + ((Math.random() - 0.5)*sh0).toFixed(1) + "px," + ((Math.random() - 0.5)*sh0).toFixed(1) + "px)" : ""; } } }
         // 대기 중: 가까이 가면 질문
         if(S.state === "idle"){ S.cool = Math.max(0, S.cool - dt); if(S.cool <= 0 && p.z > Z0 - 100 && p.z < Z0 + 40 && Math.abs(p.x) < 90 && typeof memorialCleared === "function" && !memorialCleared()) openPrompt(); }
         // 토끼 이동 트윈
@@ -6398,10 +6438,10 @@ function initThree(){
 }
         if(RIG) RIG.update(all, tm, dt);
         [ROKT, NKT].forEach(function(k){ if(!(S.state === "intro" && k.side === "nk" && S.intro === 0)) lerpTo(k, dt, 5); if(k.fireWait > 0){ k.fireWait -= dt; if(k.fireWait <= 0){ k.fireWait = 0; fireTank(k); } } if(k.hit > 0) k.hit -= dt; if(k.t3){ k.t3.place(k.x, k.z); k.t3.update(dt, tm); } });
-        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 1.7, z:u.z, w:3.6, h:0.45, frac:u.vhp/HP, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
+        if(FX){ FX.update(dt); barList.length = 0; var bl = barList; rok.concat(nk).forEach(function(u){ bl.push({ x:u.x, y:UH + 3.0, z:u.z, w:3.6, h:0.45, frac:u.vhp/HP, col:u.brain > 0 ? 0xb06aff : (u.side === "rok" ? 0x4fd15a : 0xe0503c), vis:u.vis && u.vhp > 0 && S.active }); });
           bl.push({ x:state.player.x, y:UH + 5.2, z:state.player.z, w:8, h:0.8, frac:RAB.vhp/300, col:0x4aa3ff, vis:S.active && RAB.vhp > 0 });
           bl.push({ x:LV.x, y:23.5, z:LV.z, w:8, h:0.8, frac:LUC.vhp/300, col:0xb06aff, vis:S.active && LV.vis && LUC.vhp > 0 && LV.die < 0 });
-          [ROKT, NKT].forEach(function(k){ bl.push({ x:k.x, y:10.5, z:k.z, w:9, h:0.8, frac:k.vhp/300, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });
+          [ROKT, NKT].forEach(function(k){ bl.push({ x:k.x, y:33, z:k.z, w:20, h:1.5, frac:k.vhp/190, col:k.side === "rok" ? 0x4fd15a : 0xe0503c, vis:S.active && k.vhp > 0 && (k.side === "rok" || S.state !== "intro" || S.intro > 0) }); });
           FX.bars(bl, three.camera); }
         // 루샤 (3D, 걷고 웃고 주문을 외워요)
         if(LUC3){ var ltz = wz(LUC.gz), ltx = wx(LUC.gx); if(LV.vis && !LV.walkIn){ LV.x += (ltx - LV.x)*Math.min(1, dt*3.0); LV.z += (ltz - LV.z)*Math.min(1, dt*3.0); }
