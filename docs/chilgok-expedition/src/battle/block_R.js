@@ -1,0 +1,167 @@
+    // ================= 3D 군인(국군/북한군) + 3D 루샤: 표지판 같은 그림 대신 몸이 있는 인형 =================
+    // 군인 200명은 부위별 InstancedMesh(같은 모양을 한 번에 그림)로, 관절은 2관절 IK(팔·다리)로 움직여요: 걷기/뛰기(발이 땅을 딛고 무릎이 접힘),
+    // 총 들고 걷기 ↔ 조준 사격(반동 + 총구 불꽃), 숨쉬기·무게 이동·두리번, 피격 휘청, 쓰러짐, 만세.
+    (function buildTBRig(){
+      var V3 = THREE.Vector3, M4 = THREE.Matrix4, Q = THREE.Quaternion, E = THREE.Euler, CO = THREE.Color;
+      var _m = new M4(), _p = new V3(), _q = new Q(), _s = new V3(), _q2 = new Q(), _e = new E(), root = new M4(), _Y = new V3(0, 1, 0), _Z = new V3(0, 0, 1), _d = new V3();
+      function rnd1(seed){ var s = Math.sin(seed*12.9898)*43758.5453; return s - Math.floor(s); }
+      function ctex(w, h, fn){ var c = document.createElement("canvas"); c.width = w; c.height = h; fn(c.getContext("2d"), w, h); var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+      function fabricTex(){ return ctex(128, 128, function(g, w, h){ g.fillStyle = "#f2f2f2"; g.fillRect(0, 0, w, h); var i; for(i = 0; i < 1400; i++){ var v = 205 + Math.floor(Math.random()*50); g.fillStyle = "rgb(" + v + "," + v + "," + v + ")"; g.fillRect(Math.random()*w, Math.random()*h, 2, 2); } g.strokeStyle = "rgba(120,120,120,0.16)"; g.lineWidth = 1; for(i = -h; i < w; i += 5){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); } }); }
+      function faceTex(){ return ctex(256, 128, function(g, w, h){ g.fillStyle = "#e9bb94"; g.fillRect(0, 0, w, h); var gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "rgba(60,40,28,0.0)"); gr.addColorStop(1, "rgba(120,70,40,0.18)"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+          g.fillStyle = "#33261c"; g.fillRect(96, 0, 190, 128); g.fillRect(0, 0, 26, 128); g.fillRect(0, 0, 256, 40);        // 머리카락(뒤/옆/위)
+          g.fillStyle = "#f6f2ea"; g.beginPath(); g.ellipse(52, 66, 7, 4.4, 0, 0, 7); g.ellipse(76, 66, 7, 4.4, 0, 0, 7); g.fill(); g.fillStyle = "#2b1a10"; g.beginPath(); g.arc(53, 66, 3, 0, 7); g.arc(77, 66, 3, 0, 7); g.fill();
+          g.strokeStyle = "#3a2518"; g.lineWidth = 3; g.beginPath(); g.moveTo(43, 57); g.lineTo(60, 55); g.moveTo(68, 55); g.lineTo(86, 57); g.stroke(); g.strokeStyle = "rgba(150,90,62,0.8)"; g.lineWidth = 2; g.beginPath(); g.moveTo(64, 68); g.lineTo(62, 80); g.lineTo(67, 80); g.stroke(); g.strokeStyle = "#8a4a3a"; g.lineWidth = 3; g.beginPath(); g.moveTo(54, 92); g.quadraticCurveTo(64, 96, 74, 92); g.stroke(); }); }
+      function shadowTex(){ return ctex(64, 64, function(g, w, h){ var gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, "rgba(0,0,0,0.62)"); gr.addColorStop(0.6, "rgba(0,0,0,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.clearRect(0, 0, w, h); g.fillStyle = gr; g.fillRect(0, 0, w, h); }); }
+      function ik2(sh, tg, l1, l2, pole, outElbow, outHand){
+        var dx = tg.x - sh.x, dy = tg.y - sh.y, dz = tg.z - sh.z, d = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4, dm = (l1 + l2)*0.995; if(d > dm) d = dm; if(d < 0.25) d = 0.25; var nx = dx/(Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4), ny = dy/(Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4), nz = dz/(Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4);
+        var a = (l1*l1 - l2*l2 + d*d)/(2*d), h = Math.sqrt(Math.max(0, l1*l1 - a*a)), dp = pole.x*nx + pole.y*ny + pole.z*nz, px = pole.x - nx*dp, py = pole.y - ny*dp, pz = pole.z - nz*dp, pl = Math.sqrt(px*px + py*py + pz*pz) || 1; px /= pl; py /= pl; pz /= pl;
+        outElbow.set(sh.x + nx*a + px*h, sh.y + ny*a + py*h, sh.z + nz*a + pz*h); outHand.set(sh.x + nx*d, sh.y + ny*d, sh.z + nz*d);
+      }
+      function put(mesh, i, px, py, pz, q, sx, sy, sz){ _p.set(px, py, pz); _s.set(sx, sy, sz); _m.compose(_p, q, _s); _m.premultiply(root); mesh.setMatrixAt(i, _m); }
+      var QI = new Q();
+      function seg(mesh, i, a, b, rad){ _d.subVectors(b, a); var len = _d.length() || 0.01; _d.multiplyScalar(1/len); _q.setFromUnitVectors(_Y, _d); put(mesh, i, (a.x + b.x)/2, (a.y + b.y)/2, (a.z + b.z)/2, _q, rad, len, rad); }
+      function hide(mesh, i){ _m.makeScale(0, 0, 0); mesh.setMatrixAt(i, _m); }
+      var COLS = { rok:{ cloth:0x56662f, pants:0x4f5c2b, helm:0x46522a, pack:0x424b26, boot:0x3b2b1e }, nk:{ cloth:0x8a6f33, pants:0x7a6129, helm:0x66592f, pack:0x5c4a26, boot:0x35271b } };
+      var SKIN = 0xe0ad88, WOOD = 0x5b3b22, STEEL = 0x25272a;
+      window.TBRig = { create:function(G, N){
+        var cloth = new THREE.MeshStandardMaterial({ map:fabricTex(), roughness:0.95, metalness:0, emissive:0x141414, fog:false }), plain = new THREE.MeshStandardMaterial({ roughness:0.8, metalness:0.05, emissive:0x101010, fog:false }), face = new THREE.MeshStandardMaterial({ map:faceTex(), roughness:0.75, emissive:0x1c1816, fog:false });
+        var sph = new THREE.SphereGeometry(1, 16, 12), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 10, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 16, 8, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
+        function mk(geo, mat, colored){ var m = new THREE.InstancedMesh(geo, mat, N); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; if(colored){ var c = new CO(1, 1, 1); for(var i = 0; i < N; i++) m.setColorAt(i, c); } G.add(m); return m; }
+        var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(sph, face, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
+        var shadow = new THREE.InstancedMesh(circ, new THREE.MeshBasicMaterial({ map:shadowTex(), transparent:true, depthWrite:false, fog:false }), N); shadow.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shadow.frustumCulled = false; shadow.renderOrder = 1; G.add(shadow);
+        var ST = [], tmpC = new CO(), tint1 = new CO(0xb06aff), tint2 = new CO(0xff7a7a);
+        for(var i = 0; i < N; i++) ST.push({ px:0, pz:0, yaw:0, ph:rnd1(i)*6.28, walk:0, aim:0, tint:-1, off:rnd1(i + 91)*6.28, init:false, cheer:0, br:0.92 + rnd1(i + 3)*0.16 });
+        function setColors(i, u, tint){
+          var C = COLS[u.side], st = ST[i], b = st.br, amt = tint === 1 ? 0.5 : (tint === 2 ? 0.45 : 0), tc = tint === 1 ? tint1 : tint2;
+          function col(m, hex, extra){ tmpC.setHex(hex).multiplyScalar(b*(extra || 1)); if(amt) tmpC.lerp(tc, amt); m.setColorAt(i, tmpC); }
+          col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.barrel, STEEL, 1);
+          Object.keys(P).forEach(function(k){ if(P[k].instanceColor) P[k].instanceColor.needsUpdate = true; }); st.tint = tint;
+        }
+        var shL = new V3(-1.45, 8.1, 0.05), shR = new V3(1.45, 8.1, 0.05), hipL = new V3(-0.85, 5.4, 0), hipR = new V3(0.85, 5.4, 0), tg = new V3(), el = new V3(), hd = new V3(), poleA = new V3(), poleL = new V3(0, 0.15, 1), a0 = new V3(), a1 = new V3(), aL = new V3(), aR = new V3(), rh = new V3(), lh = new V3(), eLv = new V3(), eRv = new V3(), hLv = new V3(), hRv = new V3(), kL = new V3(), kR = new V3(), anL = new V3(), anR = new V3(), rd = new V3();
+        var API = {}, PK = Object.keys(P);
+        API.update = function(units, tm, dt){
+          var S0 = 0.92, i, u, st;
+          for(i = 0; i < N; i++){
+            u = units[i]; st = ST[i]; if(!u) continue;
+            if(!u.vis || (u.die > 2.9)){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); continue; }
+            var tint = u.brain > 0 ? 1 : (u.hit > 0 ? 2 : 0); if(tint !== st.tint) setColors(i, u, tint);
+            if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.side === "rok" ? 0 : Math.PI; st.init = true; }
+            var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 60) sp = 0; st.px = u.x; st.pz = u.z;
+            var walkT = (sp > 2.2 && u.die < 0) ? 1 : 0; st.walk += (walkT - st.walk)*Math.min(1, dt*9); st.ph += (Math.min(sp, 14)*1.1 + (st.walk > 0.3 ? 0.4 : 0))*dt*1.55;
+            var aimT = (u.fireT > 0 && u.die < 0) ? 1 : 0; st.aim += (aimT - st.aim)*Math.min(1, dt*14); if(u.cheer) st.cheer += (1 - st.cheer)*Math.min(1, dt*8); else st.cheer += (0 - st.cheer)*Math.min(1, dt*8);
+            var fy = u.side === "rok" ? 0 : Math.PI, ty = fy; if(sp > 2.2) ty = Math.atan2(dx, dz); else if(u.fireT > 0 && u.fx !== undefined) ty = Math.atan2(u.fx - u.x, u.fz - u.z); else if(u.die < 0 && st.cheer < 0.1) ty = fy + Math.sin(tm*0.5 + st.off)*0.22;
+            var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 2.2 ? 12 : 8));
+            var w = st.walk, ph = st.ph, s1 = Math.sin(ph), c1 = Math.cos(ph), idle = 1 - w;
+            var bob = Math.abs(s1)*0.3*w + Math.sin(tm*1.6 + st.off)*0.05*idle + (st.cheer > 0.1 ? Math.abs(Math.sin(tm*8 + st.off))*0.9*st.cheer : 0);
+            var lean = 0.06*w + 0.05*st.aim, flinch = u.hit > 0 ? Math.sin(Math.min(1, u.hit/0.3)*Math.PI)*0.35 : 0, fall = 0, hy = 0;
+            if(u.die >= 0){ var k = Math.min(1, u.die/0.55), e = k*k*(3 - 2*k); fall = e*(Math.PI/2); hy = e*1.0; lean = 0; flinch = 0; w = 0; }
+            var scl = (u.die > 2.3) ? Math.max(0, 1 - (u.die - 2.3)/0.6) : 1;
+            // 루트: 위치 + 방향 + 앞뒤로 기울임
+            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle, bob + hy, u.z); _s.set(S0*scl, S0*scl, S0*scl); root.compose(_p, _q2, _s);
+            var sway = Math.sin(tm*0.9 + st.off)*0.12*idle, brt = 1 + Math.sin(tm*1.9 + st.off)*0.018;
+            // 다리(2관절 IK): 발이 땅을 딛고 무릎이 접혀요
+            var stride = 1.7*w + 0.0, side, hip, kn, an;
+            for(side = 0; side < 2; side++){ var phs = ph + side*Math.PI, sn = Math.sin(phs), cs = Math.cos(phs); hip = side ? hipR : hipL; var lift = 0.95*Math.max(0, cs)*w; tg.set(hip.x + (side ? 0.12 : -0.12) + sway*0.5, hip.y - 4.38 + lift + (side ? 0.0 : 0.0), hip.z + stride*sn + (w < 0.5 ? (side ? 0.15 : -0.1) : 0)); ik2(hip, tg, 2.4, 2.1, poleL, el, hd); if(side){ kR.copy(el); anR.copy(hd); } else { kL.copy(el); anL.copy(hd); } }
+                        put(P.pel, i, 0 + sway*0.4, 5.55 - 0.0, 0.0, QI, 1.55, 0.95, 1.05); seg(P.tL, i, kL, hipL, 0.68); seg(P.tR, i, kR, hipR, 0.68); seg(P.sL, i, anL, kL, 0.55); seg(P.sR, i, anR, kR, 0.55);
+            put(P.bL, i, anL.x, anL.y - 0.35, anL.z + 0.4, _q.setFromEuler(_e.set(-0.2*Math.max(0, Math.cos(ph))*w, 0, 0)), 0.95, 0.95, 1.8); put(P.bR, i, anR.x, anR.y - 0.35, anR.z + 0.4, _q.setFromEuler(_e.set(-0.2*Math.max(0, Math.cos(ph + Math.PI))*w, 0, 0)), 0.95, 0.95, 1.8);
+            // 몸통 (걸을 때 어깨가 엇갈려 비틀림)
+            var tw = s1*0.16*w, trs = Math.sin(tw); _e.set(0.04*st.aim, tw, 0); _q.setFromEuler(_e); put(P.torso, i, 0, 7.15, 0, _q, 1.7, 1.75*brt, 1.05); put(P.sho, i, 0, 8.1, 0.02, _q, 2.25, 0.72, 1.0); put(P.pack, i, 0, 7.4, -1.3, _q, 2.0, 2.2, 0.95);
+            // 머리 + 철모
+            _e.set(0.08*w - 0.06*st.aim, Math.sin(tm*0.6 + st.off)*0.28*idle, 0); _q.setFromEuler(_e);
+            put(P.head, i, 0, 9.85 + 0.03*s1*w, 0.12, _q, 0.98, 1.08, 1.0); put(P.helm, i, 0, 10.05 + 0.03*s1*w, 0.1, _q, 1.28, 0.95, 1.3); put(P.rim, i, 0, 10.0, 0.1, _q, 1.4, 0.18, 1.45);
+            // 팔: 총 들고 걷기(휴대) ↔ 조준(견착) ↔ 만세
+            var a = st.aim, ch = st.cheer, rb = u.fireT > 0.38 ? (u.fireT - 0.38)*-3.0 : 0, rcoil = u.fireT > 0.36 && u.fireT < 0.5 ? 0.5 : 0;
+            rh.set(0.75*(1 - a) + 1.05*a, 6.9*(1 - a) + 8.05*a, 1.55*(1 - a) + 1.75*a - rcoil*a); lh.set(-0.55*(1 - a) - 0.1*a, 7.6*(1 - a) + 8.4*a, 2.7*(1 - a) + 3.1*a - rcoil*0.5*a);
+            rh.y += Math.sin(ph*2)*0.08*w; lh.y += Math.sin(ph*2 + 1)*0.08*w; rh.x += Math.sin(tm*1.3 + st.off)*0.03*idle;
+            if(ch > 0.02){ rh.set(rh.x*(1 - ch) + 1.7*ch, rh.y*(1 - ch) + 12.0*ch, rh.z*(1 - ch) + 0.3*ch); lh.set(lh.x*(1 - ch) - 1.7*ch, lh.y*(1 - ch) + 12.0*ch, lh.z*(1 - ch) + 0.3*ch); }
+            if(u.hit > 0){ rh.y += flinch*1.2; lh.y += flinch*1.2; }
+            rd.copy(lh).sub(rh); var rlen = rd.length() || 1; rd.multiplyScalar(1/rlen);
+            poleA.set(0.9, -1, -0.2); ik2(shR, rh, 1.7, 1.6, poleA, eRv, hRv); poleA.set(-0.9, -1, -0.2); ik2(shL, lh, 1.7, 1.6, poleA, eLv, hLv);
+            seg(P.uR, i, eRv, shR, 0.5); seg(P.fR, i, hRv, eRv, 0.42); seg(P.uL, i, eLv, shL, 0.5); seg(P.fL, i, hLv, eLv, 0.42);
+            put(P.hR, i, hRv.x, hRv.y, hRv.z, QI, 0.46, 0.46, 0.46); put(P.hL, i, hLv.x, hLv.y, hLv.z, QI, 0.46, 0.46, 0.46);
+            // 소총: 두 손 사이 방향
+            if(ch > 0.5){ hide(P.stock, i); hide(P.barrel, i); hide(P.flash, i); }
+            else { _q.setFromUnitVectors(_Z, rd); var cxp = rh.x + rd.x*1.2, cyp = rh.y + rd.y*1.2, czp = rh.z + rd.z*1.2; put(P.stock, i, cxp, cyp, czp, _q, 0.34, 0.5, 2.5); put(P.barrel, i, rh.x + rd.x*3.4, rh.y + rd.y*3.4, rh.z + rd.z*3.4, _q, 0.2, 0.22, 2.3);
+              if(u.fireT > 0.4){ var fs = 0.5 + (u.fireT - 0.4)*4; put(P.flash, i, rh.x + rd.x*4.9, rh.y + rd.y*4.9, rh.z + rd.z*4.9, QI, fs, fs, fs*1.6); } else hide(P.flash, i); }
+            // 그림자
+            _p.set(u.x, 0.06, u.z); _e.set(-Math.PI/2, 0, 0); _q.setFromEuler(_e); _s.set(3.3*scl, 2.6*scl, 1); _m.compose(_p, _q, _s); shadow.setMatrixAt(i, _m);
+          }
+          for(var q = 0; q < PK.length; q++) P[PK[q]].instanceMatrix.needsUpdate = true; shadow.instanceMatrix.needsUpdate = true;
+        };
+        API.parts = P; return API;
+      } };
+    })();
+
+    // ---------- 3D 루샤 (보라 한복 + 갓 쓴 토끼): 함곡이처럼 걷고, 숨 쉬고, 웃고, 주문을 외워요 ----------
+    (function buildTBLucia(){
+      var V3 = THREE.Vector3;
+      function ct(w, h, fn){ var c = document.createElement("canvas"); c.width = w; c.height = h; fn(c.getContext("2d"), w, h); var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+      function M(col, o){ o = o || {}; var m = new THREE.MeshStandardMaterial({ color:col, roughness:o.r !== undefined ? o.r : 0.6, metalness:o.m || 0, emissive:o.e !== undefined ? o.e : new THREE.Color(col).multiplyScalar(0.2), side:o.side || THREE.FrontSide, fog:false }); if(o.map){ m.map = o.map; } if(o.tr){ m.transparent = true; m.opacity = o.op; } return m; }
+      var SPH = new THREE.SphereGeometry(1, 28, 20), CYL = new THREE.CylinderGeometry(1, 1, 1, 28, 1);
+      function ell(p, m, rx, ry, rz, x, y, z){ var o = new THREE.Mesh(SPH, m); o.scale.set(rx, ry, rz); o.position.set(x, y, z); p.add(o); return o; }
+      function grp(p, x, y, z){ var g = new THREE.Group(); g.position.set(x, y, z); p.add(g); return g; }
+      function ik2(sh, tg, l1, l2, pole, outE, outH){ var dx = tg.x - sh.x, dy = tg.y - sh.y, dz = tg.z - sh.z, d0 = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-4, d = Math.min(d0, (l1 + l2)*0.995), nx = dx/d0, ny = dy/d0, nz = dz/d0, a = (l1*l1 - l2*l2 + d*d)/(2*d), h = Math.sqrt(Math.max(0, l1*l1 - a*a)), dp = pole.x*nx + pole.y*ny + pole.z*nz, px = pole.x - nx*dp, py = pole.y - ny*dp, pz = pole.z - nz*dp, pl = Math.sqrt(px*px + py*py + pz*pz) || 1; outE.set(sh.x + nx*a + px/pl*h, sh.y + ny*a + py/pl*h, sh.z + nz*a + pz/pl*h); outH.set(sh.x + nx*d, sh.y + ny*d, sh.z + nz*d); }
+      var _Y = new V3(0, 1, 0), _d = new V3(), _q = new THREE.Quaternion(), _mid = new V3();
+      function segMesh(mesh, a, b, r){ _d.subVectors(b, a); var len = _d.length() || 0.01; _d.multiplyScalar(1/len); _q.setFromUnitVectors(_Y, _d); mesh.position.set((a.x + b.x)/2, (a.y + b.y)/2, (a.z + b.z)/2); mesh.quaternion.copy(_q); mesh.scale.set(r, len, r); }
+      window.TBLucia = { create:function(G){
+        var root = new THREE.Group(); root.visible = false; G.add(root); var inner = grp(root, 0, 0, 0), B = grp(inner, 0, 0, 0);
+        var PUR = M(0x5a2a86, { r:0.55, map:ct(256, 256, function(g, w, h){ var gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, "#6a34a0"); gr.addColorStop(1, "#4a2072"); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(255,200,255,0.12)"; g.lineWidth = 3; for(var i = 0; i < 18; i++){ g.beginPath(); g.arc(Math.random()*w, Math.random()*h, 8 + Math.random()*16, 0, 7); g.stroke(); } g.strokeStyle = "rgba(20,0,40,0.35)"; g.lineWidth = 4; for(i = 0; i < 6; i++){ g.beginPath(); g.moveTo(0, i*50); g.quadraticCurveTo(w/2, i*50 + 30, w, i*50); g.stroke(); } }), e:0x2a1244 });
+        var PURD = M(0x3d1a5c, { r:0.6 }), WH = M(0xf6f4f2, { r:0.5, e:0x6a6866 }), PK = M(0xf0a8bc, { r:0.6 }), BLK = M(0x14101a, { r:0.4, e:0x08060c }), GOLD = M(0xe3bd47, { r:0.3, m:0.35, e:0x3a2d0a });
+        // 발 (치마 밑으로 번갈아 보여요)
+        var footL = ell(B, BLK, 1.25, 0.65, 1.9, -1.3, 0.65, 0.4), footR = ell(B, BLK, 1.25, 0.65, 1.9, 1.3, 0.65, 0.4);
+        // 치마 (걸을 때 흔들려요)
+        var robeG = grp(B, 0, 0, 0), skirt = new THREE.Mesh(CYL, PUR); skirt.scale.set(3.9, 5.0, 3.5); skirt.position.set(0, 3.3, 0); skirt.geometry = new THREE.CylinderGeometry(2.7, 4.1, 1, 32, 1, true); skirt.material = M(0x5a2a86, { r:0.55, map:PUR.map, side:THREE.DoubleSide, e:0x2a1244 }); skirt.scale.set(1, 5.0, 0.9); robeG.add(skirt);
+        var hem = new THREE.Mesh(new THREE.CylinderGeometry(4.12, 4.2, 0.55, 32, 1, true), BLK); hem.position.set(0, 1.05, 0); hem.scale.set(1, 1, 0.9); hem.material.side = THREE.DoubleSide; robeG.add(hem);
+        var torso = ell(robeG, PUR, 2.9, 2.6, 2.2, 0, 6.7, 0);
+        var ribbon = ell(robeG, BLK, 0.45, 2.0, 0.3, 0, 6.8, 2.05);
+        var roundel = new THREE.Mesh(new THREE.CircleGeometry(1.5, 28), new THREE.MeshStandardMaterial({ map:ct(128, 128, function(g, w, h){ g.fillStyle = "#e3bd47"; g.beginPath(); g.arc(64, 64, 60, 0, 7); g.fill(); g.strokeStyle = "#a97c1e"; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 50, 0, 7); g.stroke(); g.fillStyle = "#b8860b"; g.font = "bold 56px serif"; g.textAlign = "center"; g.fillText("龍", 64, 84); }), emissive:0x2a2008, roughness:0.4, fog:false })); roundel.position.set(0, 4.6, 1.95); robeG.add(roundel);
+        // 머리
+        var headG = grp(B, 0, 10.4, 0.1); var head = ell(headG, WH, 3.45, 3.0, 2.8, 0, 0, 0);
+        ell(headG, M(0xf2b8c4, { r:0.8 }), 0.9, 0.55, 0.3, -2.0, -0.55, 2.3); ell(headG, M(0xf2b8c4, { r:0.8 }), 0.9, 0.55, 0.3, 2.0, -0.55, 2.3);
+        var eyes = []; [-1, 1].forEach(function(s){ var eg = grp(headG, s*1.35, 0.35, 2.4); ell(eg, M(0xf8f4f4, { r:0.3 }), 0.85, 0.7, 0.35, 0, 0, 0); ell(eg, M(0x6b1e1e, { r:0.3, e:0x200404 }), 0.62, 0.55, 0.3, 0, -0.03, 0.18); ell(eg, M(0x0c0404, {}), 0.34, 0.4, 0.3, 0, -0.03, 0.3); ell(eg, new THREE.MeshBasicMaterial({ color:0xffffff }), 0.16, 0.2, 0.1, -0.2, 0.2, 0.46); var brow = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.32, 0.4), BLK); brow.position.set(-s*0.15, 0.92, 0.2); brow.rotation.z = s*0.42; eg.add(brow); eyes.push(eg); });
+        ell(headG, PK, 0.45, 0.32, 0.4, 0, -0.45, 2.75); var mouth = ell(headG, M(0x8a1c2e, { r:0.4 }), 0.95, 0.3, 0.3, 0, -1.2, 2.5); [-0.38, 0.38].forEach(function(x){ var f = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.55, 8), M(0xffffff, {})); f.rotation.x = Math.PI; f.position.set(x, -1.42, 2.62); headG.add(f); });
+        // 귀
+        var earL = grp(headG, -1.9, 2.0, -0.4), earR = grp(headG, 1.9, 2.0, -0.4); [earL, earR].forEach(function(E, i){ ell(E, WH, 1.05, 3.7, 0.5, 0, 3.2, 0); ell(E, PK, 0.72, 3.1, 0.2, 0, 3.2, 0.34); E.rotation.z = i ? -0.18 : 0.18; });
+        // 갓 (넓은 챙 + 원통 관)
+        var hat = grp(headG, 0, 2.55, 0.1), brimM = M(0x15111c, { r:0.5, e:0x0a0810, side:THREE.DoubleSide }); var brim = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.0, 0.2, 40), brimM); brim.scale.set(1, 1, 0.82); hat.add(brim); var crown = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 2.35, 3.0, 28), M(0x1c1722, { r:0.55, e:0x0c0a12 })); crown.position.y = 1.55; hat.add(crown); var band = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.4, 28), M(0x3a2a52, { r:0.4 })); band.position.y = 0.3; hat.add(band);
+        [-1, 1].forEach(function(s){ var st = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3.6, 6), BLK); st.position.set(s*3.2, -1.6, 1.4); st.rotation.z = s*0.12; headG.add(st); });
+        // 팔 (소매) — IK
+        var shL = new V3(-2.7, 7.9, 0.2), shR = new V3(2.7, 7.9, 0.2), sleeve = { L:[new THREE.Mesh(CYL, PUR), new THREE.Mesh(CYL, PUR)], R:[new THREE.Mesh(CYL, PUR), new THREE.Mesh(CYL, PUR)] }, handL = ell(B, WH, 0.95, 0.95, 0.95, 0, 0, 0), handR = ell(B, WH, 0.95, 0.95, 0.95, 0, 0, 0);
+        [sleeve.L, sleeve.R].forEach(function(a){ a.forEach(function(m, i){ m.geometry = new THREE.CylinderGeometry(i ? 0.95 : 1.15, i ? 0.8 : 1.0, 1, 18); B.add(m); }); });
+        // 오라
+        var ac = document.createElement("canvas"); ac.width = ac.height = 128; var g = ac.getContext("2d"), gr = g.createRadialGradient(64, 64, 6, 64, 64, 64); gr.addColorStop(0, "rgba(170,70,255,0.85)"); gr.addColorStop(0.5, "rgba(110,30,190,0.4)"); gr.addColorStop(1, "rgba(60,0,110,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+        var aura = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(ac), transparent:true, depthWrite:false, fog:false, opacity:0.6 })); aura.scale.set(26, 26, 1); aura.center.set(0.5, 0.2); root.add(aura);
+        var wisps = []; for(var wi = 0; wi < 7; wi++){ var ws = new THREE.Sprite(new THREE.SpriteMaterial({ map:aura.material.map, transparent:true, depthWrite:false, fog:false, opacity:0.5, color:0x9a4cff })); ws.scale.set(5, 5, 1); root.add(ws); wisps.push({ s:ws, a:Math.random()*6.28, r:3.5 + Math.random()*2.5, h:Math.random() }); }
+        var K = 0.95, st = { px:0, pz:0, yaw:Math.PI, ph:0, walk:0, cast:0, init:false }, tg = new V3(), eL = new V3(), eR = new V3(), hLv = new V3(), hRv = new V3(), poleR = new V3(0.8, -1, -0.4), poleL = new V3(-0.8, -1, -0.4);
+        var API = { root:root };
+        API.setVisible = function(v){ root.visible = v; };
+        API.update = function(dt, tm, x, z, o){
+          if(!root.visible) return; o = o || {}; if(!st.init){ st.px = x; st.pz = z; st.init = true; }
+          var dx = x - st.px, dz = z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 60) sp = 0; st.px = x; st.pz = z;
+          var wT = sp > 1.8 ? 1 : 0; st.walk += (wT - st.walk)*Math.min(1, dt*8); st.ph += (Math.min(sp, 12)*0.9 + (st.walk > 0.3 ? 0.5 : 0))*dt*1.4; var w = st.walk, idle = 1 - w, s1 = Math.sin(st.ph), c1 = Math.cos(st.ph);
+          var castT = o.cast || 0; st.cast += (castT - st.cast)*Math.min(1, dt*9); var ca = st.cast;
+          var ty = Math.PI; if(sp > 1.8) ty = Math.atan2(dx, dz) ; var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 1.8 ? 9 : 5));
+          var die = o.die === undefined ? -1 : o.die; var scl = die >= 0 ? Math.max(0, 1 - die/1.3) : 1;
+          root.position.set(x, 0, z); inner.rotation.y = st.yaw + (die >= 0 ? die*7 : 0); inner.scale.setScalar(K*scl);
+          var bob = Math.abs(s1)*0.45*w + Math.sin(tm*1.8)*0.12*idle + Math.sin(tm*14)*0.05*(o.laugh ? 1 : 0) + ca*0.8; B.position.y = bob; B.rotation.x = 0.06*w; B.rotation.z = Math.sin(st.ph)*0.04*w;
+          // 치마 흔들림 + 발
+          robeG.rotation.z = Math.sin(st.ph + 0.5)*0.07*w; robeG.rotation.x = Math.cos(st.ph)*0.05*w; skirt.scale.x = 1 + Math.abs(s1)*0.04*w;
+          var swing = 1.8*w; footL.position.set(-1.3, 0.65 + Math.max(0, Math.cos(st.ph))*0.7*w, 0.4 + swing*Math.sin(st.ph)); footR.position.set(1.3, 0.65 + Math.max(0, -Math.cos(st.ph))*0.7*w, 0.4 - swing*Math.sin(st.ph));
+          // 머리/귀/갓
+          headG.rotation.x = 0.05*w + Math.sin(tm*1.8)*0.02; headG.rotation.z = Math.sin(st.ph)*0.04*w + Math.sin(tm*0.9)*0.02*idle; headG.rotation.y = Math.sin(tm*0.7)*0.18*idle; earL.rotation.x = -0.12*w - Math.sin(st.ph + 1)*0.1*w + Math.sin(tm*1.4)*0.04; earR.rotation.x = -0.12*w - Math.sin(st.ph + 1.6)*0.1*w + Math.sin(tm*1.2)*0.04; hat.rotation.z = Math.sin(st.ph)*0.03*w;
+          eyes.forEach(function(e){ e.scale.y = (Math.sin(tm*0.9) > 0.985 ? 0.15 : 1); });
+          mouth.scale.y = 0.3 + (o.laugh ? Math.abs(Math.sin(tm*14))*0.35 : 0) + ca*0.25;
+          // 팔: 평소엔 한 손을 입 가까이(낄낄), 걸을 땐 양팔 흔들기, 주문 땐 양손 위로
+          var rT = new V3(); rT.set(1.1*(1 - w) + 3.2*w, 9.0*(1 - w) + 5.4*w, 2.8*(1 - w) + (1.2*Math.sin(st.ph))*w);
+          var lT = new V3(); lT.set(-3.3, 5.2 + Math.max(0, Math.cos(st.ph))*0.4*w, 0.8 - 1.3*Math.sin(st.ph)*w + 0.0);
+          if(ca > 0.02){ rT.set(rT.x*(1 - ca) + 2.5*ca, rT.y*(1 - ca) + 14.3*ca, rT.z*(1 - ca) + 1.4*ca); lT.set(lT.x*(1 - ca) - 2.5*ca, lT.y*(1 - ca) + 14.3*ca, lT.z*(1 - ca) + 1.4*ca); }
+          rT.y += Math.sin(tm*14)*0.12*(o.laugh ? 1 : 0); shR.set(2.7, 7.9 + bob*0.0, 0.2); shL.set(-2.7, 7.9, 0.2);
+          ik2(shR, rT, 2.5, 2.3, poleR, eR, hRv); ik2(shL, lT, 2.5, 2.3, poleL, eL, hLv);
+          segMesh(sleeve.R[0], eR, shR, 1.2); segMesh(sleeve.R[1], hRv, eR, 0.98); segMesh(sleeve.L[0], eL, shL, 1.2); segMesh(sleeve.L[1], hLv, eL, 0.98); handR.position.copy(hRv); handL.position.copy(hLv);
+          // 오라
+          var pulse = 0.55 + 0.2*Math.sin(tm*3) + ca*0.3; aura.material.opacity = Math.min(1, pulse)*scl; aura.position.set(0, 0.5, -0.5); aura.scale.set(26*(1 + ca*0.25), 26*(1 + ca*0.25), 1);
+          wisps.forEach(function(wv){ wv.a += dt*1.2; wv.h = (wv.h + dt*0.22) % 1; wv.s.position.set(Math.cos(wv.a)*wv.r, 1 + wv.h*14, Math.sin(wv.a)*wv.r); wv.s.material.opacity = Math.sin(wv.h*Math.PI)*0.55*scl*(1 + ca); var q = 3 + wv.h*3; wv.s.scale.set(q, q, 1); });
+        };
+        return API;
+      } };
+    })();
