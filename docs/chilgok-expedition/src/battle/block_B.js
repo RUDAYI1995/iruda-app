@@ -536,7 +536,7 @@
       }
       function soldierAct(u, ctx){
         if(u.charm > 0){ if(dist(u, RAB) > 1){ stepToward(u, RAB.gx, RAB.gz); if(dist(u, RAB) > 1) stepToward(u, RAB.gx, RAB.gz); } return; }
-        if(u.dest) armyMove(u); else if(!u.hold) freeMove(u);
+        if(!u.dest && !u.hold) freeMove(u);
         var uN = (u.side === "nk" || u.brain > 0), gs = [], tk = null, rb = null, p2 = null, dx, dz, o;
         for(dx = -RANGE; dx <= RANGE; dx++) for(dz = -RANGE; dz <= RANGE; dz++){
           if(!dx && !dz) continue; o = occ[key(u.gx + dx, u.gz + dz)]; if(!o || !o.alive || o === u) continue;
@@ -620,7 +620,7 @@
       function runPhase(team){
         var i; atkCount = 0; RAB.shots = 0; P2.shots = 0; LUC.shots = 0;
         if(team === "rok"){ TM.team = "player"; TM.group = ++TM.gid; TM.push(SnapCommand(function(){ S.volleyDone = true; }));
-          var dm = Math.round((UD.player.atk + SQM.bonus)*((LUC.curse > 0 || LUC.ult > 0) ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(){ return rnd() - 0.5; }), ctx = { planes:PNK.filter(function(p){ return p.alive; }) }; buildFields(); arr = arr.filter(function(u){ return u.dest; }).sort(function(a, b){ return ((b.dest[1] - b.gz)*b.gz + (b.dest[0] - b.gx)*b.gx) - ((a.dest[1] - a.gz)*a.gz + (a.dest[0] - a.gx)*a.gx); }).concat(arr.filter(function(u){ return !u.dest; })); arr.forEach(function(u){ soldierAct(u, ctx); }); arUndo = []; TROK.forEach(function(k){ tankAct(k, fo); }); PROK.forEach(function(pl){ planeAct(pl, fo); }); hrok.forEach(function(u){ hillAct(u, hnk, fo.filter(function(o){ return o.kind === "soldier" && !o.hill || o === LUC; })); }); say("🎖 국군 일제 사격! (공격 " + dm + ")"); evEmit(EVT.OnTurnStart, { turn:S.turn, side:"rok" }); gasPhase("rok"); }
+          var dm = Math.round((UD.player.atk + SQM.bonus)*((LUC.curse > 0 || LUC.ult > 0) ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(){ return rnd() - 0.5; }), ctx = { planes:PNK.filter(function(p){ return p.alive; }) }; buildFields(); arr = arr.filter(function(u){ return u.dest; }).sort(function(a, b){ return ((b.dest[1] - b.gz)*b.gz + (b.dest[0] - b.gx)*b.gx) - ((a.dest[1] - a.gz)*a.gz + (a.dest[0] - a.gx)*a.gx); }).concat(arr.filter(function(u){ return !u.dest; })); armyRounds(arr); arr.forEach(function(u){ soldierAct(u, ctx); }); arUndo = []; TROK.forEach(function(k){ tankAct(k, fo); }); PROK.forEach(function(pl){ planeAct(pl, fo); }); hrok.forEach(function(u){ hillAct(u, hnk, fo.filter(function(o){ return o.kind === "soldier" && !o.hill || o === LUC; })); }); say("🎖 국군 일제 사격! (공격 " + dm + ")"); evEmit(EVT.OnTurnStart, { turn:S.turn, side:"rok" }); gasPhase("rok"); }
         else {
           TM.team = "enemy"; TM.group = ++TM.gid; evEmit(EVT.OnTurnStart, { turn:S.turn, side:"nk" }); gasPhase("nk");
           lucia();
@@ -712,8 +712,21 @@
         l.forEach(function(u){ arUndo.push({ u:u, d:u.dest, h:u.hold }); var b = u.dest || [u.gx, u.gz], q = clampG(b[0] + dx + (absX !== undefined ? absX - cx : 0), b[1] + dz); u.dest = q; u.hold = false; });
         var m = l[Math.floor(l.length/2)]; floatText(m.x, UH + 6, m.z, n + "번 ▶", "#9fe0ff"); return l.length;
       }
-      function armyMove(u){
-        for(var s = 0; s < 5; s++){ if(!u.dest) return; if(u.gx === u.dest[0] && u.gz === u.dest[1]){ u.dest = null; u.hold = true; return; } if(!stepToward(u, u.dest[0], u.dest[1])){ u.stuck = (u.stuck || 0) + 1; if(u.stuck > 2){ u.dest = null; u.hold = true; u.stuck = 0; } return; } }
+      // 명령받은 병사들이 한 칸씩 번갈아 5라운드 움직여요 (앞 칸이 비면 뒤따라가서 부대끼리 서로 막지 않아요)
+      // 앞이 막히면 같은 편 병사와 자리를 바꿔 지나가요 (이동 명령 병사끼리 서로 못 지나가는 문제 방지)
+      function armyStep(u, tx, tz){
+        if(stepToward(u, tx, tz)) return true;
+        var dx = Math.sign(tx - u.gx), dz = Math.sign(tz - u.gz), c = [], i; if(Math.abs(tx - u.gx) >= Math.abs(tz - u.gz)){ if(dx) c.push([dx, 0]); if(dz) c.push([0, dz]); } else { if(dz) c.push([0, dz]); if(dx) c.push([dx, 0]); }
+        for(i = 0; i < c.length; i++){ var nx = u.gx + c[i][0], nz = u.gz + c[i][1]; if(!inb(nx, nz)) continue; var o = occ[key(nx, nz)];
+          if(o && o !== u && o.kind === "soldier" && o.side === "rok" && o.alive && !(o.brain > 0) && !o.hill && !o.hold){ var ax = u.gx, az = u.gz; TM.push(MoveCommand(u, nx, nz)); TM.push(MoveCommand(o, ax, az)); return true; } }
+        return false;
+      }
+      function armyRounds(list){
+        var ord = list.filter(function(u){ return u.dest; }), r, moved, i, u; ord.forEach(function(q){ q.mv = 0; });
+        for(r = 0; r < 5; r++){ moved = false;
+          for(i = 0; i < ord.length; i++){ u = ord[i]; if(!u.dest) continue; if(u.gx === u.dest[0] && u.gz === u.dest[1]){ u.dest = null; u.hold = true; continue; } if(armyStep(u, u.dest[0], u.dest[1])){ u.mv++; moved = true; } }
+          if(!moved) break; }
+        ord.forEach(function(q){ if(q.dest && q.gx === q.dest[0] && q.gz === q.dest[1]){ q.dest = null; q.hold = true; } if(q.dest){ if(q.mv === 0){ q.stuck = (q.stuck || 0) + 1; if(q.stuck >= 2){ q.dest = null; q.hold = true; q.stuck = 0; } } else q.stuck = 0; } });
       }
       function arSay(m, me){ arLog.push({ m:m, me:!!me }); if(arLog.length > 40) arLog.shift(); if(arPan){ arPan.log.innerHTML = arLog.slice(-7).map(function(o){ return o.me ? '<div style="text-align:right;color:#bfe3ff">' + o.m + '</div>' : '<div style="color:#ffe9a8">🐱 ' + o.m + '</div>'; }).join(""); arPan.log.scrollTop = 1e6; } }
       function spec(txt){

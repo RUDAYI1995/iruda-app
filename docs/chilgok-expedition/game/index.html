@@ -6810,7 +6810,7 @@ function initThree(){
       }
       function soldierAct(u, ctx){
         if(u.charm > 0){ if(dist(u, RAB) > 1){ stepToward(u, RAB.gx, RAB.gz); if(dist(u, RAB) > 1) stepToward(u, RAB.gx, RAB.gz); } return; }
-        if(u.dest) armyMove(u); else if(!u.hold) freeMove(u);
+        if(!u.dest && !u.hold) freeMove(u);
         var uN = (u.side === "nk" || u.brain > 0), gs = [], tk = null, rb = null, p2 = null, dx, dz, o;
         for(dx = -RANGE; dx <= RANGE; dx++) for(dz = -RANGE; dz <= RANGE; dz++){
           if(!dx && !dz) continue; o = occ[key(u.gx + dx, u.gz + dz)]; if(!o || !o.alive || o === u) continue;
@@ -6894,7 +6894,7 @@ function initThree(){
       function runPhase(team){
         var i; atkCount = 0; RAB.shots = 0; P2.shots = 0; LUC.shots = 0;
         if(team === "rok"){ TM.team = "player"; TM.group = ++TM.gid; TM.push(SnapCommand(function(){ S.volleyDone = true; }));
-          var dm = Math.round((UD.player.atk + SQM.bonus)*((LUC.curse > 0 || LUC.ult > 0) ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(){ return rnd() - 0.5; }), ctx = { planes:PNK.filter(function(p){ return p.alive; }) }; buildFields(); arr = arr.filter(function(u){ return u.dest; }).sort(function(a, b){ return ((b.dest[1] - b.gz)*b.gz + (b.dest[0] - b.gx)*b.gx) - ((a.dest[1] - a.gz)*a.gz + (a.dest[0] - a.gx)*a.gx); }).concat(arr.filter(function(u){ return !u.dest; })); arr.forEach(function(u){ soldierAct(u, ctx); }); arUndo = []; TROK.forEach(function(k){ tankAct(k, fo); }); PROK.forEach(function(pl){ planeAct(pl, fo); }); hrok.forEach(function(u){ hillAct(u, hnk, fo.filter(function(o){ return o.kind === "soldier" && !o.hill || o === LUC; })); }); say("🎖 국군 일제 사격! (공격 " + dm + ")"); evEmit(EVT.OnTurnStart, { turn:S.turn, side:"rok" }); gasPhase("rok"); }
+          var dm = Math.round((UD.player.atk + SQM.bonus)*((LUC.curse > 0 || LUC.ult > 0) ? 0.9 : 1)), fo = foesOfROK(), arr = rok.filter(function(u){ return u.alive && !(u.brain > 0); }).sort(function(){ return rnd() - 0.5; }), ctx = { planes:PNK.filter(function(p){ return p.alive; }) }; buildFields(); arr = arr.filter(function(u){ return u.dest; }).sort(function(a, b){ return ((b.dest[1] - b.gz)*b.gz + (b.dest[0] - b.gx)*b.gx) - ((a.dest[1] - a.gz)*a.gz + (a.dest[0] - a.gx)*a.gx); }).concat(arr.filter(function(u){ return !u.dest; })); armyRounds(arr); arr.forEach(function(u){ soldierAct(u, ctx); }); arUndo = []; TROK.forEach(function(k){ tankAct(k, fo); }); PROK.forEach(function(pl){ planeAct(pl, fo); }); hrok.forEach(function(u){ hillAct(u, hnk, fo.filter(function(o){ return o.kind === "soldier" && !o.hill || o === LUC; })); }); say("🎖 국군 일제 사격! (공격 " + dm + ")"); evEmit(EVT.OnTurnStart, { turn:S.turn, side:"rok" }); gasPhase("rok"); }
         else {
           TM.team = "enemy"; TM.group = ++TM.gid; evEmit(EVT.OnTurnStart, { turn:S.turn, side:"nk" }); gasPhase("nk");
           lucia();
@@ -6986,8 +6986,21 @@ function initThree(){
         l.forEach(function(u){ arUndo.push({ u:u, d:u.dest, h:u.hold }); var b = u.dest || [u.gx, u.gz], q = clampG(b[0] + dx + (absX !== undefined ? absX - cx : 0), b[1] + dz); u.dest = q; u.hold = false; });
         var m = l[Math.floor(l.length/2)]; floatText(m.x, UH + 6, m.z, n + "번 ▶", "#9fe0ff"); return l.length;
       }
-      function armyMove(u){
-        for(var s = 0; s < 5; s++){ if(!u.dest) return; if(u.gx === u.dest[0] && u.gz === u.dest[1]){ u.dest = null; u.hold = true; return; } if(!stepToward(u, u.dest[0], u.dest[1])){ u.stuck = (u.stuck || 0) + 1; if(u.stuck > 2){ u.dest = null; u.hold = true; u.stuck = 0; } return; } }
+      // 명령받은 병사들이 한 칸씩 번갈아 5라운드 움직여요 (앞 칸이 비면 뒤따라가서 부대끼리 서로 막지 않아요)
+      // 앞이 막히면 같은 편 병사와 자리를 바꿔 지나가요 (이동 명령 병사끼리 서로 못 지나가는 문제 방지)
+      function armyStep(u, tx, tz){
+        if(stepToward(u, tx, tz)) return true;
+        var dx = Math.sign(tx - u.gx), dz = Math.sign(tz - u.gz), c = [], i; if(Math.abs(tx - u.gx) >= Math.abs(tz - u.gz)){ if(dx) c.push([dx, 0]); if(dz) c.push([0, dz]); } else { if(dz) c.push([0, dz]); if(dx) c.push([dx, 0]); }
+        for(i = 0; i < c.length; i++){ var nx = u.gx + c[i][0], nz = u.gz + c[i][1]; if(!inb(nx, nz)) continue; var o = occ[key(nx, nz)];
+          if(o && o !== u && o.kind === "soldier" && o.side === "rok" && o.alive && !(o.brain > 0) && !o.hill && !o.hold){ var ax = u.gx, az = u.gz; TM.push(MoveCommand(u, nx, nz)); TM.push(MoveCommand(o, ax, az)); return true; } }
+        return false;
+      }
+      function armyRounds(list){
+        var ord = list.filter(function(u){ return u.dest; }), r, moved, i, u; ord.forEach(function(q){ q.mv = 0; });
+        for(r = 0; r < 5; r++){ moved = false;
+          for(i = 0; i < ord.length; i++){ u = ord[i]; if(!u.dest) continue; if(u.gx === u.dest[0] && u.gz === u.dest[1]){ u.dest = null; u.hold = true; continue; } if(armyStep(u, u.dest[0], u.dest[1])){ u.mv++; moved = true; } }
+          if(!moved) break; }
+        ord.forEach(function(q){ if(q.dest && q.gx === q.dest[0] && q.gz === q.dest[1]){ q.dest = null; q.hold = true; } if(q.dest){ if(q.mv === 0){ q.stuck = (q.stuck || 0) + 1; if(q.stuck >= 2){ q.dest = null; q.hold = true; q.stuck = 0; } } else q.stuck = 0; } });
       }
       function arSay(m, me){ arLog.push({ m:m, me:!!me }); if(arLog.length > 40) arLog.shift(); if(arPan){ arPan.log.innerHTML = arLog.slice(-7).map(function(o){ return o.me ? '<div style="text-align:right;color:#bfe3ff">' + o.m + '</div>' : '<div style="color:#ffe9a8">🐱 ' + o.m + '</div>'; }).join(""); arPan.log.scrollTop = 1e6; } }
       function spec(txt){
@@ -8211,13 +8224,13 @@ function initThree(){
         if(window.SQM){ if(SQ.chain){ if(win) window.SQM.bonus += 5; else window.SQM.nk = (window.SQM.nk || 0) + 5; } else if(win){ window.SQM.bonus += 5; try{ localStorage.setItem("sqMorale", String(window.SQM.bonus)); }catch(e){} } }
         setHl([]); ring.visible = false; arrow.visible = false; SQ.mode = "done";
         ui.res.innerHTML = '<div style="font-size:26px;font-weight:900;margin-bottom:8px">' + (win ? "🎉 분대 전투 승리!" : "💔 분대 전투 패배") + '</div><div style="font-size:15px;line-height:1.7">' + (win ? "사기 진작! 국군 1만 명 공격력 <b>+5</b> (누적 +" + (window.SQM ? window.SQM.bonus : 0) + ")<br>본선 1만 대 1만 전투에서 적용돼요." : (SQ.chain ? "북한군이 이겼어요… 북한군 1만 명 공격력 <b>+5</b><br>본선 1만 대 1만 전투에서 적용돼요." : "아쉽지만 다음에 다시 도전해요. (사기 보너스는 그대로예요)")) + '<br>추가 점수 ' + score + '점 (연속 처치 ' + (SQ.bonus.multi ? "✔" : "✘") + ' · 함정 처치 ' + (SQ.bonus.trap ? "✔" : "✘") + ' · 6페이즈 이내 ' + (SQ.bonus.fast ? "✔" : "✘") + ')</div>';
-        var b = document.createElement("button"); b.textContent = SQ.chain ? "본선전투로 ▶" : "전선으로 돌아가기"; b.style.cssText = "margin-top:14px;padding:10px 18px;border-radius:12px;border:3px solid #d8b04a;background:#2b3a6a;color:#fff;font-weight:800;cursor:pointer;font-size:15px;"; b.addEventListener("click", leave); ui.res.appendChild(b); ui.res.style.display = "flex";
+        var b = document.createElement("button"); b.textContent = window.SQONLY ? "다시 하기 ⟳" : (SQ.chain ? "본선전투로 ▶" : "전선으로 돌아가기"); b.style.cssText = "margin-top:14px;padding:10px 18px;border-radius:12px;border:3px solid #d8b04a;background:#2b3a6a;color:#fff;font-weight:800;cursor:pointer;font-size:15px;"; b.addEventListener("click", leave); ui.res.appendChild(b); ui.res.style.display = "flex";
       }
       function leave(){
-        if(!SQ.active) return; SQ.active = false; if(root3) root3.visible = false; var p = state.player; if(saved){ p.x = saved.x; p.z = saved.z; p.y = saved.y; three.camera.fov = saved.fov; } three.camera.near = 0.5; three.camera.far = 3200; three.camera.clearViewOffset(); three.camera.updateProjectionMatrix(); state.cam.fx = null; if(ui) ui.root.style.display = "none"; if(window.tbSquadHook) window.tbSquadHook(false);
+        if(!SQ.active) return; if(window.SQONLY){ location.reload(); return; } SQ.active = false; if(root3) root3.visible = false; var p = state.player; if(saved){ p.x = saved.x; p.z = saved.z; p.y = saved.y; three.camera.fov = saved.fov; } three.camera.near = 0.5; three.camera.far = 3200; three.camera.clearViewOffset(); three.camera.updateProjectionMatrix(); state.cam.fx = null; if(ui) ui.root.style.display = "none"; if(window.tbSquadHook) window.tbSquadHook(false);
         if(SQ.chain){ SQ.chain = false; if(window.tbAfterSquad) window.tbAfterSquad(); }
       }
-      function skipSquad(){ if(!SQ.active) return; if(SQ.result){ leave(); return; } var ok = true; try{ if(window.confirm) ok = window.confirm("별도전투를 건너뛰고 본선전투로 갈까요? (보상 +5 는 없어요)"); }catch(e){} if(ok) leave(); }
+      function skipSquad(){ if(!SQ.active || window.SQONLY) return; if(SQ.result){ leave(); return; } var ok = true; try{ if(window.confirm) ok = window.confirm("별도전투를 건너뛰고 본선전투로 갈까요? (보상 +5 는 없어요)"); }catch(e){} if(ok) leave(); }
       window.sqActive = function(){ return SQ.active; }; window.sqLeave = leave;
       window.sqFrame = function(dt){ var p = state.player; p.walking = false; };
       var prevPlace = window.dgPlace; window.dgPlace = function(p){ if(SQ.active) return { id:"squad", name:"정예 분대 전투", sub:"10 대 10 전술 전투 · 페이즈 " + SQ.phase + "/" + MAXPH }; return prevPlace ? prevPlace(p) : null; };
@@ -8241,7 +8254,7 @@ function initThree(){
         ui.help = div("position:absolute;left:62px;top:84px;font-size:11.5px;background:rgba(20,14,8,.6);border-radius:8px;padding:4px 8px;pointer-events:none;", "파랑: 이동 1점 · 청록: 진흙/논 2점 · 클릭: 이동·공격 · 1 공격 · 2 스킬 · 3 방어 · R 대기 · 우클릭: 되돌리기/취소 · Shift+마우스: 적 이동 범위");
         var slots = [["attack", "1", "⚔", "공격"], ["skill", "2", "✨", "스킬"], ["guard", "3", "🛡", "방어"], ["wait", "R", "⏳", "대기"]]; ui.slots = {};
         slots.forEach(function(s){ var b = document.createElement("button"); b.style.cssText = "width:74px;height:74px;border-radius:12px;" + GOLD + "background:linear-gradient(#2c4a6a,#17283c);color:#fff;cursor:pointer;font-family:inherit;position:relative;font-size:12px;line-height:1.2;"; b.innerHTML = '<div style="font-size:26px">' + s[2] + '</div><div class="nm">' + s[3] + '</div><span style="position:absolute;left:5px;top:3px;font-size:11px;color:#ffd34d;font-weight:800">' + s[1] + '</span><span class="cd" style="position:absolute;right:6px;top:3px;font-size:13px;font-weight:800;color:#ff9a9a"></span>'; b.addEventListener("click", function(e){ e.stopPropagation(); pickAct(s[0]); }); ui.bar.appendChild(b); ui.slots[s[0]] = b; });
-        var ex = document.createElement("button"); ex.textContent = "후퇴"; ex.style.cssText = "position:absolute;left:6px;top:84px;padding:5px 10px;border-radius:8px;border:2px solid #c9a24a;background:#4a2a2a;color:#fff;cursor:pointer;pointer-events:auto;font-size:12px;"; ex.addEventListener("click", function(){ skipSquad(); }); ex.textContent = "건너뛰기 Esc";
+        var ex = document.createElement("button"); ex.textContent = "후퇴"; ex.style.cssText = "position:absolute;left:6px;top:84px;padding:5px 10px;border-radius:8px;border:2px solid #c9a24a;background:#4a2a2a;color:#fff;cursor:pointer;pointer-events:auto;font-size:12px;"; ex.addEventListener("click", function(){ skipSquad(); }); ex.textContent = "건너뛰기 Esc"; if(window.SQONLY) ex.style.display = "none";
         [ui.top, ui.obj, ui.cardL, ui.cardR, ui.bar, ui.log, ui.help, ui.tip, ui.res].forEach(function(e){ ui.root.appendChild(e); }); ui.root.appendChild(ex);
         var vg = div("position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(10,14,30,.42) 100%);"); ui.root.insertBefore(vg, ui.root.firstChild);
         var bn = div("position:absolute;left:50%;top:8px;transform:translateX(-50%);padding:5px 22px;border-radius:0 0 16px 16px;background:linear-gradient(#3a2810,#22170a);border:2px solid #d8b04a;border-top:none;color:#ffe9a8;font-weight:900;font-size:15px;letter-spacing:2px;text-shadow:0 2px 3px #000;box-shadow:0 4px 12px rgba(0,0,0,.45);pointer-events:none;z-index:5;", "⚔ 칠곡 원정대 · 별도전투 ⚔"); bn.style.top = "0"; ui.root.appendChild(bn);
