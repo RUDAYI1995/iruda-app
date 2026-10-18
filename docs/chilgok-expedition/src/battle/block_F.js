@@ -174,8 +174,6 @@
           } else {
             var bush = new THREE.MeshStandardMaterial({ color:0x4c6a34, roughness:1, flatShading:true, fog:false, emissive:0x0c1406 });
             for(i = 0; i < 4; i++){ var bs = new THREE.Mesh(new THREE.SphereGeometry(1.4, 6, 5), bush); bs.position.set(-2.2 + i*1.5, 1.2, -1.8 + (i % 2)*0.8); bs.scale.y = 0.8; g.add(bs); }
-            var rf = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 6.0, 8), dark); rf.rotation.x = Math.PI/2; rf.position.set(0.3, 2.3, 3.6); g.add(rf);
-            var sc = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.4, 8), dark); sc.rotation.x = Math.PI/2; sc.position.set(0.3, 2.65, 3.2); g.add(sc);
           }
           g.position.set(x, y, z); g.rotation.y = yaw; G.add(g); return g;
         };

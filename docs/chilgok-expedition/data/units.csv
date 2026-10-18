@@ -9,6 +9,6 @@ PlanePlayer,국군 전투기,350,30
 PlaneEnemy,북한군 전투기,350,30
 MgPlayer,국군 기관총,150,25
 MgEnemy,북한군 기관총,150,25
-SniperPlayer,국군 저격수,60,70
-SniperEnemy,북한군 저격수,60,70
+SniperPlayer,국군 저격수,60,85
+SniperEnemy,북한군 저격수,60,85
 Bayonet,총검,1,60
