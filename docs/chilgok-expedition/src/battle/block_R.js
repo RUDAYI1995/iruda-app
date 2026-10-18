@@ -139,12 +139,14 @@
         var K = 0.95, st = { px:0, pz:0, yaw:Math.PI, ph:0, walk:0, cast:0, init:false }, tg = new V3(), eL = new V3(), eR = new V3(), hLv = new V3(), hRv = new V3(), poleR = new V3(0.8, -1, -0.4), poleL = new V3(-0.8, -1, -0.4);
         var API = { root:root };
         API.setVisible = function(v){ root.visible = v; };
+        // 2P 루샤: 보라 옷을 파란 계열로 물들여 적 루샤와 구분해요 (흰 얼굴/검은 갓은 그대로)
+        API.tint = function(hex, amt){ var c = new THREE.Color(hex); root.traverse(function(n){ if(n.isSprite || !n.material || !n.material.color) return; var m = n.material; if(!m.userData.c0) m.userData.c0 = m.color.clone(); var l = m.userData.c0.r*0.3 + m.userData.c0.g*0.59 + m.userData.c0.b*0.11; if(l > 0.75 || l < 0.12) return; m.color.copy(m.userData.c0).lerp(c, amt); if(m.emissive) m.emissive.copy(m.color).multiplyScalar(0.2); }); aura.material.color.set(0x66c0ff); wisps.forEach(function(w){ w.s.material.color.set(0x66c8ff); }); };
         API.update = function(dt, tm, x, z, o){
           if(!root.visible) return; o = o || {}; if(!st.init){ st.px = x; st.pz = z; st.init = true; }
           var dx = x - st.px, dz = z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = x; st.pz = z;
           var wT = sp > 1.8 ? 1 : 0; st.walk += (wT - st.walk)*Math.min(1, dt*8); st.ph += (Math.min(sp, 12)*0.9 + (st.walk > 0.3 ? 0.5 : 0))*dt*1.4; var w = st.walk, idle = 1 - w, s1 = Math.sin(st.ph), c1 = Math.cos(st.ph);
           var castT = o.cast || 0; st.cast += (castT - st.cast)*Math.min(1, dt*9); var ca = st.cast;
-          var ty = Math.PI; if(sp > 1.8) ty = Math.atan2(dx, dz) ; var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 1.8 ? 9 : 5));
+          var ty = o.face !== undefined ? o.face : Math.PI; if(sp > 1.8) ty = Math.atan2(dx, dz) ; var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 1.8 ? 9 : 5));
           var die = o.die === undefined ? -1 : o.die; var scl = die >= 0 ? Math.max(0, 1 - die/1.3) : 1;
           root.position.set(x, 0, z); inner.rotation.y = st.yaw + (die >= 0 ? die*7 : 0); inner.scale.setScalar(K*scl);
           var bob = Math.abs(s1)*0.45*w + Math.sin(tm*1.8)*0.12*idle + Math.sin(tm*14)*0.05*(o.laugh ? 1 : 0) + ca*0.8; B.position.y = bob; B.rotation.x = 0.06*w; B.rotation.z = Math.sin(st.ph)*0.04*w;
