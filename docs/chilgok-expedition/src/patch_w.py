@@ -3,7 +3,7 @@ SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/w/base_test/index.html", encoding="utf-8").read()
 import base64
 MN = {k: base64.b64encode(open(SP + "/w/mn/" + k + ".webp","rb").read()).decode() for k in ("front","left","right","back","roof","gate")}
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_R.js", encoding="utf-8").read() + open(SP + "/w/block_S.js", encoding="utf-8").read() + open(SP + "/w/block_F.js", encoding="utf-8").read() + open(SP + "/w/block_B.js", encoding="utf-8").read().replace("__UNIT_CSV__", __import__("json").dumps(open(SP + "/w/units.csv", encoding="utf-8").read())[1:-1]).replace("__LUCIA__", base64.b64encode(open(SP + "/w/rusha_cut.webp","rb").read()).decode()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode())
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_R.js", encoding="utf-8").read() + open(SP + "/w/block_S.js", encoding="utf-8").read() + open(SP + "/w/block_F.js", encoding="utf-8").read() + open(SP + "/w/block_B.js", encoding="utf-8").read().replace("__UNIT_CSV__", __import__("json").dumps(open(SP + "/w/units.csv", encoding="utf-8").read())[1:-1]).replace("__LUCIA__", base64.b64encode(open(SP + "/w/rusha_cut.webp","rb").read()).decode()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode()) + open(SP + "/w/block_D.js", encoding="utf-8").read()
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
@@ -68,6 +68,26 @@ sub("        if(window.airTick) window.airTick(t, dt, p);\n", "        if(window
 sub("    if(memorialCleared()) return; // already won in a previous session: no battle\n", "    three.battle = null; return;      // 실시간 전투는 턴제 전투(block_B)로 바뀌었어요\n", "old battle off")
 sub("function update(dt){\n  var p = state.player;\n", "function update(dt){\n  if(window.tbActive && window.tbActive()){ window.tbFrame(dt); return; }\n  var p = state.player;\n", "update hook")
 sub("        if(window.mansionTick) window.mansionTick(t, dt, p);\n", "        if(window.mansionTick) window.mansionTick(t, dt, p);\n        if(window.tbTick) window.tbTick(t, dt, p);\n", "tb tick")
+
+# --- 대구 가는 길 (V82)
+sub("var PATH_MIN_Z = -40, PATH_MAX_Z = 2680;", "var PATH_MIN_Z = -3420, PATH_MAX_Z = 2680;      // 남쪽으로 대구까지 이어 붙였어요 (V82)", "path min z")
+sub("  var groundLen = PATH_MAX_Z-PATH_MIN_Z+80;\n", "  var groundLen = PATH_MAX_Z-PATH_MIN_Z+80, pathLen = 2800;      // 흙길은 왜관 시내까지만 (남쪽은 아스팔트 도로)\n", "ground len")
+sub('var pathTex = photoTex("path", 2, groundLen/6);', 'var pathTex = photoTex("path", 2, pathLen/6);', "path tex")
+sub("plane(16, groundLen, 0xE7D9AE, 0, 0.02, (PATH_MIN_Z+PATH_MAX_Z)/2, pathTex?{map:pathTex}:null);", "plane(16, pathLen, 0xE7D9AE, 0, 0.02, 1320, pathTex?{map:pathTex}:null);", "path plane")
+sub("function skyConstrain(p, px0, pz0){\n", "function skyConstrain(p, px0, pz0){\n  if(window.DG && window.DG.para && window.DG.paraConstrain(p)) return true;      // 낙하산: 하늘섬 밖으로 날아갈 수 있어요\n", "para constrain")
+sub("function skyHeightAt(x, z){\n", "function skyHeightAt(x, z){\n  if(window.DG && window.DG.para) return 0;      // 낙하산 타는 동안은 땅까지 내려가요\n", "para sky h")
+sub("function landPush(p, px0, pz0){\n", "function landPush(p, px0, pz0){\n  if(window.DG) window.DG.push(p, px0, pz0);      // 대구 가는 길: 큰 산 막기, 고가도로 가장자리\n", "dg push")
+sub("(window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0);\n", "(window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0, window.DG ? window.DG.h(x, z) : 0);\n", "dg ground h")
+sub("((window.airPlace && window.airPlace(state.player)) || SKY_PLACE) : (state.player.x < VIL.westX - 20 ? VILLAGE_PLACE : (landPlaceAt(state.player) || currentLandmark()))", "((window.dgPlace && window.dgPlace(state.player)) || (window.airPlace && window.airPlace(state.player)) || SKY_PLACE) : (state.player.x < VIL.westX - 20 ? VILLAGE_PLACE : ((window.dgPlace && window.dgPlace(state.player)) || landPlaceAt(state.player) || currentLandmark()))", "dg place")
+sub("  var mh = window.mansionHint ? window.mansionHint(p) : null; if(mh) return mh;\n", "  var mh = window.mansionHint ? window.mansionHint(p) : null; if(mh) return mh;\n  var dh = window.dgHint ? window.dgHint(p) : null; if(dh) return dh;\n", "dg hint")
+sub("  if(window.mansionInteract && window.mansionInteract(p)) return true;\n", "  if(window.mansionInteract && window.mansionInteract(p)) return true;\n  if(window.dgInteract && window.dgInteract(p)) return true;\n", "dg interact")
+sub("        if(window.tbTick) window.tbTick(t, dt, p);\n", "        if(window.tbTick) window.tbTick(t, dt, p);\n        if(window.dgTick) window.dgTick(t, dt, p);\n", "dg tick")
+sub('  if(k==="m") showScreen("world");\n', '  if(k==="m") showScreen("world");\n  if(k==="b" && window.dgKey) window.dgKey("b");\n', "B key")
+sub("        for(var k = 0; k < 3; k++){ cur.tint[k] = a.tint[k] + (b.tint[k] - a.tint[k])*f; cur.w[k] = a.w[k] + (b.w[k] - a.w[k])*f; }\n", "        for(var k = 0; k < 3; k++){ cur.tint[k] = a.tint[k] + (b.tint[k] - a.tint[k])*f; cur.w[k] = a.w[k] + (b.w[k] - a.w[k])*f; }\n        window.__nightW = Math.min(1, cur.w[1] + 0.6*cur.w[2] + 0.35*cur.w[0]);\n", "night w")
+sub("  three.playerTopSprite.visible = !hamOn; if(hamOn) three.playerLegSprite.visible = false;", "  three.playerTopSprite.visible = !hamOn && !(window.DG && window.DG.riding); if(hamOn || (window.DG && window.DG.riding)) three.playerLegSprite.visible = false;", "hide rider")
+# 산 이름 (뒷배경 큰 산: 칠곡의 산 이름으로, 임시)
+sub('sub:"팔공산 도립공원 속 옛 산성"', 'sub:"가산 위에 있는 옛 산성"', "gasan sub")
+sub('showToast("🏔 가산 정상! 팔공산과 낙동강이 한눈에 내려다보여요");', 'showToast("🏔 가산 정상! 유학산과 낙동강이 한눈에 내려다보여요");', "gasan toast")
 os.makedirs(SP + "/w/out", exist_ok=True); os.makedirs(SP + "/w/test", exist_ok=True)
 
 # --- 언덕 오류 수정: 그림자 번쩍임(셰도 아크네/떨림) + 캐릭터 그림자판이 비탈에 파묻히는 문제
