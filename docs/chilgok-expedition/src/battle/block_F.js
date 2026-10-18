@@ -92,7 +92,7 @@
             var f = k.t/k.life, s = k.s0 + (k.s1 - k.s0)*f; k.vy += k.g*dt; k.s.position.x += k.vx*dt; k.s.position.y += k.vy*dt; k.s.position.z += k.vz*dt; if(k.s.position.y < 0.2) k.s.position.y = 0.2; k.s.scale.set(s, s, 1); k.s.material.opacity = k.a0*(1 - f)*(1 - f*0.3); }
         }
         // ---------- 체력바 (모든 유닛 머리 위, 작게) ----------
-        var NBR = 270, planeG = new THREE.PlaneGeometry(1, 1), bgM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.62, depthTest:false, depthWrite:false, fog:false }), NBR), fillM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ transparent:true, depthTest:false, depthWrite:false, fog:false }), NBR);
+        var NBR = 2400, planeG = new THREE.PlaneGeometry(1, 1), bgM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.62, depthTest:false, depthWrite:false, fog:false }), NBR), fillM = new THREE.InstancedMesh(planeG, new THREE.MeshBasicMaterial({ transparent:true, depthTest:false, depthWrite:false, fog:false }), NBR);
         bgM.frustumCulled = fillM.frustumCulled = false; bgM.renderOrder = 60; fillM.renderOrder = 61; bgM.instanceMatrix.setUsage(THREE.DynamicDrawUsage); fillM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         var zc = new CO(1, 1, 1); for(i = 0; i < NBR; i++){ fillM.setColorAt(i, zc); _m.makeScale(0, 0, 0); bgM.setMatrixAt(i, _m); fillM.setMatrixAt(i, _m); } G.add(bgM); G.add(fillM);
         var tc = new CO();

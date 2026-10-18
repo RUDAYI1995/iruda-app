@@ -28,7 +28,7 @@
       var SKIN = 0xe0ad88, WOOD = 0x5b3b22, STEEL = 0x25272a;
       window.TBRig = { create:function(G, N){
         var cloth = new THREE.MeshStandardMaterial({ map:fabricTex(), roughness:0.95, metalness:0, emissive:0x141414, flatShading:true, fog:false }), plain = new THREE.MeshStandardMaterial({ roughness:0.8, metalness:0.05, emissive:0x101010, flatShading:true, fog:false }), face = new THREE.MeshStandardMaterial({ map:faceTex("rok"), roughness:0.75, emissive:0x1c1816, fog:false }), faceN = new THREE.MeshStandardMaterial({ map:faceTex("nk"), roughness:0.75, emissive:0x1c1816, fog:false });
-        var sph = new THREE.SphereGeometry(1, 8, 6), headGeo = new THREE.SphereGeometry(1, 20, 14), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 7, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 11, 5, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
+        var sph = new THREE.SphereGeometry(1, 7, 5), headGeo = new THREE.SphereGeometry(1, 10, 7), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 7, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 11, 5, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
         function mk(geo, mat, colored){ var m = new THREE.InstancedMesh(geo, mat, N); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; if(colored){ var c = new CO(1, 1, 1); for(var i = 0; i < N; i++) m.setColorAt(i, c); } G.add(m); return m; }
         var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(headGeo, face, 1), headN:mk(headGeo, faceN, 1), pkL:mk(box, cloth, 1), pkR:mk(box, cloth, 1), stL:mk(box, plain, 1), stR:mk(box, plain, 1), star:mk(box, plain, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
         var shadow = new THREE.InstancedMesh(circ, new THREE.MeshBasicMaterial({ map:shadowTex(), transparent:true, depthWrite:false, fog:false }), N); shadow.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shadow.frustumCulled = false; shadow.renderOrder = 1; G.add(shadow);
@@ -42,11 +42,16 @@
         }
         var shL = new V3(-1.45, 8.1, 0.05), shR = new V3(1.45, 8.1, 0.05), hipL = new V3(-0.85, 5.4, 0), hipR = new V3(0.85, 5.4, 0), tg = new V3(), el = new V3(), hd = new V3(), poleA = new V3(), poleL = new V3(0, 0.15, 1), a0 = new V3(), a1 = new V3(), aL = new V3(), aR = new V3(), rh = new V3(), lh = new V3(), eLv = new V3(), eRv = new V3(), hLv = new V3(), hRv = new V3(), kL = new V3(), kR = new V3(), anL = new V3(), anR = new V3(), rd = new V3();
         var API = {}, PK = Object.keys(P);
-        API.update = function(units, tm, dt){
-          var S0 = 1.1, i, u, st;
+        var FR = new THREE.Frustum(), PMX = new THREE.Matrix4(), SPH = new THREE.Sphere(new V3(), 11);
+        API.update = function(units, tm, dt0, cam){
+          // 1000 대 1000: 화면 밖은 건너뛰고, 멀수록 2~3프레임에 한 번만 움직여요(밀린 시간은 합쳐서 반영)
+          var S0 = 1.1, i, u, st, dt = dt0, fr = null; if(cam){ cam.updateMatrixWorld(); PMX.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); FR.setFromProjectionMatrix(PMX); fr = FR; }
           for(i = 0; i < N; i++){
             u = units[i]; st = ST[i]; if(!u) continue;
-            if(!u.vis || (u.die > 2.9)){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); continue; }
+            if(!u.vis || (u.die > 2.9)){ if(!st.hid){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); st.hid = true; } continue; }
+            st.hid = false;
+            if(fr){ SPH.center.set(u.x, (u.y || 0) + 6, u.z); if(!fr.intersectsSphere(SPH)){ st.acc = (st.acc || 0) + dt0; continue; } var cdx = u.x - cam.position.x, cdz = u.z - cam.position.z, cd2 = cdx*cdx + cdz*cdz, ev = cd2 < 16900 ? 1 : (cd2 < 67600 ? 2 : 3); st.fc = (st.fc || 0) + 1; if(ev > 1 && st.init && (st.fc % ev) !== 0){ st.acc = (st.acc || 0) + dt0; continue; } }
+            dt = dt0 + (st.acc || 0); st.acc = 0;
             var tint = u.brain > 0 ? 1 : (u.hit > 0 ? 2 : 0); if(tint !== st.tint) setColors(i, u, tint);
             if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI); st.init = true; }
             var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = u.x; st.pz = u.z;
