@@ -6328,7 +6328,18 @@ function initThree(){
           if(top.team === "enemy"){ while(h.length && h[h.length - 1].team === "enemy"){ TM.undoOne(); n++; } }
           else { var g = top.group; while(h.length && h[h.length - 1].group === g && h[h.length - 1].team !== "enemy"){ TM.undoOne(); n++; } }
           return n; } };
-      function applyDmg(t, dmg){ var d = dmg; if(t.kind === "rabbit"){ d = RAB.def ? Math.round(dmg*0.5) : dmg; RAB.hp -= d; return d; } t.hp -= d; if(t.hp <= 0){ t.alive = false; if(occ[key(t.gx, t.gz)] === t) delete occ[key(t.gx, t.gz)]; } return d; }
+      // ---- 이벤트 종류 정의 (스킬·특성·버프가 같은 발동 조건을 공유할 수 있게 한 곳에서 정의해요) ----
+      //  OnBattleStart { }                           전투 시작 (턴 1 이전)
+      //  OnTurnStart   { turn, side }                 턴이 시작될 때 (side: "rok" = 플레이어 턴 / "nk" = 적 턴)
+      //  OnTurnEnd     { turn, side }                 턴이 끝날 때
+      //  OnDamaged     { target, source, amount, hpAfter, lethal }   피해를 입었을 때 (source 는 모르면 null)
+      //  OnKilled      { target, source }             HP 가 0 이 되어 쓰러졌을 때 (OnDamaged 뒤에 이어서)
+      var EVT = { OnBattleStart:"OnBattleStart", OnTurnStart:"OnTurnStart", OnTurnEnd:"OnTurnEnd", OnDamaged:"OnDamaged", OnKilled:"OnKilled" }, EVH = {};
+      function evOn(type, fn){ if(!EVT[type]) throw new Error("모르는 이벤트: " + type); (EVH[type] = EVH[type] || []).push(fn); return function(){ var a = EVH[type], i = a.indexOf(fn); if(i >= 0) a.splice(i, 1); }; }
+      function evEmit(type, data){ var a = EVH[type]; if(!a) return; data = data || {}; data.type = type; a = a.slice(); for(var i = 0; i < a.length; i++){ try{ a[i](data); }catch(e){ if(window.console) console.error("event " + type, e); } } }
+      window.TBEvents = { types:EVT, on:evOn, emit:evEmit };
+      function applyDmg(t, dmg, src){ var hp0 = t.kind === "rabbit" ? RAB.hp : t.hp, d = applyDmg0(t, dmg); var hp1 = t.kind === "rabbit" ? RAB.hp : t.hp; evEmit(EVT.OnDamaged, { target:t, source:src || null, amount:d, hpAfter:hp1, lethal:hp1 <= 0 && hp0 > 0 }); if(hp1 <= 0 && hp0 > 0) evEmit(EVT.OnKilled, { target:t, source:src || null }); return d; }
+      function applyDmg0(t, dmg){ var d = dmg; if(t.kind === "rabbit"){ d = RAB.def ? Math.round(dmg*0.5) : dmg; RAB.hp -= d; return d; } t.hp -= d; if(t.hp <= 0){ t.alive = false; if(occ[key(t.gx, t.gz)] === t) delete occ[key(t.gx, t.gz)]; } return d; }
       function AttackCommand(att, tgt, dmg, pHit){
         var c = { kind:"attack", att:att, tgt:tgt, dmg:dmg, pHit:pHit, hit:undefined, dealt:0, prev:null,
           execute:function(){ var t = c.tgt; c.prev = { hp:t.hp, alive:t.alive }; if(c.hit === undefined) c.hit = rnd() < c.pHit;
@@ -6598,7 +6609,7 @@ function initThree(){
         later(0.55, function(){ AMB.on = false; setupFormation(); TNK.forEach(function(k){ if(k.t3) k.t3.setVisible(false); }); startBattle0(); fade(0); });
       }
       function startBattle0(){
-        if(ui) ui.prompt.style.display = "none"; S.state = "intro"; S.active = true; S.turn = 1; S.moves = MOVES; S.acted = false; S.cd.q = S.cd.w = S.cd.e = 0; S.log = []; S.intro = 0; S.ended = false; camBattle(true);
+        if(ui) ui.prompt.style.display = "none"; S.state = "intro"; S.active = true; S.turn = 1; evEmit(EVT.OnBattleStart, {}); S.moves = MOVES; S.acted = false; S.cd.q = S.cd.w = S.cd.e = 0; S.log = []; S.intro = 0; S.ended = false; camBattle(true);
         var p = state.player; tween(p, wx(0), wz(0), 0.9); RAB.gx = 0; RAB.gz = 0;
         nk.forEach(function(u){ u.vis = true; }); TNK.forEach(function(k){ if(k.t3) k.t3.setVisible(true); }); TM.clear(); S.volleyDone = false; S.march = 0; say("🪖 북한군이 몰려와요!"); refreshUI();
       }
@@ -6622,6 +6633,7 @@ function initThree(){
       function PosCommand(a, b){ var c = { kind:"pos", a:a, b:b, execute:function(){}, undo:function(){ var p = state.player; p.x = a.x; p.z = a.z; RAB.gx = Math.round(-a.x/T); RAB.gz = Math.round((a.z - Z0)/T); S.cp = { x:a.x, z:a.z }; } }; return c; }
       function commitMove(){ var p = state.player, cp = S.cp; if(cp && Math.hypot(p.x - cp.x, p.z - cp.z) > 2) TM.push(PosCommand({ x:cp.x, z:cp.z }, { x:p.x, z:p.z })); S.cp = { x:p.x, z:p.z }; }
       function beginPlayerTurn(first){
+        evEmit(EVT.OnTurnStart, { turn:S.turn, side:"rok" });
         var p = state.player; S.state = "player"; S.timer = TURN_TIME; S.cp = { x:p.x, z:p.z }; S.dlg = null; if(RAB.hp <= 0){ S.timer = 2.5; S.acted = true; }
         refreshUI();
         say(first ? "— 턴 1 시작 — 방향키/WASD로 자유롭게 움직이고 행동을 고르세요 (30초)" : "— 턴 " + S.turn + " 시작 — (30초 · 우클릭: 행동 되돌리기)");
@@ -6837,7 +6849,8 @@ function initThree(){
       function forces(){ var a = 0, b = 0, i; for(i = 0; i < rok.length; i++){ if(rok[i].alive){ if(rok[i].brain > 0) b++; else a++; } } for(i = 0; i < nk.length; i++) if(nk[i].alive) b++; for(i = 0; i < hrok.length; i++) if(hrok[i].alive) a++; for(i = 0; i < hnk.length; i++) if(hnk[i].alive) b++; for(i = 0; i < TROK.length; i++) if(TROK[i].alive) a++; for(i = 0; i < TNK.length; i++) if(TNK[i].alive) b++; return { rok:a, nk:b }; }
       function afterPhase(team){
         var fo3 = forces(); if(fo3.nk <= 0){ finishWin(); return; } if(fo3.rok <= 0){ finishLose("국군이 모두 쓰러졌어요…"); return; }      // 루샤나 토끼가 쓰러져도 상대 병력이 0이 될 때까지 전투는 계속돼요
-        if(team === "rok"){ S.state = "enemy"; refreshUI(); runPhase("nk"); return; }
+        if(team === "rok"){ evEmit(EVT.OnTurnEnd, { turn:S.turn, side:"rok" }); S.state = "enemy"; refreshUI(); runPhase("nk"); return; }
+        evEmit(EVT.OnTurnEnd, { turn:S.turn, side:"nk" });
         // 라운드 끝: 효과 감소 (적 행동 묶음에 포함 → 우클릭으로 함께 되돌려요)
         TM.push(SnapCommand(function(){
           S.turn++; RAB.def = false; S.moves = MOVES; S.acted = false; S.volleyDone = false; S.cd.q = Math.max(0, S.cd.q - 1); S.cd.w = Math.max(0, S.cd.w - 1); S.cd.e = Math.max(0, S.cd.e - 1); LUC.cdQ = Math.max(0, LUC.cdQ - 1); LUC.cdW = Math.max(0, LUC.cdW - 1); if(LUC.curse > 0) LUC.curse--;
