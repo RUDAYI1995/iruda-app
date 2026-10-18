@@ -34,6 +34,13 @@
       window.UnitSheet = { data:UD, csv:UNIT_CSV, load:function(txt){ var n = parseUnitCsv(txt); if(n && built && !S.active) setupFormation(); return n; } };
       function loadRemoteSheet(){ var url = UNIT_SHEET_URL; try{ url = url || localStorage.getItem("unitSheetUrl") || ""; }catch(e){} if(!url || !window.fetch) return; fetch(url).then(function(r){ return r.text(); }).then(function(t){ window.UnitSheet.load(t); }).catch(function(){}); }
       function bayoDmg(){ return UD.bayonet.atk; }
+      // ---------- 공격 대상 고르기: 점수 = (1 / 체력) × W_HP + 공격력(위협도) × W_ATK, 가장 높은 점수의 대상을 노려요 ----------
+      var TS_W = { hp:100, atk:0.1 };      // 체력 100 → 1점, 공격력 40 → 4점
+      function atkPower(t){ return t === RAB ? RAB.atk : (t === LUC ? LUC.atk : (t.atk || 0)); }
+      function scoreTarget(t){ var hp = t === RAB ? RAB.hp : t.hp; return TS_W.hp/Math.max(1, hp) + atkPower(t)*TS_W.atk; }
+      function pickBest(list, from){ var best = null, bs = -1e9; for(var i = 0; i < list.length; i++){ var o = list[i], sc = scoreTarget(o) - (from ? dist(from, o)*0.001 : 0) + rnd()*0.0005; if(sc > bs){ bs = sc; best = o; } } return best; }
+      function bestOf(list, n){ var best = null, bs = -1e9, m = Math.min(n, list.length); for(var i = 0; i < m; i++){ var o = list[Math.floor(rnd()*list.length)], sc = scoreTarget(o); if(sc > bs){ bs = sc; best = o; } } return best; }      // 1만 명 전부 계산하면 느려서 무작위 표본에서 고르기
+      window.TBScore = { score:scoreTarget, weights:TS_W };
       var SQM = window.SQM = window.SQM || { bonus:0 }; try{ SQM.bonus = Number(localStorage.getItem("sqMorale")) || SQM.bonus || 0; }catch(e){}      // 정예 분대 전투에서 이길 때마다 국군 공격력 +5 (누적)
       function atkOf(u){ var rk = u.side === "rok" && !(u.brain > 0); return Math.round((u.atk + (rk ? SQM.bonus : 0))*((rk && (LUC.curse > 0 || LUC.ult > 0)) ? 0.9 : 1)); }
       var FX = null, barList = [], iconList = [], pending = [], POSE = null;
@@ -534,10 +541,10 @@
         }
         if(uN && RAB.hp > 0 && dist(u, RAB) <= RANGE) rb = RAB;
         var adjs = gs.filter(function(g){ return dist(u, g) <= 1; });
-        if(adjs.length && rnd() < 0.7){ var at = adjs[Math.floor(rnd()*adjs.length)]; u.stab = TM.push(AttackCommand(u, at, bayoDmg(), 0.85)); u.shot = null; u.fireWait = 0.05 + Math.random()*1.0; var sp0 = tpos(at); u.fx = sp0.x; u.fz = sp0.z; return; }      // 바로 앞에 적이 있으면 총검으로 찌르기
+        if(adjs.length && rnd() < 0.7){ var at = pickBest(adjs, u); u.stab = TM.push(AttackCommand(u, at, bayoDmg(), 0.85)); u.shot = null; u.fireWait = 0.05 + Math.random()*1.0; var sp0 = tpos(at); u.fx = sp0.x; u.fz = sp0.z; return; }      // 바로 앞에 적이 있으면 총검으로 찌르기
         var bestL = null, pls = ctx.planes.filter(function(x){ return x.alive && dist(u, x) <= RANGE + 3; });
         if(pls.length && rnd() < 0.1) bestL = pls[0];
-        else if(gs.length){ gs.sort(function(a, b){ return dist(u, a) - dist(u, b); }); if(rnd() < 0.55) bestL = gs[0]; else bestL = gs.reduce(function(m, x){ return x.hp < m.hp ? x : m; }, gs[0]); }
+        else if(gs.length){ bestL = pickBest(gs, u); }
         else if(tk) bestL = tk;
         if(rb && RAB.shots < 2 && (rnd() < 0.2 || !bestL)) bestL = rb;      // 토끼는 가끔만 노려요
         else if(p2 && P2.shots < 2 && rnd() < 0.18){ bestL = p2; P2.shots++; }
@@ -548,7 +555,7 @@
         if(!u.alive) return; var pool = ground.filter(function(o){ return o.alive; }); if(!pool.length) return; var i;
         if(u.role === "mg"){
           // 기관총: 한 표적 주변을 향해 12연발을 빠르게 쏴요 (1발 맞을 때마다 25)
-          var aim = pool[Math.floor(rnd()*pool.length)], near = [], dx, dz, o;
+          var aim = bestOf(pool, 14), near = [], dx, dz, o;
           if(aim.kind === "soldier"){ for(dx = -3; dx <= 3; dx++) for(dz = -3; dz <= 3; dz++){ o = occ[key(aim.gx + dx, aim.gz + dz)]; if(o && o.alive && o.kind === "soldier" && !o.hill && o.side === aim.side) near.push(o); } }
           if(!near.length) near.push(aim); var tp = tpos(aim); if(u.prop) u.prop.rotation.y = Math.atan2(tp.x - u.x, tp.z - u.z);
           for(i = 0; i < 12; i++){ var t = near[Math.floor(rnd()*near.length)]; u.shotQ.push({ cmd:TM.push(AttackCommand(u, t, u.atk, 0.45)), w:0.15 + i*0.075 }); }
@@ -557,7 +564,7 @@
         // 저격수: 조준 후 1발. 머리 = 즉사(군인), 몸 = 85, 다리 아래 = 80. 가끔 적 언덕 사수·루샤·토끼도 노려요
         var tgt = null, r = rnd(), eh = enemyHill.filter(function(o){ return o.alive; });
         if(eh.length && r < 0.3) tgt = eh[Math.floor(rnd()*eh.length)]; else if(u.side === "rok" && LUC.alive && LUC.shots < 3 && r < 0.5){ tgt = LUC; LUC.shots++; } else if(u.side === "nk" && RAB.shots < 2 && r < 0.45){ tgt = RAB; RAB.shots++; }
-        if(!tgt) tgt = pool[Math.floor(rnd()*pool.length)];
+        if(!tgt) tgt = bestOf(pool, 14);
         var cmd = AttackCommand(u, tgt, u.atk, tgt === RAB ? 0.6 : 0.85); cmd.sniper = true; u.shotQ.push({ cmd:TM.push(cmd), w:0.5 + rnd()*0.9 });
       }
       // ---------- 전투기 ----------
@@ -566,7 +573,7 @@
       function startCrash(pl){ if(pl.mode === "crash" || pl.mode === "wreck") return; pl.mode = "crash"; pl.mt = 0; var sp = Math.max(32, Math.hypot(pl.vx, pl.vz)); pl.cv = { vx:Math.sin(pl.yaw)*sp, vy:3, vz:Math.cos(pl.yaw)*sp, tr:0 }; floatText(pl.x, pl.y + 6, pl.z, "💥 격추!", "#ffd27a"); }
       function planeAct(pl, foes){
         if(!pl.alive) return; var c = foes.filter(function(o){ return o.alive && (o.kind === "soldier" || o.kind === "rabbit" || o.kind === "p2"); }); if(!c.length) return;
-        var pool = c.slice(), picks = [], i; for(i = 0; i < 3 && pool.length; i++) picks.push(pool.splice(Math.floor(rnd()*pool.length), 1)[0]);
+        var pool = c.slice(), picks = [], i; for(i = 0; i < 3 && pool.length; i++) { var pk = bestOf(pool, 12); picks.push(pk); pool.splice(pool.indexOf(pk), 1); }
         var cmds = picks.map(function(o){ return TM.push(AttackCommand(pl, o, pl.atk, 0.7)); }), cx = 0, cz = 0; picks.forEach(function(o){ var tp = tpos(o); cx += tp.x/picks.length; cz += tp.z/picks.length; });
         var dz = pl.side === "rok" ? 1 : -1; pl.E = { x:cx, y:34, z:cz - dz*75 }; pl.X = { x:cx, y:40, z:cz + dz*75 }; pl.from = { x:pl.x, y:pl.y, z:pl.z }; pl.mode = "in"; pl.mt = 0; pl.runCmds = cmds.map(function(cm){ return { cm:cm, done:false }; });
       }
@@ -600,7 +607,7 @@
       }
       function tankAct(k, foes){
         if(!k.alive) return;
-        var c = foes.filter(function(o){ return o.alive && !o.hill && (o.kind === "soldier" || o.kind === "rabbit" || o.kind === "p2"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = pool[Math.floor(rnd()*pool.length)];
+        var c = foes.filter(function(o){ return o.alive && !o.hill && (o.kind === "soldier" || o.kind === "rabbit" || o.kind === "p2"); }); if(!c.length) return; var pool = c.filter(function(o){ return o.kind === "soldier"; }); if(!pool.length) pool = c, tg = pool[Math.floor(rnd()*pool.length)]; var tg = bestOf(pool, 14);
         var near = c.filter(function(o){ return o !== tg; }).sort(function(a, b){ return dist(a, tg) - dist(b, tg); }).slice(0, 2), all = [tg].concat(near).map(function(o){ return TM.push(AttackCommand(k, o, k.atk, 1)); });      // 맞은 곳 근처 3명 모두 -85
         k.shot = { all:all, tgt:tg }; k.fireWait = 0.7; if(k.t3){ var tp = tpos(tg); k.t3.aim(tp.x, tp.z); }
       }
@@ -621,7 +628,7 @@
       function foesOfROKbrain(){ var l = []; rok.forEach(function(u){ if(u.alive && !(u.brain > 0)) l.push(u); }); l.push(RAB); return l; }
       function lucia(){
         if(!LUC.alive) return;
-        var tgt = nearest(LUC, foesOfNK().filter(function(o){ return o !== RAB && isGround(o); }).concat([RAB])); if(!tgt) return;
+        var tgt = nearest(LUC, foesOfNK().filter(function(o){ return o !== RAB && isGround(o); }).concat([RAB])); if(!tgt) return; if(tgt.d <= 5){ var lc = foesOfNK().filter(function(o){ return o.alive && (o === RAB ? RAB.hp > 0 : isGround(o)) && dist(LUC, o) <= 5; }); if(lc.length){ var lb = pickBest(lc, LUC); tgt = { o:lb, d:dist(LUC, lb) }; } }
         LV.cast = 1.1; LV.laughT = 1.2;
         if(!LUC.usedE && S.turn >= 10){ TM.push(SnapCommand(function(){ LUC.usedE = true; LUC.ult = 6; floatText(wx(LUC.gx), 22, wz(LUC.gz), "😈 사악한 미소", "#d9a0ff"); })); say("😈 루샤의 사악한 미소! 5턴간 국군 공격력 -10% (궁극기는 한 번뿐)"); return; }
         if(LUC.cdQ <= 0 && LUC.curse <= 0){ TM.push(SnapCommand(function(){ LUC.curse = 3; LUC.cdQ = 6; floatText(wx(LUC.gx), 22, wz(LUC.gz), "음침한 기운", "#d9a0ff"); })); say("😈 음침한 기운! 3턴간 국군 공격 40 → 36"); return; }

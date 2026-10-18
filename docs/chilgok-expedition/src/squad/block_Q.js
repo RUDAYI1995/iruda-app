@@ -235,15 +235,19 @@
       }
       function rightClick(){ var u = SQ.cur; if(!SQ.active || !u || u.side !== "rok") return; if(SQ.mode === "target"){ SQ.mode = "move"; setHl([]); updUI(); return; } if(u.moved && !u.acted && !u.anim && SQ.undo){ var t = tileOf(u.i, u.j); if(t.unit === u) t.unit = null; placeUnit(u, SQ.undo.i, SQ.undo.j); u.moved = false; SQ.undo = null; showMove(); focusOn(u); log("↩ 이동을 되돌렸어요"); } }
 
-      // ---------- 적 AI ----------
+      // ---------- 적 AI: 공격 대상은 점수가 가장 높은 쪽 ----------
+      //  점수 = (1 / 체력) × 100 + 공격력(위협도) × 0.1   (전선 전투와 같은 식)
+      function atkPower(t){ return atkOf(t); }
+      function scoreTarget(t){ return 100/Math.max(1, t.hp) + atkPower(t)*0.1; }
+      SQ.scoreTarget = scoreTarget;
       function aiTurn(u){
         SQ.mode = "ai"; var R = reach(u), cand = Object.keys(R).map(function(k){ return R[k]; }).filter(function(r){ return !r.noStop; }), foes = foesOf(u), allies = allAlive(u.side), sk = u.d.sk, best = null, tfs = u.fx.taunt && u.fx.taunt.src && u.fx.taunt.src.alive ? u.fx.taunt.src : null;
         function consider(sc, tile, act){ if(!best || sc > best.sc) best = { sc:sc, tile:tile, act:act }; }
         cand.forEach(function(r){ var t = tileOf(r.i, r.j), pos = { i:r.i, j:r.j }, pen = (t.trapDmg ? -40 : 0) + (r.cost*0.3) + (coverAdj(t) ? 3 : 0) + (t.h*2);
           var fo = foes.filter(function(f){ return !tfs || f === tfs || manh(pos, f) > u.rng; });
-          fo.forEach(function(f){ if(manh(pos, f) <= u.rng){ var est = atkOf(u)*(f.fx.focus ? 1.5 : 1)*(1 - f.def), sc = 20 + est/f.maxHp*60 + (est >= f.hp ? 40 : 0) + (f.cls === "medic" ? 6 : 0) + (f.cls === "lucia" || f.cls === "leader" ? 8 : 0) + pen; consider(sc, r, { t:"atk", f:f }); } });
+          fo.forEach(function(f){ if(manh(pos, f) <= u.rng){ var sc = 20 + scoreTarget(f)*10 + pen; consider(sc, r, { t:"atk", f:f }); } });
           if(skillReady(u)){
-            if(sk.kind === "single" || sk.kind === "area" || sk.kind === "dash"){ var rr2 = sk.kind === "dash" ? sk.rng : u.rng; fo.forEach(function(f){ if(manh(pos, f) <= rr2 && (sk.kind !== "dash" || manh(pos, f) > 1 || true)){ var cnt = sk.kind === "area" ? foes.filter(function(g){ return manh(g, f) <= 1; }).length : 1, est = atkOf(u)*sk.mult*(f.fx.focus ? 1.5 : 1)*(1 - f.def)*cnt; consider(26 + est/f.maxHp*60 + (est >= f.hp ? 40 : 0) + pen, r, { t:"skill", f:f }); } }); }
+            if(sk.kind === "single" || sk.kind === "area" || sk.kind === "dash"){ var rr2 = sk.kind === "dash" ? sk.rng : u.rng; fo.forEach(function(f){ if(manh(pos, f) <= rr2 && (sk.kind !== "dash" || manh(pos, f) > 1 || true)){ var cnt = sk.kind === "area" ? foes.filter(function(g){ return manh(g, f) <= 1; }).length : 1; consider(26 + scoreTarget(f)*10*sk.mult*cnt + pen, r, { t:"skill", f:f }); } }); }
             else if(sk.kind === "heal"){ allies.forEach(function(a){ if(manh(pos, a) <= sk.rng && a.hp/a.maxHp < 0.7) consider(30 + (1 - a.hp/a.maxHp)*60 + pen, r, { t:"skill", f:a }); }); }
             else if(sk.kind === "gas"){ foes.forEach(function(f){ if(manh(pos, f) <= sk.rng){ var cnt = foes.filter(function(g){ return manh(g, f) <= sk.rad && !g.fx.dot; }).length; if(cnt >= 2) consider(24 + cnt*14 + pen, r, { t:"skill", f:f }); } }); }
             else if(sk.kind === "self"){ var cn = foes.filter(function(f){ return manh(f, pos) <= sk.rad; }).length; if(cn >= 2) consider(22 + cn*8 + pen, r, { t:"skill", f:u }); }
@@ -304,7 +308,11 @@
         var slots = [["attack", "1", "⚔", "공격"], ["skill", "2", "✨", "스킬"], ["guard", "3", "🛡", "방어"], ["wait", "R", "⏳", "대기"]]; ui.slots = {};
         slots.forEach(function(s){ var b = document.createElement("button"); b.style.cssText = "width:74px;height:74px;border-radius:12px;" + GOLD + "background:linear-gradient(#2c4a6a,#17283c);color:#fff;cursor:pointer;font-family:inherit;position:relative;font-size:12px;line-height:1.2;"; b.innerHTML = '<div style="font-size:26px">' + s[2] + '</div><div class="nm">' + s[3] + '</div><span style="position:absolute;left:5px;top:3px;font-size:11px;color:#ffd34d;font-weight:800">' + s[1] + '</span><span class="cd" style="position:absolute;right:6px;top:3px;font-size:13px;font-weight:800;color:#ff9a9a"></span>'; b.addEventListener("click", function(e){ e.stopPropagation(); pickAct(s[0]); }); ui.bar.appendChild(b); ui.slots[s[0]] = b; });
         var ex = document.createElement("button"); ex.textContent = "후퇴"; ex.style.cssText = "position:absolute;left:6px;top:84px;padding:5px 10px;border-radius:8px;border:2px solid #c9a24a;background:#4a2a2a;color:#fff;cursor:pointer;pointer-events:auto;font-size:12px;"; ex.addEventListener("click", function(){ if(SQ.active && !SQ.result) finish(false); });
-        [ui.top, ui.obj, ui.cardL, ui.cardR, ui.bar, ui.log, ui.help, ui.tip, ui.res].forEach(function(e){ ui.root.appendChild(e); }); ui.root.appendChild(ex); host.appendChild(ui.root);
+        [ui.top, ui.obj, ui.cardL, ui.cardR, ui.bar, ui.log, ui.help, ui.tip, ui.res].forEach(function(e){ ui.root.appendChild(e); }); ui.root.appendChild(ex);
+        var vg = div("position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(10,14,30,.42) 100%);"); ui.root.insertBefore(vg, ui.root.firstChild);
+        var bn = div("position:absolute;left:50%;top:8px;transform:translateX(-50%);padding:5px 22px;border-radius:0 0 16px 16px;background:linear-gradient(#3a2810,#22170a);border:2px solid #d8b04a;border-top:none;color:#ffe9a8;font-weight:900;font-size:15px;letter-spacing:2px;text-shadow:0 2px 3px #000;box-shadow:0 4px 12px rgba(0,0,0,.45);pointer-events:none;z-index:5;", "⚔ 칠곡 원정대 · 별도전투 ⚔"); bn.style.top = "0"; ui.root.appendChild(bn);
+        [ui.obj, ui.cardL, ui.cardR, ui.log, ui.help].forEach(function(e){ e.style.boxShadow = "0 4px 14px rgba(0,0,0,.45)"; e.style.backdropFilter = "blur(3px)"; });
+        host.appendChild(ui.root);
       }
       function log(s){ SQ.log.push(s); if(ui) ui.log.textContent = s; }
       function effHtml(u){ var ks = Object.keys(u.fx); if(!ks.length) return '<span style="opacity:.6">상태 효과 없음</span>'; return ks.map(function(k){ var e = EFN[k]; return '<span data-tip="' + e.icon + ' ' + e.name + ' — ' + e.desc + (u.fx[k].turns ? ' (' + u.fx[k].turns + '페이즈 남음)' : '') + '" style="display:inline-block;margin:1px 3px 1px 0;padding:1px 5px;border-radius:8px;background:rgba(255,255,255,.14);border:1px solid ' + e.col + ';cursor:help">' + e.icon + ' ' + e.name + (u.fx[k].turns ? ' ' + u.fx[k].turns : '') + '</span>'; }).join(""); }
