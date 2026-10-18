@@ -30,14 +30,14 @@
         var cloth = new THREE.MeshStandardMaterial({ map:fabricTex(), roughness:0.95, metalness:0, emissive:0x141414, flatShading:true, fog:false }), plain = new THREE.MeshStandardMaterial({ roughness:0.8, metalness:0.05, emissive:0x101010, flatShading:true, fog:false }), face = new THREE.MeshStandardMaterial({ map:faceTex("rok"), roughness:0.75, emissive:0x1c1816, fog:false }), faceN = new THREE.MeshStandardMaterial({ map:faceTex("nk"), roughness:0.75, emissive:0x1c1816, fog:false });
         var sph = new THREE.SphereGeometry(1, 7, 5), headGeo = new THREE.SphereGeometry(1, 10, 7), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 7, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 11, 5, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
         function mk(geo, mat, colored){ var m = new THREE.InstancedMesh(geo, mat, N); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; if(colored){ var c = new CO(1, 1, 1); for(var i = 0; i < N; i++) m.setColorAt(i, c); } G.add(m); return m; }
-        var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(headGeo, face, 1), headN:mk(headGeo, faceN, 1), pkL:mk(box, cloth, 1), pkR:mk(box, cloth, 1), stL:mk(box, plain, 1), stR:mk(box, plain, 1), star:mk(box, plain, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
+        var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(headGeo, face, 1), headN:mk(headGeo, faceN, 1), pkL:mk(box, cloth, 1), pkR:mk(box, cloth, 1), stL:mk(box, plain, 1), stR:mk(box, plain, 1), star:mk(box, plain, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), bayo:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
         var shadow = new THREE.InstancedMesh(circ, new THREE.MeshBasicMaterial({ map:shadowTex(), transparent:true, depthWrite:false, fog:false }), N); shadow.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shadow.frustumCulled = false; shadow.renderOrder = 1; G.add(shadow);
         var ST = [], tmpC = new CO(), tint1 = new CO(0xb06aff), tint2 = new CO(0xff7a7a);
-        for(var i = 0; i < N; i++) ST.push({ px:0, pz:0, yaw:0, ph:rnd1(i)*6.28, walk:0, aim:0, tint:-1, off:rnd1(i + 91)*6.28, init:false, cheer:0, br:0.92 + rnd1(i + 3)*0.16 });
+        for(var i = 0; i < N; i++) ST.push({ px:0, pz:0, yaw:0, ph:rnd1(i)*6.28, walk:0, aim:0, kn:0, sb:0, sg:0, rl:0, pt:0, pn:0, spr:0, tint:-1, off:rnd1(i + 91)*6.28, init:false, cheer:0, br:0.92 + rnd1(i + 3)*0.16 });
         function setColors(i, u, tint){
           var C = COLS[u.side], st = ST[i], b = st.br, amt = tint === 1 ? 0.5 : (tint === 2 ? 0.45 : 0), tc = tint === 1 ? tint1 : tint2;
           function col(m, hex, extra){ tmpC.setHex(hex).multiplyScalar(b*(extra || 1)); if(amt) tmpC.lerp(tc, amt); m.setColorAt(i, tmpC); }
-          col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.headN, 0xffffff, 1.0); col(P.pkL, C.cloth, 0.8); col(P.pkR, C.cloth, 0.8); col(P.stL, 0x8a7a50, 1); col(P.stR, 0x8a7a50, 1); col(P.star, 0xd02a2a, 1); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.barrel, STEEL, 1);
+          col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.headN, 0xffffff, 1.0); col(P.pkL, C.cloth, 0.8); col(P.pkR, C.cloth, 0.8); col(P.stL, 0x8a7a50, 1); col(P.stR, 0x8a7a50, 1); col(P.star, 0xd02a2a, 1); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.bayo, 0xb9bec4, 1); col(P.barrel, STEEL, 1);
           Object.keys(P).forEach(function(k){ if(P[k].instanceColor) P[k].instanceColor.needsUpdate = true; }); st.tint = tint;
         }
         var shL = new V3(-1.45, 8.1, 0.05), shR = new V3(1.45, 8.1, 0.05), hipL = new V3(-0.85, 5.4, 0), hipR = new V3(0.85, 5.4, 0), tg = new V3(), el = new V3(), hd = new V3(), poleA = new V3(), poleL = new V3(0, 0.15, 1), a0 = new V3(), a1 = new V3(), aL = new V3(), aR = new V3(), rh = new V3(), lh = new V3(), eLv = new V3(), eRv = new V3(), hLv = new V3(), hRv = new V3(), kL = new V3(), kR = new V3(), anL = new V3(), anR = new V3(), rd = new V3();
@@ -55,43 +55,56 @@
             var tint = u.brain > 0 ? 1 : (u.hit > 0 ? 2 : 0); if(tint !== st.tint) setColors(i, u, tint);
             if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI); st.init = true; }
             var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = u.x; st.pz = u.z;
-            var walkT = (sp > 2.2 && u.die < 0) ? 1 : 0; st.walk += (walkT - st.walk)*Math.min(1, dt*9); st.ph += (Math.min(sp, 14)*1.1 + (st.walk > 0.3 ? 0.4 : 0))*dt*1.55;
+            var walkT = (sp > 2.2 && u.die < 0) ? 1 : 0; st.walk += (walkT - st.walk)*Math.min(1, dt*9); st.ph += (Math.min(sp, 14 + 9*st.spr)*1.1 + (st.walk > 0.3 ? 0.4 : 0))*dt*1.55;
             var aimT = (u.fireT > 0 && u.die < 0) ? 1 : 0; st.aim += (aimT - st.aim)*Math.min(1, dt*14); if(u.cheer) st.cheer += (1 - st.cheer)*Math.min(1, dt*8); else st.cheer += (0 - st.cheer)*Math.min(1, dt*8);
-            var fy = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI), ty = fy; if(sp > 2.2) ty = Math.atan2(dx, dz); else if(u.fireT > 0 && u.fx !== undefined) ty = Math.atan2(u.fx - u.x, u.fz - u.z); else if(u.die < 0 && st.cheer < 0.1) ty = fy + Math.sin(tm*0.5 + st.off)*0.22;
+            // 다양한 동작: 무릎쏴(kn) · 총검 찌르기(sb) · 뒤로 손짓(sg) · 장전(rl) · 가리키기(pt) · 맞아서 아픔(pn) · 돌진(spr)
+            var act = u.die < 0 ? u.act : null, k1 = Math.min(1, dt*10);
+            st.kn += ((act === "kneel" ? 1 : 0) - st.kn)*k1; st.sb += ((act === "stab" ? 1 : 0) - st.sb)*Math.min(1, dt*16); st.sg += ((act === "signal" ? 1 : 0) - st.sg)*k1; st.rl += ((act === "reload" ? 1 : 0) - st.rl)*k1; st.pt += ((act === "point" ? 1 : 0) - st.pt)*k1; st.pn += ((u.hit > 0 && u.die < 0 ? 1 : 0) - st.pn)*Math.min(1, dt*12); st.spr += ((sp > 12 && u.die < 0 ? Math.min(1, (sp - 10)/10) : 0) - st.spr)*Math.min(1, dt*8);
+            var kn = st.kn, sb = st.sb, sg = st.sg, rl = st.rl, pt = st.pt, pn = st.pn, spr = st.spr;
+            var fy = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI), ty = fy; if(sp > 2.2) ty = Math.atan2(dx, dz); else if((u.fireT > 0 || u.act === "stab") && u.fx !== undefined) ty = Math.atan2(u.fx - u.x, u.fz - u.z); else if(u.die < 0 && st.cheer < 0.1) ty = fy + Math.sin(tm*0.5 + st.off)*0.22;
             var da = ty - st.yaw; while(da > Math.PI) da -= 2*Math.PI; while(da < -Math.PI) da += 2*Math.PI; st.yaw += da*Math.min(1, dt*(sp > 2.2 ? 12 : 8));
             var w = st.walk, ph = st.ph, s1 = Math.sin(ph), c1 = Math.cos(ph), idle = 1 - w;
             var bob = Math.abs(s1)*0.3*w + Math.sin(tm*1.6 + st.off)*0.05*idle + (st.cheer > 0.1 ? Math.abs(Math.sin(tm*8 + st.off))*0.9*st.cheer : 0);
-            var lean = 0.06*w + 0.05*st.aim, flinch = u.hit > 0 ? Math.sin(Math.min(1, u.hit/0.3)*Math.PI)*0.35 : 0, fall = 0, hy = 0;
+            var lean = 0.06*w + 0.05*st.aim, flinch = u.hit > 0 ? Math.sin(Math.min(1, u.hit/0.6)*Math.PI)*0.35 : 0, fall = 0, hy = 0;
+            lean += 0.28*spr + 0.12*kn + 0.22*sb - 0.2*pn + 0.1*rl; bob += Math.abs(s1)*0.4*spr - 2.6*kn;
             if(u.die >= 0){ var k = Math.min(1, u.die/0.55), e = k*k*(3 - 2*k); fall = e*(Math.PI/2); hy = e*1.0; lean = 0; flinch = 0; w = 0; }
             var scl = (u.die > 2.3) ? Math.max(0, 1 - (u.die - 2.3)/0.6) : 1;
             // 루트: 위치 + 방향 + 앞뒤로 기울임
-            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle, (u.y || 0) + bob + hy, u.z); _s.set(S0*scl, S0*scl, S0*scl); root.compose(_p, _q2, _s);
+            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle + Math.sin(st.yaw)*1.4*sb, (u.y || 0) + bob + hy, u.z + Math.cos(st.yaw)*1.4*sb); _s.set(S0*scl, S0*scl, S0*scl); root.compose(_p, _q2, _s);
             var sway = Math.sin(tm*0.9 + st.off)*0.12*idle, brt = 1 + Math.sin(tm*1.9 + st.off)*0.018;
             // 다리(2관절 IK): 발이 땅을 딛고 무릎이 접혀요
-            var stride = 1.7*w + 0.0, side, hip, kn, an;
-            for(side = 0; side < 2; side++){ var phs = ph + side*Math.PI, sn = Math.sin(phs), cs = Math.cos(phs); hip = side ? hipR : hipL; var lift = 0.95*Math.max(0, cs)*w; tg.set(hip.x + (side ? 0.12 : -0.12) + sway*0.5, hip.y - 4.38 + lift + (side ? 0.0 : 0.0), hip.z + stride*sn + (w < 0.5 ? (side ? 0.15 : -0.1) : 0)); ik2(hip, tg, 2.4, 2.1, poleL, el, hd); if(side){ kR.copy(el); anR.copy(hd); } else { kL.copy(el); anL.copy(hd); } }
+            var stride = 1.7*w + 0.9*spr, side, hip, kn_, an;
+            for(side = 0; side < 2; side++){ var phs = ph + side*Math.PI, sn = Math.sin(phs), cs = Math.cos(phs); hip = side ? hipR : hipL; var lift = 0.95*Math.max(0, cs)*w; tg.set(hip.x + (side ? 0.12 : -0.12) + sway*0.5, hip.y - 4.38 + lift + (side ? 0.0 : 0.0), hip.z + stride*sn + (w < 0.5 ? (side ? 0.15 : -0.1) : 0)); tg.y += 2.6*kn; if(!side){ tg.z -= 2.2*kn; tg.y += 0.8*kn; } else tg.z += 0.8*kn; tg.z += (side ? 1.4 : -1.6)*sb; ik2(hip, tg, 2.4, 2.1, poleL, el, hd); if(side){ kR.copy(el); anR.copy(hd); } else { kL.copy(el); anL.copy(hd); } }
                         put(P.pel, i, 0 + sway*0.4, 5.55 - 0.0, 0.0, QI, 1.55, 0.95, 1.05); seg(P.tL, i, kL, hipL, 0.68); seg(P.tR, i, kR, hipR, 0.68); seg(P.sL, i, anL, kL, 0.55); seg(P.sR, i, anR, kR, 0.55);
             put(P.bL, i, anL.x, anL.y - 0.35, anL.z + 0.4, _q.setFromEuler(_e.set(-0.2*Math.max(0, Math.cos(ph))*w, 0, 0)), 0.95, 0.95, 1.8); put(P.bR, i, anR.x, anR.y - 0.35, anR.z + 0.4, _q.setFromEuler(_e.set(-0.2*Math.max(0, Math.cos(ph + Math.PI))*w, 0, 0)), 0.95, 0.95, 1.8);
             // 몸통 (걸을 때 어깨가 엇갈려 비틀림)
             var tw = s1*0.16*w, trs = Math.sin(tw); _e.set(0.04*st.aim, tw, 0); _q.setFromEuler(_e); put(P.torso, i, 0, 7.15, 0, _q, 1.7, 1.75*brt, 1.05); put(P.sho, i, 0, 8.1, 0.02, _q, 2.25, 0.72, 1.0); put(P.pack, i, 0, 7.4, -1.3, _q, 2.0, 2.2, 0.95); put(P.pkL, i, -0.85, 6.35, 0.95, _q, 0.95, 0.95, 0.4); put(P.pkR, i, 0.85, 6.35, 0.95, _q, 0.95, 0.95, 0.4); put(P.stL, i, -0.95, 7.7, 0.98, _q, 0.3, 2.6, 0.18); put(P.stR, i, 0.95, 7.7, 0.98, _q, 0.3, 2.6, 0.18);
             // 머리 + 철모
-            _e.set(0.08*w - 0.06*st.aim, Math.sin(tm*0.6 + st.off)*0.28*idle, 0); _q.setFromEuler(_e);
+            _e.set(0.08*w - 0.06*st.aim + 0.25*rl + 0.2*pn, Math.sin(tm*0.6 + st.off)*0.28*idle + 1.6*sg, 0); _q.setFromEuler(_e);
             var isN = u.side === "nk"; put(isN ? P.headN : P.head, i, 0, 9.85 + 0.03*s1*w, 0.12, _q, 0.98, 1.08, 1.0); hide(isN ? P.head : P.headN, i);
             if(isN){ put(P.helm, i, 0, 10.35 + 0.03*s1*w, 0.1, _q, 1.22, 0.55, 1.28); put(P.rim, i, 0, 10.15, 0.8, _q, 1.15, 0.12, 1.2); put(P.star, i, 0, 10.55, 1.38, _q, 0.4, 0.4, 0.14); } else { put(P.helm, i, 0, 10.05 + 0.03*s1*w, 0.1, _q, 1.28, 0.95, 1.3); put(P.rim, i, 0, 10.0, 0.1, _q, 1.4, 0.18, 1.45); hide(P.star, i); }
             // 팔: 총 들고 걷기(휴대) ↔ 조준(견착) ↔ 만세
             var a = st.aim, ch = st.cheer, rb = u.fireT > 0.38 ? (u.fireT - 0.38)*-3.0 : 0, rcoil = u.fireT > 0.36 && u.fireT < 0.5 ? 0.5 : 0;
             rh.set(0.75*(1 - a) + 1.05*a, 6.9*(1 - a) + 8.05*a, 1.55*(1 - a) + 1.75*a - rcoil*a); lh.set(-0.55*(1 - a) - 0.1*a, 7.6*(1 - a) + 8.4*a, 2.7*(1 - a) + 3.1*a - rcoil*0.5*a);
             rh.y += Math.sin(ph*2)*0.08*w; lh.y += Math.sin(ph*2 + 1)*0.08*w; rh.x += Math.sin(tm*1.3 + st.off)*0.03*idle;
+            if(spr > 0.02){ var sr = spr*(1 - a); rh.x += (0.2 - rh.x)*sr*0.6; rh.y += (7.3 - rh.y)*sr + Math.sin(ph)*0.55*spr; rh.z += (1.0 - rh.z)*sr; lh.y += (7.9 - lh.y)*sr - Math.sin(ph)*0.55*spr; lh.z += (2.4 - lh.z)*sr; }
+            if(sb > 0.02){ rh.x += (0.9 - rh.x)*sb; rh.y += (7.6 - rh.y)*sb; rh.z += (3.8 - rh.z)*sb; lh.x += (-0.1 - lh.x)*sb; lh.y += (7.9 - lh.y)*sb; lh.z += (6.4 - lh.z)*sb; }
+            if(rl > 0.02){ var ro = Math.sin(tm*10)*0.3; rh.x += (0.5 - rh.x)*rl; rh.y += (7.1 - rh.y)*rl; rh.z += (1.9 + ro - rh.z)*rl; lh.x += (-0.2 - lh.x)*rl; lh.y += (6.7 - lh.y)*rl; lh.z += (2.4 - lh.z)*rl; }
+            if(pt > 0.02){ rh.x += (1.3 - rh.x)*pt; rh.y += (9.4 - rh.y)*pt; rh.z += (4.8 - rh.z)*pt; }
+            if(sg > 0.02){ rh.x += (2.0 + Math.sin(tm*9)*1.0 - rh.x)*sg; rh.y += (11.4 - rh.y)*sg; rh.z += (-0.5 + Math.cos(tm*9)*0.8 - rh.z)*sg; }
+            if(pn > 0.02){ rh.x += (-1.2 - rh.x)*pn; rh.y += (8.1 - rh.y)*pn; rh.z += (1.2 - rh.z)*pn; lh.y += (6.4 - lh.y)*pn*0.6; }
             if(ch > 0.02){ rh.set(rh.x*(1 - ch) + 1.7*ch, rh.y*(1 - ch) + 12.0*ch, rh.z*(1 - ch) + 0.3*ch); lh.set(lh.x*(1 - ch) - 1.7*ch, lh.y*(1 - ch) + 12.0*ch, lh.z*(1 - ch) + 0.3*ch); }
             if(u.hit > 0){ rh.y += flinch*1.2; lh.y += flinch*1.2; }
-            rd.copy(lh).sub(rh); var rlen = rd.length() || 1; rd.multiplyScalar(1/rlen);
+            rd.copy(lh).sub(rh); var rlen = rd.length() || 1; rd.multiplyScalar(1/rlen); var free = Math.min(1, sg + pt + pn); if(free > 0.01){ rd.x *= (1 - free); rd.y = rd.y*(1 - free) - 0.25*free; rd.z = rd.z*(1 - free) + 0.97*free; var rl2 = Math.sqrt(rd.x*rd.x + rd.y*rd.y + rd.z*rd.z) || 1; rd.multiplyScalar(1/rl2); }
+            var bx = rh.x*(1 - free) + (lh.x - rd.x*2.2)*free, by = rh.y*(1 - free) + (lh.y - rd.y*2.2)*free, bz = rh.z*(1 - free) + (lh.z - rd.z*2.2)*free;
             poleA.set(0.9, -1, -0.2); ik2(shR, rh, 1.7, 1.6, poleA, eRv, hRv); poleA.set(-0.9, -1, -0.2); ik2(shL, lh, 1.7, 1.6, poleA, eLv, hLv);
             seg(P.uR, i, eRv, shR, 0.5); seg(P.fR, i, hRv, eRv, 0.42); seg(P.uL, i, eLv, shL, 0.5); seg(P.fL, i, hLv, eLv, 0.42);
             put(P.hR, i, hRv.x, hRv.y, hRv.z, QI, 0.46, 0.46, 0.46); put(P.hL, i, hLv.x, hLv.y, hLv.z, QI, 0.46, 0.46, 0.46);
             // 소총: 두 손 사이 방향
-            if(ch > 0.5){ hide(P.stock, i); hide(P.barrel, i); hide(P.flash, i); }
-            else { _q.setFromUnitVectors(_Z, rd); var cxp = rh.x + rd.x*1.2, cyp = rh.y + rd.y*1.2, czp = rh.z + rd.z*1.2; put(P.stock, i, cxp, cyp, czp, _q, 0.34, 0.5, 2.5); put(P.barrel, i, rh.x + rd.x*3.4, rh.y + rd.y*3.4, rh.z + rd.z*3.4, _q, 0.2, 0.22, 2.3);
-              if(u.fireT > 0.4){ var fs = 0.5 + (u.fireT - 0.4)*4; put(P.flash, i, rh.x + rd.x*4.9, rh.y + rd.y*4.9, rh.z + rd.z*4.9, QI, fs, fs, fs*1.6); } else hide(P.flash, i); }
+            if(ch > 0.5){ hide(P.stock, i); hide(P.barrel, i); hide(P.flash, i); hide(P.bayo, i); }
+            else { _q.setFromUnitVectors(_Z, rd); var cxp = bx + rd.x*1.2, cyp = by + rd.y*1.2, czp = bz + rd.z*1.2; put(P.stock, i, cxp, cyp, czp, _q, 0.34, 0.5, 2.5); put(P.barrel, i, bx + rd.x*3.4, by + rd.y*3.4, bz + rd.z*3.4, _q, 0.2, 0.22, 2.3);
+              if(spr > 0.3 || sb > 0.1) put(P.bayo, i, bx + rd.x*5.8, by + rd.y*5.8, bz + rd.z*5.8, _q, 0.14, 0.14, 2.2); else hide(P.bayo, i);
+              if(u.fireT > 0.4){ var fs = 0.5 + (u.fireT - 0.4)*4; put(P.flash, i, bx + rd.x*4.9, by + rd.y*4.9, bz + rd.z*4.9, QI, fs, fs, fs*1.6); } else hide(P.flash, i); }
             // 그림자
             _p.set(u.x, (u.y || 0) + 0.2, u.z); _e.set(-Math.PI/2, 0, 0); _q.setFromEuler(_e); _s.set(3.3*scl, 2.6*scl, 1); _m.compose(_p, _q, _s); shadow.setMatrixAt(i, _m);
           }
