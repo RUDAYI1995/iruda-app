@@ -26,12 +26,23 @@
       function hide(mesh, i){ _m.makeScale(0, 0, 0); mesh.setMatrixAt(i, _m); }
       var COLS = { rok:{ cloth:0x6a6c3f, pants:0x62613a, helm:0x575a3a, pack:0x4c4e30, boot:0x5b3b25 }, nk:{ cloth:0x9a8040, pants:0x8a7338, helm:0x8c7a3e, pack:0x6e5a30, boot:0x5b3b25 } };
       var SKIN = 0xe0ad88, WOOD = 0x5b3b22, STEEL = 0x25272a;
-      window.TBRig = { create:function(G, N){
+      window.TBRig = { create:function(G, NU, NF){
+        var N = NF || NU;      // N = 자세히 그리는 군인 칸 수(가까운 군인만), NU = 전체 군인 수(먼 군인은 간단한 모양으로)
         var cloth = new THREE.MeshStandardMaterial({ map:fabricTex(), roughness:0.95, metalness:0, emissive:0x141414, flatShading:true, fog:false }), plain = new THREE.MeshStandardMaterial({ roughness:0.8, metalness:0.05, emissive:0x101010, flatShading:true, fog:false }), face = new THREE.MeshStandardMaterial({ map:faceTex("rok"), roughness:0.75, emissive:0x1c1816, fog:false }), faceN = new THREE.MeshStandardMaterial({ map:faceTex("nk"), roughness:0.75, emissive:0x1c1816, fog:false });
         var sph = new THREE.SphereGeometry(1, 7, 5), headGeo = new THREE.SphereGeometry(1, 10, 7), cyl = new THREE.CylinderGeometry(1, 0.82, 1, 7, 1), box = new THREE.BoxGeometry(1, 1, 1), hemi = new THREE.SphereGeometry(1, 11, 5, 0, Math.PI*2, 0, Math.PI/2), circ = new THREE.CircleGeometry(1, 16);
         function mk(geo, mat, colored){ var m = new THREE.InstancedMesh(geo, mat, N); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; if(colored){ var c = new CO(1, 1, 1); for(var i = 0; i < N; i++) m.setColorAt(i, c); } G.add(m); return m; }
         var P = { torso:mk(sph, cloth, 1), sho:mk(sph, cloth, 1), pel:mk(sph, cloth, 1), pack:mk(box, cloth, 1), head:mk(headGeo, face, 1), headN:mk(headGeo, faceN, 1), pkL:mk(box, cloth, 1), pkR:mk(box, cloth, 1), stL:mk(box, plain, 1), stR:mk(box, plain, 1), star:mk(box, plain, 1), helm:mk(hemi, plain, 1), rim:mk(cyl, plain, 1), tL:mk(cyl, cloth, 1), tR:mk(cyl, cloth, 1), sL:mk(cyl, cloth, 1), sR:mk(cyl, cloth, 1), bL:mk(box, plain, 1), bR:mk(box, plain, 1), uL:mk(cyl, cloth, 1), uR:mk(cyl, cloth, 1), fL:mk(cyl, cloth, 1), fR:mk(cyl, cloth, 1), hL:mk(sph, plain, 1), hR:mk(sph, plain, 1), stock:mk(box, plain, 1), barrel:mk(box, plain, 1), bayo:mk(box, plain, 1), scope:mk(box, plain, 1), flash:mk(sph, new THREE.MeshBasicMaterial({ color:0xffd45a, fog:false }), 0) };
         var shadow = new THREE.InstancedMesh(circ, new THREE.MeshBasicMaterial({ map:shadowTex(), transparent:true, depthWrite:false, fog:false }), N); shadow.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shadow.frustumCulled = false; shadow.renderOrder = 1; G.add(shadow);
+        // ---- 먼 군인: 부위 9개를 한 덩어리로 합친 간단한 모양 (5000 대 5000 에서도 가볍게) ----
+        var LODG = (function(){
+          var pos = [], nor = [], colr = [], idx = [];
+          function addBox(cx, cy, cz, sx, sy, sz, hex){ var b = new THREE.BoxGeometry(sx, sy, sz), p = b.attributes.position, n = b.attributes.normal, ix = b.index, base = pos.length/3, c = new CO(hex), k; for(k = 0; k < p.count; k++){ pos.push(p.getX(k) + cx, p.getY(k) + cy, p.getZ(k) + cz); nor.push(n.getX(k), n.getY(k), n.getZ(k)); colr.push(c.r, c.g, c.b); } for(k = 0; k < ix.count; k++) idx.push(ix.getX(k) + base); }
+          addBox(-0.85, 2.3, 0, 1.3, 4.6, 1.5, 0x62613a); addBox(0.85, 2.3, 0, 1.3, 4.6, 1.5, 0x62613a); addBox(0, 6.5, 0, 3.7, 3.7, 2.2, 0x6a6c3f); addBox(0, 7.2, -1.6, 2.4, 2.5, 1.1, 0x4c4e30); addBox(0, 9.9, 0.1, 2.0, 2.1, 2.0, 0xe0ad88); addBox(0, 11.0, 0.1, 2.8, 1.1, 2.8, 0x575a3a); addBox(-2.4, 6.4, 0.8, 1.1, 3.3, 1.1, 0x6a6c3f); addBox(2.4, 6.4, 0.8, 1.1, 3.3, 1.1, 0x6a6c3f); addBox(0.7, 7.0, 2.7, 0.5, 0.5, 5.4, 0x3a2a1c);
+          var g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(colr, 3)); g.setIndex(idx); return g;
+        })();
+        var lod = new THREE.InstancedMesh(LODG, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:0.9, flatShading:true, emissive:0x101010, fog:false }), NU); lod.instanceMatrix.setUsage(THREE.DynamicDrawUsage); lod.frustumCulled = false; G.add(lod);
+        var cROK = new CO(1, 1, 1), cNK = new CO(1.4, 1.18, 0.82), li; _m.makeScale(0, 0, 0); for(li = 0; li < NU; li++){ lod.setMatrixAt(li, _m); lod.setColorAt(li, cROK); }
+        var slotOwner = [], freeSlots = [], NEAR = 150, near2 = NEAR*NEAR, frameNo = 0, lodColDirty = false; for(li = N - 1; li >= 0; li--){ freeSlots.push(li); slotOwner.push(null); }
         var ST = [], tmpC = new CO(), tint1 = new CO(0xb06aff), tint2 = new CO(0xff7a7a);
         for(var i = 0; i < N; i++) ST.push({ px:0, pz:0, yaw:0, ph:rnd1(i)*6.28, walk:0, aim:0, kn:0, sb:0, sg:0, rl:0, pt:0, pn:0, mg:0, sn:0, spr:0, tint:-1, off:rnd1(i + 91)*6.28, init:false, cheer:0, br:0.92 + rnd1(i + 3)*0.16 });
         function setColors(i, u, tint){
@@ -40,18 +51,34 @@
           col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.headN, 0xffffff, 1.0); col(P.pkL, C.cloth, 0.8); col(P.pkR, C.cloth, 0.8); col(P.stL, 0x8a7a50, 1); col(P.stR, 0x8a7a50, 1); col(P.star, 0xd02a2a, 1); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.bayo, 0xb9bec4, 1); col(P.scope, 0x1d1f22, 1); col(P.barrel, STEEL, 1);
           Object.keys(P).forEach(function(k){ if(P[k].instanceColor) P[k].instanceColor.needsUpdate = true; }); st.tint = tint;
         }
+        function releaseSlot(ur){ var s = ur.slot; if(s < 0) return; for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], s); hide(shadow, s); ur.slot = -1; slotOwner[s] = null; freeSlots.push(s); }
+        function assignSlot(ur){ var s = freeSlots.pop(), st = ST[s]; ur.slot = s; slotOwner[s] = ur; st.init = false; st.tint = -1; st.kn = st.sb = st.sg = st.rl = st.pt = st.pn = st.mg = st.sn = st.spr = 0; st.walk = 0; st.aim = 0; st.cheer = 0; }
+        function lodHide(ui, ur){ if(ur.lodOn !== false){ _m.makeScale(0, 0, 0); lod.setMatrixAt(ui, _m); ur.lodOn = false; } }
+        function lodDraw(ui, u, ur){
+          var dx = u.x - ur.lx, dz = u.z - ur.lz; if(dx*dx + dz*dz > 0.05) ur.lyaw = Math.atan2(dx, dz); ur.lx = u.x; ur.lz = u.z;
+          var yaw = ur.lyaw !== undefined ? ur.lyaw : (u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI)); if((u.fireT > 0 || u.act === "stab") && u.fx !== undefined) yaw = Math.atan2(u.fx - u.x, u.fz - u.z);
+          var fall = 0, sc = 1.1; if(u.die >= 0){ fall = Math.min(1, u.die/0.55)*1.5708; if(u.die > 2.3) sc = 1.1*Math.max(0, 1 - (u.die - 2.3)/0.6); }
+          _e.set(-fall, yaw, 0, "YXZ"); _q.setFromEuler(_e); _p.set(u.x, (u.y || 0) + (fall > 0 ? fall*0.6 : 0), u.z); _s.set(sc, sc, sc); _m.compose(_p, _q, _s); lod.setMatrixAt(ui, _m); ur.lodOn = true;
+          if(!ur.lc){ lod.setColorAt(ui, u.side === "nk" ? cNK : cROK); lodColDirty = true; ur.lc = true; }
+        }
         var shL = new V3(-1.45, 8.1, 0.05), shR = new V3(1.45, 8.1, 0.05), hipL = new V3(-0.85, 5.4, 0), hipR = new V3(0.85, 5.4, 0), tg = new V3(), el = new V3(), hd = new V3(), poleA = new V3(), poleL = new V3(0, 0.15, 1), a0 = new V3(), a1 = new V3(), aL = new V3(), aR = new V3(), rh = new V3(), lh = new V3(), eLv = new V3(), eRv = new V3(), hLv = new V3(), hRv = new V3(), kL = new V3(), kR = new V3(), anL = new V3(), anR = new V3(), rd = new V3();
         var API = {}, PK = Object.keys(P);
         var FR = new THREE.Frustum(), PMX = new THREE.Matrix4(), SPH = new THREE.Sphere(new V3(), 11);
         API.update = function(units, tm, dt0, cam){
           // 1000 대 1000: 화면 밖은 건너뛰고, 멀수록 2~3프레임에 한 번만 움직여요(밀린 시간은 합쳐서 반영)
-          var S0 = 1.1, i, u, st, dt = dt0, fr = null; if(cam && !window.__rigNoCull){ cam.updateMatrixWorld(); PMX.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); FR.setFromProjectionMatrix(PMX); fr = FR; }
-          for(i = 0; i < N; i++){
-            u = units[i]; st = ST[i]; if(!u) continue;
-            if(!u.vis || (u.die > 2.9)){ if(!st.hid){ for(var kk = 0; kk < PK.length; kk++) hide(P[PK[kk]], i); hide(shadow, i); st.hid = true; } continue; }
-            st.hid = false;
-            if(fr){ SPH.center.set(u.x, (u.y || 0) + 6, u.z); if(!fr.intersectsSphere(SPH)){ st.acc = (st.acc || 0) + dt0; continue; } var cdx = u.x - cam.position.x, cdz = u.z - cam.position.z, cd2 = cdx*cdx + cdz*cdz, ev = cd2 < 16900 ? 1 : (cd2 < 67600 ? 2 : 3); st.fc = (st.fc || 0) + 1; if(ev > 1 && st.init && (st.fc % ev) !== 0){ st.acc = (st.acc || 0) + dt0; continue; } }
-            dt = dt0 + (st.acc || 0); st.acc = 0;
+          var S0 = 1.1, i, u, st, dt = dt0, fr = null, ui, nU = units.length, camx = cam ? cam.position.x : 0, camz = cam ? cam.position.z : 0; if(cam && !window.__rigNoCull){ cam.updateMatrixWorld(); PMX.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); FR.setFromProjectionMatrix(PMX); fr = FR; }
+          frameNo++; lodColDirty = false;
+          for(ui = 0; ui < nU; ui++){
+            u = units[ui]; if(!u) continue; var ur = u._r || (u._r = { slot:-1, lodOn:undefined, lx:u.x, lz:u.z, lyaw:undefined, lc:false, acc:0, fc:0 });
+            if(!u.vis || u.die > 2.9){ if(ur.slot >= 0) releaseSlot(ur); lodHide(ui, ur); continue; }
+            var cdx = u.x - camx, cdz = u.z - camz, cd2 = cdx*cdx + cdz*cdz;
+            if(fr){ SPH.center.set(u.x, (u.y || 0) + 6, u.z); if(!fr.intersectsSphere(SPH)){ if(ur.slot >= 0) releaseSlot(ur); lodHide(ui, ur); ur.acc += dt0; continue; } }
+            var wantFull = ur.slot >= 0 ? (cd2 < near2*2.2) : (cd2 < near2 && freeSlots.length > 0);
+            if(!wantFull){ if(ur.slot >= 0) releaseSlot(ur); if(((ui + frameNo) & 1) === 0 || ur.lodOn !== true) lodDraw(ui, u, ur); continue; }
+            if(ur.slot < 0){ assignSlot(ur); lodHide(ui, ur); }
+            i = ur.slot; st = ST[i];
+            if(fr){ var ev = cd2 < 16900 ? 1 : (cd2 < 67600 ? 2 : 3); ur.fc++; if(ev > 1 && st.init && (ur.fc % ev) !== 0){ ur.acc += dt0; continue; } }
+            dt = dt0 + ur.acc; ur.acc = 0;
             var tint = u.brain > 0 ? 1 : (u.hit > 0 ? 2 : 0); if(tint !== st.tint) setColors(i, u, tint);
             if(!st.init){ st.px = u.x; st.pz = u.z; st.yaw = u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI); st.init = true; }
             var dx = u.x - st.px, dz = u.z - st.pz, sp = dt > 0 ? Math.sqrt(dx*dx + dz*dz)/dt : 0; if(sp > 120) sp = 0; st.px = u.x; st.pz = u.z;
@@ -111,6 +138,8 @@
             _p.set(u.x, (u.y || 0) + 0.2, u.z); _e.set(-Math.PI/2, 0, 0); _q.setFromEuler(_e); _s.set(3.3*scl, 2.6*scl, 1); _m.compose(_p, _q, _s); shadow.setMatrixAt(i, _m);
           }
           for(var q = 0; q < PK.length; q++) P[PK[q]].instanceMatrix.needsUpdate = true; shadow.instanceMatrix.needsUpdate = true;
+          lod.instanceMatrix.needsUpdate = true; if(lodColDirty && lod.instanceColor) lod.instanceColor.needsUpdate = true;
+          var used = N - freeSlots.length; if(used > N*0.93) NEAR = Math.max(55, NEAR*0.94); else if(used < N*0.6) NEAR = Math.min(185, NEAR*1.02); near2 = NEAR*NEAR;
         };
         API.parts = P; return API;
       } };

@@ -97,15 +97,17 @@
         var zc = new CO(1, 1, 1); for(i = 0; i < NBR; i++){ fillM.setColorAt(i, zc); _m.makeScale(0, 0, 0); bgM.setMatrixAt(i, _m); fillM.setMatrixAt(i, _m); } G.add(bgM); G.add(fillM);
         var tc = new CO();
         // list: [{x,y,z,w,frac,col,vis}]
+        var barsLast = 0;
         API.bars = function(list, cam){
-          var n = Math.min(list.length, NBR), j, b; _qq.copy(cam.quaternion); _r.set(1, 0, 0).applyQuaternion(_qq);
-          for(j = 0; j < NBR; j++){
-            if(j >= n || !list[j].vis){ _m.makeScale(0, 0, 0); bgM.setMatrixAt(j, _m); fillM.setMatrixAt(j, _m); continue; }
-            b = list[j]; var H = b.h || 0.55, fw = Math.max(0.001, b.w*Math.max(0, Math.min(1, b.frac)));
+          var n = list.length, j = 0, k, b; _qq.copy(cam.quaternion); _r.set(1, 0, 0).applyQuaternion(_qq);
+          for(k = 0; k < n && j < NBR; k++){
+            b = list[k]; if(!b.vis) continue;
+            var H = b.h || 0.55, fw = Math.max(0.001, b.w*Math.max(0, Math.min(1, b.frac)));
             _p.set(b.x, b.y, b.z); _s.set(b.w + 0.3, H + 0.3, 1); _m.compose(_p, _qq, _s); bgM.setMatrixAt(j, _m);
             _p.set(b.x - _r.x*(b.w - fw)/2, b.y - _r.y*(b.w - fw)/2, b.z - _r.z*(b.w - fw)/2); _s.set(fw, H, 1); _m.compose(_p, _qq, _s); fillM.setMatrixAt(j, _m);
-            tc.setHex(b.frac < 0.3 ? 0xffb030 : b.col); fillM.setColorAt(j, tc);
+            tc.setHex(b.frac < 0.3 ? 0xffb030 : b.col); fillM.setColorAt(j, tc); j++;
           }
+          var used = j; _m.makeScale(0, 0, 0); for(; j < barsLast; j++){ bgM.setMatrixAt(j, _m); fillM.setMatrixAt(j, _m); } barsLast = used;
           bgM.instanceMatrix.needsUpdate = true; fillM.instanceMatrix.needsUpdate = true; if(fillM.instanceColor) fillM.instanceColor.needsUpdate = true;
         };
         function updHearts(dt){
