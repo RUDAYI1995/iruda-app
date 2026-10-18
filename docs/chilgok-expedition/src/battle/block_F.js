@@ -7,6 +7,9 @@
       function radTex(){ return ctex(64, 64, function(g){ var gr = g.createRadialGradient(32, 32, 1, 32, 32, 31); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.35, "rgba(255,255,255,0.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }); }
       function starTex(col){ return ctex(64, 64, function(g){ g.fillStyle = "rgba(0,0,0,0)"; g.clearRect(0, 0, 64, 64); g.fillStyle = col; g.beginPath(); for(var i = 0; i < 10; i++){ var a = -Math.PI/2 + i*Math.PI/5, r = i%2 ? 11 : 27; g.lineTo(32 + Math.cos(a)*r, 34 + Math.sin(a)*r); } g.closePath(); g.fill(); }); }
       function taeTex(){ return ctex(64, 64, function(g){ g.clearRect(0, 0, 64, 64); g.fillStyle = "#f4f1e6"; g.beginPath(); g.arc(32, 32, 26, 0, 7); g.fill(); g.fillStyle = "#c8312e"; g.beginPath(); g.arc(32, 32, 20, Math.PI, 0); g.fill(); g.fillStyle = "#2a4fa0"; g.beginPath(); g.arc(32, 32, 20, 0, Math.PI); g.fill(); g.fillStyle = "#c8312e"; g.beginPath(); g.arc(22, 32, 10, 0, 7); g.fill(); g.fillStyle = "#2a4fa0"; g.beginPath(); g.arc(42, 32, 10, 0, 7); g.fill(); }); }
+      function iconTex(k){ return ctex(64, 64, function(g){ g.clearRect(0, 0, 64, 64);
+        if(k === 0){ g.strokeStyle = "#ffd34d"; g.lineWidth = 6; g.beginPath(); g.arc(32, 32, 22, 0, 7); g.stroke(); g.beginPath(); g.moveTo(32, 4); g.lineTo(32, 18); g.moveTo(32, 46); g.lineTo(32, 60); g.moveTo(4, 32); g.lineTo(18, 32); g.moveTo(46, 32); g.lineTo(60, 32); g.stroke(); g.fillStyle = "#ff5a3c"; g.beginPath(); g.arc(32, 32, 6, 0, 7); g.fill(); }
+        else { g.fillStyle = "#6fdc4a"; g.beginPath(); g.arc(32, 32, 27, 0, 7); g.fill(); g.strokeStyle = "#1c5a14"; g.lineWidth = 3; g.stroke(); g.fillStyle = "#f4f4ea"; g.beginPath(); g.arc(32, 28, 15, 0, 7); g.fill(); g.fillRect(24, 36, 16, 12); g.fillStyle = "#1c5a14"; g.beginPath(); g.arc(26, 28, 4.5, 0, 7); g.arc(38, 28, 4.5, 0, 7); g.fill(); g.fillRect(31, 36, 2, 10); } }); }
       function heartTex(){ return ctex(64, 64, function(g){ g.clearRect(0, 0, 64, 64); g.fillStyle = "#ff2d55"; g.beginPath(); g.moveTo(32, 56); g.bezierCurveTo(2, 34, 6, 6, 24, 8); g.bezierCurveTo(30, 9, 32, 14, 32, 18); g.bezierCurveTo(32, 14, 34, 9, 40, 8); g.bezierCurveTo(58, 6, 62, 34, 32, 56); g.fill(); g.fillStyle = "rgba(255,255,255,0.55)"; g.beginPath(); g.ellipse(20, 20, 6, 4, -0.6, 0, 7); g.fill(); }); }
       function ringTex(){ return ctex(128, 128, function(g){ var gr = g.createRadialGradient(64, 64, 40, 64, 64, 62); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.7, "rgba(255,255,255,0.85)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }); }
       var RT = null, HT = null, GT = null;
@@ -30,7 +33,9 @@
         API.ring = function(x, y, z, r1, life){ for(var j = 0; j < RG.length; j++){ var k = RG[j]; if(k.on) continue; k.on = true; k.t = 0; k.life = life || 0.6; k.r1 = r1; k.s.position.set(x, y, z); k.s.visible = true; return; } };
         API.puff = function(x, y, z, kind){
           var n;
-          if(kind === "spark"){ for(n = 0; n < 4; n++) part(x, y, z, { life:0.28, vx:rr(16), vy:Math.random()*10, vz:rr(16), g:-30, s0:0.9, s1:0.2, col:0xffd870, add:true }); part(x, y, z, { life:0.12, s0:2.6, s1:1.2, col:0xfff0b0, add:true }); }
+          if(kind === "gas"){ for(n = 0; n < 16; n++) part(x + rr(16), y + 1 + Math.random()*4, z + rr(16), { life:3.4 + Math.random()*1.6, vx:rr(2), vy:0.5 + Math.random()*0.9, vz:rr(2), s0:6, s1:17 + Math.random()*6, col:0x6fdc4a, a0:0.5 }); }
+          else if(kind === "gasS"){ for(n = 0; n < 2; n++) part(x + rr(2), y, z + rr(2), { life:1.6, vx:rr(1.5), vy:1.2 + Math.random(), vz:rr(1.5), s0:1.6, s1:5, col:0x8be05a, a0:0.5 }); }
+          else if(kind === "spark"){ for(n = 0; n < 4; n++) part(x, y, z, { life:0.28, vx:rr(16), vy:Math.random()*10, vz:rr(16), g:-30, s0:0.9, s1:0.2, col:0xffd870, add:true }); part(x, y, z, { life:0.12, s0:2.6, s1:1.2, col:0xfff0b0, add:true }); }
           else if(kind === "dust"){ for(n = 0; n < 3; n++) part(x + rr(1), y, z + rr(1), { life:0.7, vx:rr(3), vy:3 + Math.random()*2, vz:rr(3), s0:1.4, s1:4.2, col:0xb9a67a, a0:0.55 }); part(x, y, z, { life:0.1, s0:1.6, s1:0.8, col:0xffe9a0, add:true }); }
           else if(kind === "muzzle"){ part(x, y, z, { life:0.07, s0:3.2, s1:1.6, col:0xffd070, add:true }); part(x, y, z, { life:0.5, vy:1.2, vx:rr(1), vz:rr(1), s0:0.8, s1:2.4, col:0xcfcfcf, a0:0.35 }); }
           else if(kind === "big"){ part(x, y, z, { life:0.12, s0:12, s1:6, col:0xfff0b8, add:true }); for(n = 0; n < 4; n++) part(x + rr(1), y, z + rr(1), { life:1.4, vx:rr(5), vy:2 + Math.random()*2, vz:rr(5), s0:2.4, s1:9, col:0xd0d0d0, a0:0.5 }); }
@@ -77,14 +82,14 @@
           var k = null, j; for(j = 0; j < SH.length; j++) if(!SH[j].on){ k = SH[j]; break; } if(!k) return; o = o || {};
           var tx = to.x, tz = to.z; if(!o.hit){ var sd = (Math.random() < 0.5 ? -1 : 1)*(5 + Math.random()*6); tx += sd; tz += (Math.random() - 0.5)*8; }
           var dx = tx - from.x, dz = tz - from.z, L = Math.sqrt(dx*dx + dz*dz);
-          k.on = true; k.t = -(o.delay || 0); k.dur = Math.max(0.7, Math.min(1.4, L/55)); k.x0 = from.x; k.y0 = from.y; k.z0 = from.z; k.x1 = tx; k.z1 = tz; k.h = 10 + L*0.18; k.cb = o.cb || null; k.tr = 0; k.g.visible = false;
+          k.on = true; k.t = -(o.delay || 0); k.dur = Math.max(0.7, Math.min(1.4, L/55)); k.x0 = from.x; k.y0 = from.y; k.z0 = from.z; k.x1 = tx; k.z1 = tz; k.h = 10 + L*0.18; k.cb = o.cb || null; k.nb = !!o.nb; k.tr = 0; k.g.visible = false;
         };
         function updShells(dt){
           for(var j = 0; j < SH.length; j++){ var k = SH[j]; if(!k.on) continue; k.t += dt; if(k.t < 0) continue;
             var f = Math.min(1, k.t/k.dur), x = k.x0 + (k.x1 - k.x0)*f, z = k.z0 + (k.z1 - k.z0)*f, y = k.y0*(1 - f) + 0.6*f + 4*k.h*f*(1 - f), dfx = (k.x1 - k.x0), dfz = (k.z1 - k.z0), dy = (0.6 - k.y0) + 4*k.h*(1 - 2*f);
             k.g.visible = true; k.g.position.set(x, y, z); _d.set(dfx, dy*k.dur*0.6, dfz).normalize(); _q.setFromUnitVectors(_Z, _d); k.g.quaternion.copy(_q);
             k.tr -= dt; if(k.tr <= 0){ k.tr = 0.035; part(x, y, z, { life:0.6, s0:1.0, s1:2.6, col:0xbfbfbf, a0:0.4 }); }
-            if(f >= 1){ k.on = false; k.g.visible = false; API.puff(k.x1, 0.5, k.z1, "blast"); if(k.cb) k.cb(); }
+            if(f >= 1){ k.on = false; k.g.visible = false; if(!k.nb) API.puff(k.x1, 0.5, k.z1, "blast"); if(k.cb) k.cb(); }
           }
         }
         function updParts(dt){
@@ -98,6 +103,9 @@
         var tc = new CO();
         // list: [{x,y,z,w,frac,col,vis}]
         var barsLast = 0;
+        // ---------- 상태 효과 아이콘 (🎯 집중 / ☠ 독) : 유닛 머리 위 ----------
+        var NIC = 700, icGeo = new THREE.PlaneGeometry(1, 1), icM = [iconTex(0), iconTex(1)].map(function(t){ var m = new THREE.InstancedMesh(icGeo, new THREE.MeshBasicMaterial({ map:t, transparent:true, depthTest:false, depthWrite:false, fog:false }), NIC); m.frustumCulled = false; m.renderOrder = 41; m.count = 0; G.add(m); return m; });
+        API.icons = function(list, cam){ _qq.copy(cam.quaternion); var c = [0, 0], k, b, q; for(k = 0; k < list.length; k++){ b = list[k]; q = b.t; if(c[q] >= NIC) continue; _p.set(b.x, b.y, b.z); _s.set(b.s || 3.2, b.s || 3.2, 1); _m.compose(_p, _qq, _s); icM[q].setMatrixAt(c[q]++, _m); } for(q = 0; q < 2; q++){ icM[q].count = c[q]; icM[q].instanceMatrix.needsUpdate = true; } };
         API.bars = function(list, cam){
           var n = list.length, j = 0, k, b; _qq.copy(cam.quaternion); _r.set(1, 0, 0).applyQuaternion(_qq);
           for(k = 0; k < n && j < NBR; k++){
