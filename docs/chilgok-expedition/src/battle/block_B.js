@@ -723,10 +723,10 @@
       }
       function armyRounds(list){
         var ord = list.filter(function(u){ return u.dest; }), r, moved, i, u; ord.forEach(function(q){ q.mv = 0; });
-        for(r = 0; r < 5; r++){ moved = false;
-          for(i = 0; i < ord.length; i++){ u = ord[i]; if(!u.dest) continue; if(u.gx === u.dest[0] && u.gz === u.dest[1]){ u.dest = null; u.hold = true; continue; } if(armyStep(u, u.dest[0], u.dest[1])){ u.mv++; moved = true; } }
+        for(r = 0; r < 8; r++){ moved = false;
+          for(i = 0; i < ord.length; i++){ u = ord[i]; if(!u.dest || (r >= 5 && !u.fm)) continue; if(u.gx === u.dest[0] && u.gz === u.dest[1]){ u.dest = null; u.hold = true; continue; } if(armyStep(u, u.dest[0], u.dest[1])){ u.mv++; moved = true; } }
           if(!moved) break; }
-        ord.forEach(function(q){ if(q.dest && q.gx === q.dest[0] && q.gz === q.dest[1]){ q.dest = null; q.hold = true; } if(q.dest){ if(q.mv === 0){ q.stuck = (q.stuck || 0) + 1; if(q.stuck >= 2){ q.dest = null; q.hold = true; q.stuck = 0; } } else q.stuck = 0; } });
+        ord.forEach(function(q){ if(q.dest && q.gx === q.dest[0] && q.gz === q.dest[1]){ q.dest = null; q.hold = true; } if(q.dest){ if(q.mv === 0){ q.stuck = (q.stuck || 0) + 1; if(q.stuck >= (q.fm ? 4 : 2)){ q.dest = null; q.hold = true; q.stuck = 0; } } else q.stuck = 0; } });
       }
       function arSay(m, me){ arLog.push({ m:m, me:!!me }); if(arLog.length > 40) arLog.shift(); if(arPan){ arPan.log.innerHTML = arLog.slice(-7).map(function(o){ return o.me ? '<div style="text-align:right;color:#bfe3ff">' + o.m + '</div>' : '<div style="color:#ffe9a8">🐱 ' + o.m + '</div>'; }).join(""); arPan.log.scrollTop = 1e6; } }
       function spec(txt){
@@ -747,13 +747,43 @@
         var ord = 0; rok.forEach(function(u){ if(u.alive && u.dest) ord++; });
         return "턴 " + S.turn + " 보고냥! 국군 " + c.a + " vs 북한군 " + c.b + ", " + (c.a >= c.b ? "우리가 앞서고 있어냥 😺" : "조금 밀리고 있어냥 😿") + (low.length ? " · 절반 이하로 줄어든 부대: " + low.slice(0, 8).join(", ") + (low.length > 8 ? " 외 " + (low.length - 8) + "개" : "") : " · 모든 부대 절반 이상 생존!") + " · 이동 명령 대기 병사 " + ord + "명";
       }
+      // ---------- 방진 (진형): 100개 부대를 진형 자리로 보내요 (슬롯은 부대 한 칸 = 10×10 칸 기준) ----------
+      var FORMN = { "학익":"학익진", "장사":"장사진", "방원":"방원진", "쐐기":"쐐기진" };
+      var FORMDESC = { "학익진":"중앙은 뒤로, 양 날개는 앞으로 감싸요", "장사진":"좁고 긴 종대로 길을 뚫어요", "방원진":"원형으로 사방을 막아요", "쐐기진":"삼각형 쐐기로 한가운데를 뚫어요" };
+      function formSlots(name){
+        var o = [], c, r, i, j, k;
+        if(name === "학익진"){ for(c = 0; c < 14; c++){ var sh = (Math.abs(c - 6.5) - 3.25)*5; for(r = 0; r < 7; r++) o.push([(c - 6.5)*10, r*10 + sh]); } o.push([-5, -32], [5, -32]); }
+        else if(name === "장사진"){ for(c = 0; c < 7; c++) for(r = 0; r < 14; r++) o.push([(c - 3)*10, r*10]); o.push([-5, -10], [5, -10]); }
+        else if(name === "방원진"){ var pts = []; for(i = -7; i <= 7; i++) for(j = -7; j <= 7; j++) pts.push([i, j, i*i + j*j + Math.atan2(j, i)*0.001]); pts.sort(function(a, b){ return a[2] - b[2]; }); for(k = 0; k < 98; k++) o.push([pts[k][0]*10, pts[k][1]*10]); var mz = 0; o.forEach(function(s){ mz = Math.min(mz, s[1]); }); o.push([-5, mz - 10], [5, mz - 10]); }
+        else if(name === "쐐기진"){ for(k = 0; k < 11; k++){ var w = k < 7 ? 2*k + 1 : 13; for(i = 0; i < w; i++){ if(o.length >= 100) break; o.push([(i - (w - 1)/2)*10, (10 - k)*10]); } } }
+        return o;
+      }
+      window.TBForm = { slots:formSlots };
+      function squadCenter(n){ var l = squadUnits(n); if(!l.length) return null; var x = 0, z = 0; l.forEach(function(u){ x += u.gx; z += u.gz; }); return { x:x/l.length, z:z/l.length, l:l }; }
+      function arFormation(name){
+        var slots = formSlots(name), sq = [], i; for(i = 1; i <= SQN; i++){ var cc = squadCenter(i); if(cc){ cc.n = i; sq.push(cc); } }
+        if(!sq.length) return "움직일 부대가 없어냥…";
+        var ax = 0, az = 0; sq.forEach(function(s){ ax += s.x; az += s.z; }); ax /= sq.length; az = az/sq.length + 15;
+        var sx = 0, sz = 0; slots.forEach(function(s){ sx += s[0]; sz += s[1]; }); sx /= slots.length; sz /= slots.length;
+        var mnx = 1e9, mxx = -1e9, mnz = 1e9, mxz = -1e9; slots.forEach(function(s){ var x = s[0] - sx + ax, z = s[1] - sz + az; mnx = Math.min(mnx, x); mxx = Math.max(mxx, x); mnz = Math.min(mnz, z); mxz = Math.max(mxz, z); });
+        var tx = 0, tz = 0; if(mnx < -BX + 6) tx = -BX + 6 - mnx; else if(mxx > BX - 6) tx = BX - 6 - mxx; if(mnz < BZ0 + 6) tz = BZ0 + 6 - mnz; else if(mxz > BZ1 - 6) tz = BZ1 - 6 - mxz;
+        var ss = slots.map(function(s){ return { x:s[0] - sx + ax + tx, z:s[1] - sz + az + tz }; });
+        var res = name === "쐐기진" ? 0 : 2, cmp = function(p, q){ return (Math.round(p.x/5) - Math.round(q.x/5)) || (p.z - q.z); }, ssRes = res ? ss.splice(ss.length - res, res) : [], sqRes = res ? sq.filter(function(q){ return q.n > 98; }) : [];
+        if(res) sq = sq.filter(function(q){ return q.n <= 98; });
+        sq.sort(cmp); ss.sort(cmp); sqRes.sort(cmp); ssRes.sort(cmp); sq = sq.concat(sqRes); ss = ss.concat(ssRes);      // 예비 부대(99·100번)는 예비 자리에 따로 짝지어요
+        var far = 0;
+        sq.forEach(function(s, k){ var t = ss[k]; if(!t) return; var pack = s.n > 98; if(pack) s.l = s.l.slice().sort(function(p, q){ return (p.gz - q.gz) || (p.gx - q.gx); }); s.l.forEach(function(u, ui){ arUndo.push({ u:u, d:u.dest, h:u.hold }); var q = pack ? clampG(Math.round(t.x + (ui % 10) - 4.5), Math.round(t.z + Math.floor(ui/10) - 4.5)) : clampG(Math.round(t.x + u.gx - s.x), Math.round(t.z + u.gz - s.z)); u.dest = q; u.hold = false; u.fm = true; u.stuck = 0; far = Math.max(far, Math.abs(q[0] - u.gx), Math.abs(q[1] - u.gz)); }); });
+        var tn = Math.max(1, Math.ceil(far/8)); return name + " 전개 시작냥! " + FORMDESC[name] + ". 도착까지 약 " + tn + "턴 걸려냥 (턴을 끝낼 때마다 8칸씩 움직여).";
+      }
       function arCmd(txt){
         txt = String(txt || "").trim(); if(!txt) return; arSay(txt.replace(/</g, "&lt;"), true);
         if(!S.active){ arSay("전투 중에만 명령할 수 있어냥~"); return; }
-        if(/도움|help|뭐.*할\s*수/.test(txt)){ arSay("예: <b>4번 부대 앞으로 10칸</b> · <b>1~10번 왼쪽 5칸</b> · <b>3번 5번 중앙으로</b> · <b>전체 진군</b> · <b>7번 정지</b> · <b>자유행동</b> · <b>보고</b> · <b>취소</b> 냥! 명령한 뒤 Space(턴 끝내기)를 누르면 움직여냥."); return; }
+        if(/도움|help|뭐.*할\s*수/.test(txt)){ arSay("예: <b>4번 부대 앞으로 10칸</b> · <b>1~10번 왼쪽 5칸</b> · <b>3번 5번 중앙으로</b> · <b>전체 진군</b> · <b>7번 정지</b> · <b>자유행동</b> · <b>보고</b> · <b>취소</b> · <b>학익진/장사진/방원진/쐐기진</b> · <b>진형 해제</b> 냥! 명령한 뒤 Space(턴 끝내기)를 누르면 움직여냥."); return; }
         if(/보고|상황|현황/.test(txt)){ arSay(arReport()); return; }
         if(/취소|되돌|리셋/.test(txt)){ var n0 = arUndo.length; while(arUndo.length){ var o = arUndo.pop(); o.u.dest = o.d; o.u.hold = o.h; } arSay(n0 ? "이번 턴 명령을 모두 취소했어냥!" : "취소할 명령이 없어냥."); return; }
         if(S.state !== "player"){ arSay("지금은 적 차례냥! 우리 차례에 말해줘~"); return; }
+        var fmm = /학익|장사|방원|쐐기/.exec(txt); if(fmm){ arSay(arFormation(FORMN[fmm[0]])); return; }
+        if(/진형\s*해제|흩어져|대형\s*해제/.test(txt)){ var nn = 0; rok.forEach(function(u){ if(u.alive && (u.dest || u.hold)){ arUndo.push({ u:u, d:u.dest, h:u.hold }); u.dest = null; u.hold = false; u.fm = false; nn++; } }); arSay(nn ? "진형을 풀고 자유행동으로 돌아갔어냥!" : "풀 진형이 없어냥."); return; }
         var sp = spec(txt); if(!sp.length){ arSay("몇 번 부대인지 말해줘냥! 예: \"4번 부대 앞으로 10칸\""); return; }
         var reps = [], any = false;
         sp.forEach(function(p, k){
@@ -772,7 +802,8 @@
       function arMk(){
         if(arPan || !ui) return; var d = document.createElement("div"); d.style.cssText = "position:absolute;left:8px;bottom:8px;width:310px;background:rgba(20,26,56,.88);border:2px solid #d8b04a;border-radius:14px;color:#fff;font-size:12.5px;line-height:1.45;pointer-events:auto;display:none;box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:30;";
         d.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.18)"><img src="data:image/png;base64,__AIRUDA__" style="width:34px;height:34px;border-radius:50%;border:2px solid #d8b04a"><b style="color:#ffe9a8">AI루다 참모</b><span style="margin-left:auto;font-size:11px;opacity:.7">100개 부대 · 명령하세요</span></div><div class="lg" style="height:112px;overflow-y:auto;padding:6px 10px"></div><div style="display:flex;gap:4px;padding:6px"><input type="text" maxlength="120" placeholder="예) 4번 부대 앞으로 10칸" style="flex:1;min-width:0;padding:6px 8px;border-radius:8px;border:2px solid #d8b04a;background:#fffaf0;color:#2b3a6a;font-size:13px"><button style="padding:6px 10px;border-radius:8px;border:2px solid #d8b04a;background:#ffe9a8;color:#2b3a6a;font-weight:800;cursor:pointer">전송</button></div>';
-        var inp = d.querySelector("input"), bt = d.querySelector("button"); arPan = { root:d, log:d.querySelector(".lg"), inp:inp };
+        var fb = document.createElement("div"); fb.style.cssText = "display:flex;gap:4px;padding:0 6px 6px;flex-wrap:wrap;"; ["학익진", "장사진", "방원진", "쐐기진", "진형 해제"].forEach(function(nm){ var b2 = document.createElement("button"); b2.textContent = nm; b2.style.cssText = "padding:3px 8px;border-radius:7px;border:1.5px solid #d8b04a;background:#2b3a6a;color:#ffe9a8;font-weight:700;font-size:11.5px;cursor:pointer;"; b2.addEventListener("click", function(e){ e.stopPropagation(); arCmd(nm); }); fb.appendChild(b2); }); d.insertBefore(fb, d.children[2]);
+        var inp = d.querySelector("input"), bt = d.querySelectorAll("button")[5]; arPan = { root:d, log:d.querySelector(".lg"), inp:inp };
         ["keydown", "keyup", "keypress"].forEach(function(ev){ inp.addEventListener(ev, function(e){ e.stopPropagation(); if(ev === "keydown" && e.key === "Enter"){ e.preventDefault(); var v = inp.value; inp.value = ""; arCmd(v); } else if(ev === "keydown" && e.key === "Escape"){ inp.blur(); } }); });
         bt.addEventListener("click", function(e){ e.stopPropagation(); var v = inp.value; inp.value = ""; arCmd(v); inp.focus(); });
         ["pointerdown", "mousedown", "click", "contextmenu", "wheel"].forEach(function(ev){ d.addEventListener(ev, function(e){ e.stopPropagation(); }); });
