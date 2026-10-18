@@ -4,8 +4,8 @@
     // 토끼 스킬 Q 당근 나눠주기(+30 회복) / W 뒷다리 걷어차기(-80) / E 토끼의 유혹(북한군 2명이 따라옴)
     // 루샤 스킬 Q 음침한 기운(3턴간 국군 공격 40→36, 재사용 6턴) / W 어둠의 손길(국군 1명을 2턴간 세뇌) / E 사악한 미소(1번, 10턴 뒤부터, 국군 전체 -10)
     (function buildTurnBattle(){
-      var T = 5, Z0 = 1990, NSIDE = 5000, COLS = 100, ROWS = 50, UH = 10, RANGE = 5, DMG = 40, HP = 100, MOVES = 3;
-      var BX = 80, BZ0 = -80, BZ1 = 95;
+      var T = 5, Z0 = 1990, NSIDE = 10000, COLS = 140, ROWS = 72, UH = 10, RANGE = 5, DMG = 40, HP = 100, MOVES = 3;
+      var BX = 80, BZ0 = -80, BZ1 = 125;      // 국군 맨 뒤 줄은 가산 산 앞(z 1630), 북한군 맨 뒤 줄은 z 2585 까지 — 산 너머(가산수피아·농촌)로는 못 나가요
       var LUCIA_SRC = "data:image/webp;base64,__LUCIA__";
       var built = false, G = null, ui = null, rok = [], nk = [], hrok = [], hnk = [], occ = {}, wall = null;
       var RAB = { kind:"rabbit", gx:0, gz:0, hp:300, vhp:300, shots:0, def:false, items:3, alive:true };
@@ -141,8 +141,8 @@
       }
       function setupFormation(){
         var i, c, r; rok.length = 0; nk.length = 0; occ = {};
-        for(r = 0; r < ROWS; r++) for(c = 0; c < COLS; c++){ var gx = c - COLS/2, gz = -1 - r; rok.push(mkUnit("rok", gx, gz, r*COLS + c)); }
-        for(r = 0; r < ROWS; r++) for(c = 0; c < COLS; c++){ var gx2 = c - COLS/2, gz2 = 8 + r; nk.push(mkUnit("nk", gx2, gz2 + 40, r*COLS + c)); }
+        for(r = 0; r < ROWS; r++) for(c = 0; c < COLS; c++){ if(r*COLS + c >= NSIDE) break; var gx = c - COLS/2, gz = -1 - r; rok.push(mkUnit("rok", gx, gz, r*COLS + c)); }
+        for(r = 0; r < ROWS; r++) for(c = 0; c < COLS; c++){ if(r*COLS + c >= NSIDE) break; var gx2 = c - COLS/2, gz2 = 8 + r; nk.push(mkUnit("nk", gx2, gz2 + 40, r*COLS + c)); }
         RAB.gx = 0; RAB.gz = 0; RAB.maxHp = UD.rabbit.hp; RAB.atk = UD.rabbit.atk; RAB.hp = RAB.vhp = RAB.maxHp; RAB.def = false; RAB.items = 3; RAB.alive = true; RAB.shots = 0;
         LUC.gx = 0; LUC.gz = 60 + 40; LUC.maxHp = UD.player2.hp; LUC.atk = UD.player2.atk; LUC.hp = LUC.vhp = LUC.maxHp; LUC.alive = true; LUC.cdQ = 0; LUC.cdW = 0; LUC.usedE = false; LUC.curse = 0; occ[key(LUC.gx, LUC.gz)] = LUC;
         TANKS.forEach(function(k){ var tu = k.side === "rok" ? UD.tankplayer : UD.tankenemy; k.maxHp = tu.hp; k.atk = tu.atk; k.hp = k.vhp = tu.hp; k.alive = true; k.die = -1; k.fireWait = 0; k.shot = null; k.engaged = false; k.gz = k.side === "rok" ? -60 : 68 + 40; k.gx = k.hx; k.x = wx(k.gx); k.z = wz(k.gz); occ[key(k.gx, k.gz)] = k; if(k.t3){ k.t3.setWreck(false); k.t3.wreck = 0; k.t3.setVisible(k.side === "rok"); } });
@@ -157,7 +157,7 @@
       function initFx(){
         var i; for(i = 0; i < 40; i++){ var gm = new THREE.BufferGeometry(); gm.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3)); var l = new THREE.Line(gm, new THREE.LineBasicMaterial({ color:0xffe27a, transparent:true, opacity:0, fog:false })); l.visible = false; l.frustumCulled = false; l.userData = { t:9 }; G.add(l); lines.push(l); }
         for(i = 0; i < 120; i++){ var cv = document.createElement("canvas"); cv.width = 128; cv.height = 48; var tx = new THREE.CanvasTexture(cv); var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tx, transparent:true, depthTest:false, fog:false })); sp.scale.set(12, 4.5, 1); sp.visible = false; sp.renderOrder = 50; sp.userData = { cv:cv, tx:tx, t:9 }; G.add(sp); texts.push(sp); }
-        RIG = window.TBRig.create(G, 10400, 1500); LUC3 = window.TBLucia.create(G);  FX = window.TBFx.create(G); initObjVis(); initZoneVis(); TANKS.forEach(function(k){ k.t3 = FX.makeTank(k.side); if(k.side === "nk"){ k.t3.yaw = Math.PI; k.t3.aimYaw = Math.PI; } else k.t3.setVisible(true); }); PLANES.forEach(function(pl){ pl.p3 = FX.makePlane(pl.side); pl.p3.setVisible(true); });
+        RIG = window.TBRig.create(G, 20400, 1500); LUC3 = window.TBLucia.create(G);  FX = window.TBFx.create(G); initObjVis(); initZoneVis(); TANKS.forEach(function(k){ k.t3 = FX.makeTank(k.side); if(k.side === "nk"){ k.t3.yaw = Math.PI; k.t3.aimYaw = Math.PI; } else k.t3.setVisible(true); }); PLANES.forEach(function(pl){ pl.p3 = FX.makePlane(pl.side); pl.p3.setVisible(true); });
       }
       function floatText(x, y, z, txt, col){ var s = null, i; for(i = 0; i < texts.length; i++) if(!texts[i].visible){ s = texts[i]; break; } if(!s) return; var c = s.userData.cv, g = c.getContext("2d"); g.clearRect(0, 0, 128, 48); g.font = "bold 30px Arial, sans-serif"; g.textAlign = "center"; g.lineWidth = 6; g.strokeStyle = "rgba(0,0,0,0.85)"; g.strokeText(txt, 64, 34); g.fillStyle = col || "#fff"; g.fillText(txt, 64, 34); s.userData.tx.needsUpdate = true; s.userData.t = 0; s.userData.y0 = y; s.position.set(x, y, z); s.material.opacity = 1; s.visible = true; }
       function tracer(a, b){ var l = null, i; for(i = 0; i < lines.length; i++) if(!lines[i].visible){ l = lines[i]; break; } if(!l) return; var P = l.geometry.attributes.position; P.setXYZ(0, a.x, UH*0.55, a.z); P.setXYZ(1, b.x, UH*0.5, b.z); P.needsUpdate = true; l.userData.t = 0; l.material.opacity = 1; l.visible = true; }
@@ -275,7 +275,7 @@
       }
       // ================= 자연 전투 (무작위 난전): 전투 시작 전, 국군 1000 : 북한군 1000 이 실시간으로 서로 싸워요 =================
       // 규칙: 각자 가장 가까운 적을 찾아 다가가 총을 쏘고(명중률은 거리에 따라), 3발이면 쓰러져요. 탱크는 가끔 포탄. 한쪽이 거의 전멸하면 잠시 뒤 다시 시작.
-      var AMB = { on:true, gt:0, cnt:{ rok:0, nk:0 }, resetT:0 }, AG = { rok:[], nk:[] }, CS = 14, GXN = 60, GZN = 58, GX0 = -420, GZ0 = 1680, AN = GXN*GZN, gi0;
+      var AMB = { on:true, gt:0, cnt:{ rok:0, nk:0 }, resetT:0 }, AG = { rok:[], nk:[] }, CS = 14, GXN = 60, GZN = 72, GX0 = -420, GZ0 = 1610, AN = GXN*GZN, gi0;
       for(gi0 = 0; gi0 < AN; gi0++){ AG.rok.push([]); AG.nk.push([]); }
       function agIdx(x, z){ var cx = Math.floor((x - GX0)/CS), cz = Math.floor((z - GZ0)/CS); cx = cx < 0 ? 0 : (cx >= GXN ? GXN - 1 : cx); cz = cz < 0 ? 0 : (cz >= GZN ? GZN - 1 : cz); return cx*GZN + cz; }
       function ambRebuild(){ var i, u; for(i = 0; i < AN; i++){ AG.rok[i].length = 0; AG.nk[i].length = 0; } for(i = 0; i < rok.length; i++){ u = rok[i]; if(u.alive) AG.rok[agIdx(u.x, u.z)].push(u); } for(i = 0; i < nk.length; i++){ u = nk[i]; if(u.alive) AG.nk[agIdx(u.x, u.z)].push(u); } }
@@ -308,7 +308,7 @@
             var spd = d > 40 ? u.asp*1.9 : u.asp;          // 멀면 전력 질주(돌진), 가까우면 보통 걸음
             if(d > u.pref){ u.x += dx/d*spd*dt + Math.cos(tm*1.7 + u.seed)*1.2*dt; u.z += dz/d*spd*dt + Math.sin(tm*1.3 + u.seed)*1.2*dt; } else if(d < u.pref - 8){ u.x -= dx/d*3*dt; u.z -= dz/d*3*dt; }
             u.cd2 -= dt; if(d < 5 && u.cd2 <= 0){ u.cd2 = 1.1 + Math.random()*0.8; u.act = "stab"; u.actT = 0.6; u.fx = t.x; u.fz = t.z; if(Math.random() < 0.8){ ambDamage(t, bayoDmg()); if(FX && Math.abs(u.x - camp.x) < 190 && Math.abs(u.z - camp.z) < 190) FX.puff(t.x, 6, t.z, "spark"); } continue; }
-            if(u.x < -395) u.x = -395; else if(u.x > 395) u.x = 395; if(u.z < 1710) u.z = 1710; else if(u.z > 2470) u.z = 2470;
+            if(u.x < -395) u.x = -395; else if(u.x > 395) u.x = 395; if(u.z < 1625) u.z = 1625; else if(u.z > 2600) u.z = 2600;
             u.cd -= dt; if(u.cd <= 0 && d < 50 && u.act !== "stab"){ u.cd = 1.4 + Math.random()*2.4; ambShoot(u, t, d, camp); u.ammo--; if(u.ammo <= 0){ u.ammo = 4 + ((Math.random()*4) | 0); u.act = "reload"; u.actT = 1.5; u.cd += 1.5; } else if(Math.random() < 0.3){ u.act = "kneel"; u.actT = 1.0; } }
           }
         }
@@ -362,7 +362,7 @@
       }
       // 1P 자유 이동: 30초 안에서 마음대로 돌아다녀요 (산/전장 밖은 못 가요). 행동 직전에 이동 기록을 남겨서 우클릭으로 되돌릴 수 있어요
       var TURN_TIME = 30;
-      function freeOK(x, z){ return Math.abs(x) <= 395 && z >= 1710 && z <= 2480; }
+      function freeOK(x, z){ return Math.abs(x) <= 395 && z >= 1625 && z <= 2600; }
       function PosCommand(a, b){ var c = { kind:"pos", a:a, b:b, execute:function(){}, undo:function(){ var p = state.player; p.x = a.x; p.z = a.z; RAB.gx = Math.round(-a.x/T); RAB.gz = Math.round((a.z - Z0)/T); S.cp = { x:a.x, z:a.z }; } }; return c; }
       function commitMove(){ var p = state.player, cp = S.cp; if(cp && Math.hypot(p.x - cp.x, p.z - cp.z) > 2) TM.push(PosCommand({ x:cp.x, z:cp.z }, { x:p.x, z:p.z })); S.cp = { x:p.x, z:p.z }; }
       function beginPlayerTurn(first){

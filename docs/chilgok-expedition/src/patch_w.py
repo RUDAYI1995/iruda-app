@@ -23,7 +23,6 @@ sub("expandBtn.addEventListener(\"click\", function(){ setMapExpanded(!mapExpand
 sub("E 살펴보기 · M 지도 · F 맵 확장", "E 살펴보기 · M 지도 · F 맵 확장<br>마우스 위아래 시점 · C 시점 고정", "help")
 
 sub("  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z));\n", "  if((bridgeH <= 0 || Math.abs(x) >= 10) && window.RIVER && window.RIVER.water && window.RIVER.water(x, z)) return -0.25;      // 강물 위를 헤엄쳐요\n  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z), (window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0);\n", "ground river")
-sub("function landPush(p, px0, pz0){\n", "function landPush(p, px0, pz0){\n  if(window.RIVER && window.RIVER.push) window.RIVER.push(p, px0, pz0);      // 폭포 언덕: 오를 수 있는 경사만\n", "landPush river")
 
 sub("    p.x += dxw * SPEED * p.spdK * (window.vilRideMul || 1) * dt;\n    p.z += dzw * SPEED * p.spdK * (window.vilRideMul || 1) * dt;\n",
     "    var swM = p.swim ? 0.6 : 1;      // 헤엄칠 때는 천천히\n    p.x += dxw * SPEED * p.spdK * (window.vilRideMul || 1) * swM * dt;\n    p.z += dzw * SPEED * p.spdK * (window.vilRideMul || 1) * swM * dt;\n", "swim speed")
@@ -70,19 +69,19 @@ sub("function update(dt){\n  var p = state.player;\n", "function update(dt){\n  
 sub("        if(window.mansionTick) window.mansionTick(t, dt, p);\n", "        if(window.mansionTick) window.mansionTick(t, dt, p);\n        if(window.tbTick) window.tbTick(t, dt, p);\n", "tb tick")
 
 # --- 대구 가는 길 (V82)
-sub("var PATH_MIN_Z = -40, PATH_MAX_Z = 2680;", "var PATH_MIN_Z = -3420, PATH_MAX_Z = 2680;      // 남쪽으로 대구까지 이어 붙였어요 (V82)", "path min z")
+sub("  if(x <= SKY.ground.x1 && z >= PATH_MIN_Z && z <= 2720 && tr > T.blockR){", "  if(x <= SKY.ground.x1 && z >= -40 && z <= 2720 && tr > T.blockR){", "ground in z")
+sub("var PATH_MIN_Z = -40, PATH_MAX_Z = 2680;", "var PATH_MIN_Z = -33320, PATH_MAX_Z = 2680;      // 남쪽으로 대구 동대구까지 이어 붙였어요 (V84)", "path min z")
 sub("  var groundLen = PATH_MAX_Z-PATH_MIN_Z+80;\n", "  var groundLen = PATH_MAX_Z-PATH_MIN_Z+80, pathLen = 2800;      // 흙길은 왜관 시내까지만 (남쪽은 아스팔트 도로)\n", "ground len")
 sub('var pathTex = photoTex("path", 2, groundLen/6);', 'var pathTex = photoTex("path", 2, pathLen/6);', "path tex")
 sub("plane(16, groundLen, 0xE7D9AE, 0, 0.02, (PATH_MIN_Z+PATH_MAX_Z)/2, pathTex?{map:pathTex}:null);", "plane(16, pathLen, 0xE7D9AE, 0, 0.02, 1320, pathTex?{map:pathTex}:null);", "path plane")
-sub("function skyConstrain(p, px0, pz0){\n", "function skyConstrain(p, px0, pz0){\n  if(window.DG && window.DG.para && window.DG.paraConstrain(p)) return true;      // 낙하산: 하늘섬 밖으로 날아갈 수 있어요\n", "para constrain")
+sub("function skyConstrain(p, px0, pz0){\n", "function skyConstrain(p, px0, pz0){\n  if(window.DG && window.DG.free && window.DG.free(p, px0, pz0)) return true;      // 왜관 아래 큰 세계 / 낙하산 (V84)\n", "para constrain")
 sub("function skyHeightAt(x, z){\n", "function skyHeightAt(x, z){\n  if(window.DG && window.DG.para) return 0;      // 낙하산 타는 동안은 땅까지 내려가요\n", "para sky h")
-sub("function landPush(p, px0, pz0){\n", "function landPush(p, px0, pz0){\n  if(window.DG) window.DG.push(p, px0, pz0);      // 대구 가는 길: 큰 산 막기, 고가도로 가장자리\n", "dg push")
 sub("(window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0);\n", "(window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0, window.DG ? window.DG.h(x, z) : 0);\n", "dg ground h")
-sub("((window.airPlace && window.airPlace(state.player)) || SKY_PLACE) : (state.player.x < VIL.westX - 20 ? VILLAGE_PLACE : (landPlaceAt(state.player) || currentLandmark()))", "((window.dgPlace && window.dgPlace(state.player)) || (window.airPlace && window.airPlace(state.player)) || SKY_PLACE) : (state.player.x < VIL.westX - 20 ? VILLAGE_PLACE : ((window.dgPlace && window.dgPlace(state.player)) || landPlaceAt(state.player) || currentLandmark()))", "dg place")
+sub("((window.airPlace && window.airPlace(state.player)) || SKY_PLACE) : (state.player.x < VIL.westX - 20 ? VILLAGE_PLACE : (landPlaceAt(state.player) || currentLandmark()))", "((window.dgPlace && window.dgPlace(state.player)) || (window.airPlace && window.airPlace(state.player)) || SKY_PLACE) : (state.player.x < VIL.westX - 20 ? ((window.dgPlace && window.dgPlace(state.player)) || VILLAGE_PLACE) : ((window.dgPlace && window.dgPlace(state.player)) || landPlaceAt(state.player) || currentLandmark()))", "dg place")
 sub("  var mh = window.mansionHint ? window.mansionHint(p) : null; if(mh) return mh;\n", "  var mh = window.mansionHint ? window.mansionHint(p) : null; if(mh) return mh;\n  var dh = window.dgHint ? window.dgHint(p) : null; if(dh) return dh;\n", "dg hint")
 sub("  if(window.mansionInteract && window.mansionInteract(p)) return true;\n", "  if(window.mansionInteract && window.mansionInteract(p)) return true;\n  if(window.dgInteract && window.dgInteract(p)) return true;\n", "dg interact")
 sub("        if(window.tbTick) window.tbTick(t, dt, p);\n", "        if(window.tbTick) window.tbTick(t, dt, p);\n        if(window.dgTick) window.dgTick(t, dt, p);\n", "dg tick")
-sub('  if(k==="m") showScreen("world");\n', '  if(k==="m") showScreen("world");\n  if(k==="b" && window.dgKey) window.dgKey("b");\n', "B key")
+sub('  if(k==="m") showScreen("world");\n', '  if(k==="m") showScreen("world");\n  if((k==="b" || k==="j") && window.dgKey) window.dgKey(k);\n', "B key")
 sub("        for(var k = 0; k < 3; k++){ cur.tint[k] = a.tint[k] + (b.tint[k] - a.tint[k])*f; cur.w[k] = a.w[k] + (b.w[k] - a.w[k])*f; }\n", "        for(var k = 0; k < 3; k++){ cur.tint[k] = a.tint[k] + (b.tint[k] - a.tint[k])*f; cur.w[k] = a.w[k] + (b.w[k] - a.w[k])*f; }\n        window.__nightW = Math.min(1, cur.w[1] + 0.6*cur.w[2] + 0.35*cur.w[0]);\n", "night w")
 sub("  three.playerTopSprite.visible = !hamOn; if(hamOn) three.playerLegSprite.visible = false;", "  three.playerTopSprite.visible = !hamOn && !(window.DG && window.DG.riding); if(hamOn || (window.DG && window.DG.riding)) three.playerLegSprite.visible = false;", "hide rider")
 # 산 이름 (뒷배경 큰 산: 칠곡의 산 이름으로, 임시)
