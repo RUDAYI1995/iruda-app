@@ -3,7 +3,7 @@ SP = os.path.dirname(os.path.abspath(__file__)) + "/.."
 src = open(SP + "/w/base_test/index.html", encoding="utf-8").read()
 import base64
 MN = {k: base64.b64encode(open(SP + "/w/mn/" + k + ".webp","rb").read()).decode() for k in ("front","left","right","back","roof","gate")}
-blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_R.js", encoding="utf-8").read() + open(SP + "/w/block_S.js", encoding="utf-8").read() + open(SP + "/w/block_F.js", encoding="utf-8").read() + open(SP + "/w/block_B.js", encoding="utf-8").read().replace("__UNIT_CSV__", __import__("json").dumps(open(SP + "/w/units.csv", encoding="utf-8").read())[1:-1]).replace("__LUCIA__", base64.b64encode(open(SP + "/w/rusha_cut.webp","rb").read()).decode()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode()) + open(SP + "/w/block_D.js", encoding="utf-8").read() + open(SP + "/w/block_Q.js", encoding="utf-8").read()
+blk = open(SP + "/w/block_W.js", encoding="utf-8").read().replace("__WATERTEX__", base64.b64encode(open(SP + "/w/water_tex.webp","rb").read()).decode()) + open(SP + "/w/block_P.js", encoding="utf-8").read() + open(SP + "/w/block_H.js", encoding="utf-8").read() + (lambda t: [t := t.replace("__MN_" + k.upper() + "__", v) for k, v in MN.items()][-1])(open(SP + "/w/block_M.js", encoding="utf-8").read()) + open(SP + "/w/block_R.js", encoding="utf-8").read() + open(SP + "/w/block_S.js", encoding="utf-8").read() + open(SP + "/w/block_F.js", encoding="utf-8").read() + open(SP + "/w/block_B.js", encoding="utf-8").read().replace("__UNIT_CSV__", __import__("json").dumps(open(SP + "/w/units.csv", encoding="utf-8").read())[1:-1]).replace("__LUCIA__", base64.b64encode(open(SP + "/w/rusha_cut.webp","rb").read()).decode()).replace("__AIRUDA__", base64.b64encode(open(SP + "/w/airuda_orb.png","rb").read()).decode()) + open(SP + "/w/block_X.js", encoding="utf-8").read().replace("__SKYTEX__", base64.b64encode(open(SP + "/w/sky_tex.webp","rb").read()).decode()).replace("__TERMTEX__", base64.b64encode(open(SP + "/w/term_open.webp","rb").read()).decode()) + open(SP + "/w/block_D.js", encoding="utf-8").read() + open(SP + "/w/block_Q.js", encoding="utf-8").read()
 def sub(old, new, label):
     global src
     n = src.count(old); assert n == 1, "%s: %d" % (label, n); src = src.replace(old, new)
@@ -103,6 +103,18 @@ sub("  three.shadowMesh.position.set(p.x, groundY + 0.03, p.z);\n", """  { var _
     _nv.set(-(_g1 - _g2)/3, 1, -(_g3 - _g4)/3).normalize(); three.shadowMesh.rotation.set(0, 0, 0); three.shadowMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), _nv);
     three.shadowMesh.position.set(p.x + _nv.x*0.18, groundY + 0.03 + _nv.y*0.18, p.z + _nv.z*0.18); three.shadowMesh.material.polygonOffset = true; three.shadowMesh.material.polygonOffsetFactor = -4; three.shadowMesh.material.polygonOffsetUnits = -4; }
 """, "shadow blob slope")
+sub("  worldNodes.appendChild(vilBtn);\n  var zrow = document.createElement(\"div\");", "  worldNodes.appendChild(vilBtn);\n" + """
+  var dgRow = document.createElement("div");
+  dgRow.style.cssText = "flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px;";
+  [["🏙 대구광역시", -90], ["국도 4호선 대구 관문", -3300], ["대구 북구", -3620], ["북구→도심 길", -10480], ["대구 도심", -20620], ["동대구 방면", -23340]].forEach(function(q, qi){
+    var db = document.createElement("button"); db.className = "node-btn"; db.style.cssText = "font-size:" + (qi ? 12 : 14) + "px;padding:4px 10px;" + (qi ? "" : "font-weight:800;");
+    db.innerHTML = q[0];
+    db.addEventListener("click", function(){ var rx = (window.DG && DG.xOf && DG.R0) ? DG.xOf(DG.R0, q[1]) + 22 : 60; state.player.x = rx; state.player.z = q[1]; SKY_REF = 0; state.cam.yaw = state.cam.target = Math.PI; state.cam.yawVel = 0; showScreen("game"); });
+    dgRow.appendChild(db);
+  });
+  worldNodes.appendChild(dgRow);
+  var zrow = document.createElement("div");""", "daegu world nodes")
+sub("  three.playerTopSprite.material.rotation = armSwing;\n", "  three.playerTopSprite.material.rotation = armSwing;\n  if(window.dgHitPose) window.dgHitPose(p);\n", "car hit pose")
 open(SP + "/w/out/index.html", "w", encoding="utf-8").write(src)
 HOOK = "window.__dbg = {state:state, three:three, render:render, update:update, groundHeightAt:groundHeightAt, SKY:SKY, SKY_PROPS:SKY_PROPS, SKY_SPIRAL:SKY_SPIRAL, skyWalkable:skyWalkable, tryInteract:tryInteract, villageHint:villageHint, CHARACTERS:CHARACTERS, setRef:function(v){SKY_REF=v;}, HILLS:HILLS, insideAnyHill:insideAnyHill, LAND_RECTS:LAND_RECTS, TOWN_RECTS:TOWN_RECTS, LANDMARKS:LANDMARKS, MT:MT};\n"
 MARK = "/* ---------------- Boot ---------------- */"
@@ -113,4 +125,10 @@ for d in ("out", "test"):
         if f == "index.html": continue
         dst = SP + "/w/" + d + "/" + f
         if not os.path.exists(dst): os.symlink(SP + "/pub/" + f, dst)
+os.makedirs(SP + "/w/out_sq", exist_ok=True)
+open(SP + "/w/out_sq/index.html", "w", encoding="utf-8").write(src.replace(MARK, open(SP + "/w/block_SQONLY.js", encoding="utf-8").read() + MARK))
+for f in os.listdir(SP + "/pub"):
+    if f == "index.html": continue
+    dst = SP + "/w/out_sq/" + f
+    if not os.path.exists(dst): os.symlink(SP + "/pub/" + f, dst)
 print("built", len(src))

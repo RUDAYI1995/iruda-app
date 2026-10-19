@@ -48,3 +48,28 @@
         if(built){ G.visible = near && p.x > 300; }
       };
     })();
+;(function(){
+  // 대저택 안 = 마피아 게임(rudapia). 원본 빌드를 그대로 전체화면 iframe 으로 띄워요.
+  var box = null;
+  window.MAFIA_ENTER = function(p){
+    if(box) return;
+    box = document.createElement("div");
+    box.style.cssText = "position:fixed;inset:0;z-index:99999;background:#000;";
+    var fr = document.createElement("iframe");
+    fr.src = "rudapia/index.html" + (window.MAFIA_QS || "");
+    fr.allow = "autoplay; fullscreen";
+    fr.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;";
+    var bt = document.createElement("button");
+    bt.textContent = "🏰 저택에서 나가기";
+    bt.style.cssText = "position:absolute;right:12px;bottom:12px;z-index:2;padding:8px 14px;border:0;border-radius:10px;background:rgba(20,20,30,.85);color:#fff;font:700 13px sans-serif;cursor:pointer;";
+    bt.onclick = window.MAFIA_EXIT;
+    box.appendChild(fr); box.appendChild(bt); document.body.appendChild(box);
+    window.__mafiaOpen = true;
+    try{ fr.addEventListener("load", function(){ try{ fr.contentWindow.focus(); }catch(e){} }); }catch(e){}
+  };
+  window.MAFIA_EXIT = function(){
+    if(!box) return;
+    box.remove(); box = null; window.__mafiaOpen = false;
+    try{ window.focus(); }catch(e){}
+  };
+})();

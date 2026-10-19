@@ -350,11 +350,12 @@
       var CARS = [], CAR_N = 140, carIM = {}, carRoads = [], LANEF = [-0.30, -0.68, 0.30, 0.68], LANEV = [62, 92, 66, 96];
       function pickRoads(p){ carRoads.length = 0; ROADS.forEach(function(r){ if(!r.cars) return; var best = 1e9, bi = 0; for(var i = 0; i < r.n; i += 10){ var d = Math.hypot(r.x[i] - p.x, r.z[i] - p.z); if(d < best){ best = d; bi = i; } } if(best < 1500) carRoads.push({ r:r, s:bi*r.ds, d:best }); }); }
       function respawn(c, minOff){
+        if(c.crash || c.fireT > 0){ c.crash = 0; c.stopT = 0; c.fireT = 0; if(carIM.body && c.idx !== undefined){ carIM.body.setColorAt(c.idx, MC.setHex(c.col)); carIM.body.instanceColor.needsUpdate = true; } } c.chase = null;
         if(!carRoads.length){ c.far = true; return; } var q = carRoads[Math.floor(rnd()*carRoads.length)], r = q.r, sgn = rnd() < 0.5 ? -1 : 1; c.r = r; c.far = false; c.s = q.s + sgn*(minOff + rnd()*(1300 - minOff)); if(r.closed) c.s = ((c.s % r.len) + r.len) % r.len; else c.s = Math.max(2, Math.min(r.len - 2, c.s));
         c.o = LANEF[c.ln]*r.hw; c.dir = c.o < 0 ? 1 : -1; c.v = LANEV[c.ln]*(r.hw >= 18 ? 1.25 : 1)*(0.9 + rnd()*0.2); c.cv = c.v; }
       function buildCars(){
         var cols = [0xdcdcdc, 0x222428, 0xc0392b, 0x2e6fd8, 0xf0c419, 0x8f9aa0, 0x27ae60, 0xffffff, 0x6b3f9b];
-        for(var i = 0; i < CAR_N; i++){ var big = rnd() < 0.12; CARS.push({ r:R0, s:0, ln:i % 4, o:0, dir:1, v:60, cv:0, far:true, col:big ? 0xe8e4d6 : cols[Math.floor(rnd()*cols.length)], big:big, L:big ? 26 : 14, Hh:big ? 7.5 : 4.2 }); }
+        for(var i = 0; i < CAR_N; i++){ var big = rnd() < 0.12; CARS.push({ idx:i, stopT:0, fireT:0, crash:0, chase:null, r:R0, s:0, ln:i % 4, o:0, dir:1, v:60, cv:0, far:true, col:big ? 0xe8e4d6 : cols[Math.floor(rnd()*cols.length)], big:big, L:big ? 26 : 14, Hh:big ? 7.5 : 4.2 }); }
         carIM.body = inst(UB, mat(0xffffff), CAR_N); carIM.cab = inst(UB, mat(0x2a3440), CAR_N); carIM.under = inst(UB, mat(0x15171a), CAR_N);
         carIM.head = inst(UB, new THREE.MeshBasicMaterial({ color:0xfff2c4 }), CAR_N*2); carIM.tail = inst(UB, new THREE.MeshBasicMaterial({ color:0xff2a2a }), CAR_N*2);
         carIM.trMat = new THREE.MeshBasicMaterial({ color:0xff3a22, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }); carIM.trMat2 = new THREE.MeshBasicMaterial({ color:0xfff0c0, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false });
@@ -362,6 +363,34 @@
         CARS.forEach(function(c, i){ carIM.body.setColorAt(i, MC.setHex(c.col)); }); carIM.body.instanceColor.needsUpdate = true;
         ["body", "cab", "under", "head", "tail", "trail", "trail2"].forEach(function(k){ ROOT.add(carIM[k]); });
       }
+      // ---------- 차에 치이기 / 연쇄 추돌 / 불타는 차 ----------
+      var FPT = [], FPN = 170, fireTex = null;
+      function fireInit(){ if(FPT.length) return; var cv = document.createElement("canvas"); cv.width = cv.height = 64; var g = cv.getContext("2d"), gr = g.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.45, "rgba(255,255,255,0.55)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); fireTex = new THREE.CanvasTexture(cv);
+        for(var i = 0; i < FPN; i++){ var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:fireTex, transparent:true, depthWrite:false })); sp.visible = false; sp.renderOrder = 8; ROOT.add(sp); FPT.push({ s:sp, on:false, t:0, life:1, vy:0, vx:0, vz:0, s0:2, s1:5, a0:1 }); } }
+      function fpart(x, y, z, o){ fireInit(); for(var i = 0; i < FPN; i++){ var k = FPT[i]; if(k.on) continue; k.on = true; k.t = 0; k.life = o.life; k.vy = o.vy; k.vx = o.vx || 0; k.vz = o.vz || 0; k.s0 = o.s0; k.s1 = o.s1; k.a0 = o.a0; var m = k.s.material; m.color.setHex(o.col); m.blending = o.add ? THREE.AdditiveBlending : THREE.NormalBlending; m.opacity = o.a0; m.needsUpdate = true; k.s.position.set(x, y, z); k.s.scale.set(o.s0, o.s0, 1); k.s.visible = true; return; } }
+      function fireEmit(x, y, z, L, dt){ var n = dt > 0.04 ? 3 : 2, q; for(q = 0; q < n; q++){ var ox = (Math.random() - 0.5)*L*0.5, oz = (Math.random() - 0.5)*L*0.5; fpart(x + ox, y, z + oz, { life:0.7 + Math.random()*0.5, vy:9 + Math.random()*8, vx:(Math.random() - 0.5)*3, vz:(Math.random() - 0.5)*3, s0:4, s1:9 + Math.random()*4, a0:0.85, col:Math.random() < 0.5 ? 0xff5a0a : 0xff9a10, add:false }); fpart(x + ox*0.5, y + 1, z + oz*0.5, { life:0.5, vy:6, s0:2.5, s1:5, a0:0.9, col:0xffe27a, add:true }); }
+        if(Math.random() < 0.7) fpart(x + (Math.random() - 0.5)*L*0.4, y + 3, z + (Math.random() - 0.5)*L*0.4, { life:2.2 + Math.random(), vy:7 + Math.random()*5, vx:(Math.random() - 0.5)*4, vz:(Math.random() - 0.5)*4, s0:5, s1:17 + Math.random()*7, a0:0.55, col:0x2a2724, add:false }); }
+      function fireBurst(x, y, z, big){ var q; for(q = 0; q < (big ? 14 : 8); q++) fpart(x + (Math.random() - 0.5)*5, y, z + (Math.random() - 0.5)*5, { life:0.5 + Math.random()*0.4, vy:6 + Math.random()*10, vx:(Math.random() - 0.5)*26, vz:(Math.random() - 0.5)*26, s0:3, s1:10, a0:0.9, col:q % 2 ? 0xffe08a : 0xff8a28, add:true }); for(q = 0; q < 6; q++) fpart(x + (Math.random() - 0.5)*6, y + 1, z + (Math.random() - 0.5)*6, { life:1.4, vy:3 + Math.random()*4, vx:(Math.random() - 0.5)*14, vz:(Math.random() - 0.5)*14, s0:5, s1:16, a0:0.6, col:0xb9ad94, add:false }); }
+      function fireTick(dt){ for(var i = 0; i < FPT.length; i++){ var k = FPT[i]; if(!k.on) continue; k.t += dt; var f = k.t/k.life; if(f >= 1){ k.on = false; k.s.visible = false; continue; } k.s.position.x += k.vx*dt; k.s.position.y += k.vy*dt; k.s.position.z += k.vz*dt; var sc = k.s0 + (k.s1 - k.s0)*f; k.s.scale.set(sc, sc, 1); k.s.material.opacity = k.a0*(1 - f); } }
+      function burnCar(c, secs){ c.fireT = Math.max(c.fireT || 0, secs); c.stopT = Math.max(c.stopT || 0, secs + 1); c.crash = 1; c.cv = 0; if(carIM.body && c.idx !== undefined){ carIM.body.setColorAt(c.idx, MC.setHex(0x1c1a18)); carIM.body.instanceColor.needsUpdate = true; } }
+      window.dgHitRoot = function(root, p){      // 함곡이 3D 모델: 차에 치이면 공중에서 앞구르기(두 바퀴)로 날아가다가 바닥에 쓰러져요
+        root.rotation.order = "YXZ"; var h = DG.hit;
+        if(!h){ if(root.rotation.x !== 0 || root.rotation.z !== 0){ root.rotation.x = 0; root.rotation.z = 0; } return; }
+        var th = h.t < 1.0 ? h.t*12.566 : 12.566 - 1.5*Math.min(1, (h.t - 1.0)*3), c = 12, yaw = root.rotation.y;
+        root.rotation.x = th; root.position.y += c - c*Math.cos(th); root.position.x += -Math.sin(yaw)*c*Math.sin(th); root.position.z += -Math.cos(yaw)*c*Math.sin(th);
+      };
+      window.dgHitPose = function(p){      // 기본 캐릭터 그리기 직후에 불러요: 공중에서 빙글빙글 돌다가 바닥에 쓰러져요
+        var h = DG.hit; if(!h || !three.playerTopSprite) return; var ang = h.t < 1.0 ? h.t*12.566 : 12.566 + 1.45*Math.min(1, (h.t - 1.0)*3);
+        three.playerTopSprite.material.rotation = ang; three.playerLegSprite.material.rotation = ang + 0.25; if(h.t >= 1.0){ var dd = 1.1; three.playerTopSprite.position.y -= dd; three.playerLegSprite.position.y -= dd*0.5; } };
+      function crashPlayer(c, p, hx, hz, nx, nz, lt){
+        var sd = lt >= 0 ? 1 : -1, sp = Math.max(34, c.cv*0.75); DG.hit = { t:0, vx:(hx*0.5 + nx*sd*0.85)*sp*0.8, vz:(hz*0.5 + nz*sd*0.85)*sp*0.8 }; DG.hitCool = 4.5; p.vy = 34; p.onGround = false; p.squash = 0.5;
+        c.cv = 0; c.stopT = 9; c.crash = 1; fireBurst(p.x, 4, p.z, false); showToast("🚗 쾅!! 차에 치였어요! (차는 멈췄어요)");
+        var best = null, bd = 1e9, i, d; for(i = 0; i < CARS.length; i++){ d = CARS[i]; if(d === c || d.far || d.crash || d.r !== c.r || d.ln !== c.ln || d.dir !== c.dir) continue; var gp = (c.s - d.s)*c.dir; if(gp > 6 && gp < 120 && gp < bd){ bd = gp; best = d; } }
+        if(!best){ for(i = 0; i < CARS.length; i++){ d = CARS[i]; if(d !== c && (d.far || d.s === undefined)){ best = d; break; } } if(!best){ best = CARS[(c.idx + 7) % CARS.length]; if(best === c) best = null; }
+          if(best){ best.r = c.r; best.far = false; best.ln = c.ln; best.o = c.o; best.dir = c.dir; best.s = c.s - c.dir*70; best.v = Math.max(best.v, 62); best.cv = best.v; best.crash = 0; best.stopT = 0; best.fireT = 0; } }
+        if(best) best.chase = c;
+      }
+      DG.cars = CARS; DG.fireCount = function(){ var n = 0; for(var i = 0; i < FPT.length; i++) if(FPT[i].on) n++; return n; };
       var carT = 0, carsInit = false;
       function updateCars(dt, p, night){
         carT -= dt; if(carT <= 0 || !carsInit){ carT = 0.5; pickRoads(p); if(!carsInit){ carsInit = true; CARS.forEach(function(c){ respawn(c, 0); }); } }
@@ -370,9 +399,11 @@
           if(c.far){ if(carRoads.length) respawn(c, 700); else { setM(carIM.body, i, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.cab, i, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.under, i, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.head, i*2, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.head, i*2 + 1, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.tail, i*2, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.tail, i*2 + 1, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.trail, i, 0, -500, 0, 0.01, 0.01, 0.01, 0); setM(carIM.trail2, i, 0, -500, 0, 0.01, 0.01, 0.01, 0); continue; } }
           a = atS(c.r, c.s); var hx = a.tx*c.dir, hz = a.tz*c.dir, nx = a.tz, nz = -a.tx, px = a.x + nx*c.o, pz = a.z + nz*c.o, dx = px - p.x, dz = pz - p.z, dp = dx*dx + dz*dz;
           if(dp > 1750*1750){ respawn(c, 700); continue; }
-          var tv = (dp < 24*24 && Math.abs(p.y) < 6 + a.y) || (DG.riding && dp < 30*30) ? 0 : c.v;           // 사람이 앞에 있으면 멈춰요
+          if(c.stopT > 0){ c.stopT -= dt; if(c.stopT <= 0){ respawn(c, 700); continue; } }
+          if(!DG.riding && !DG.para && DG.inShop < 0 && !(DG.hitCool > 0) && !c.crash && c.cv > 6 && dp < 900 && Math.abs(p.y) < 7){ var ddx = p.x - px, ddz = p.z - pz, al = ddx*hx + ddz*hz, lt = ddx*nx + ddz*nz; if(Math.abs(al) < c.L*0.5 + 2.6 && Math.abs(lt) < 3.6) crashPlayer(c, p, hx, hz, nx, nz, lt); }
+          var tv = (c.stopT > 0 || (DG.riding && dp < 30*30)) ? 0 : c.v;           // 타고 있지 않으면 사람이 있어도 멈추지 않아요 (치어요)
           c.cv += (tv - c.cv)*Math.min(1, dt*(tv === 0 ? 4 : 1.6)); c.s += c.dir*c.cv*dt; if(!c.r.closed && (c.s > c.r.len - 2 || c.s < 2)){ respawn(c, 700); continue; }
-          var ry = Math.atan2(hx, hz), y = a.y + 0.1, L = c.L, H = c.Hh;
+          var ry = Math.atan2(hx, hz), y = a.y + 0.1, L = c.L, H = c.Hh; if(c.fireT > 0){ c.fireT -= dt; fireEmit(px, y + H*0.9, pz, L, dt); }
           setM(carIM.body, i, px, y + H*0.38 + 0.5, pz, 6.2, H*0.55, L, ry); setM(carIM.cab, i, px - hx*L*0.06, y + H*0.38 + 0.5 + H*0.52, pz - hz*L*0.06, 5.4, H*0.5, c.big ? L*0.86 : L*0.5, ry); setM(carIM.under, i, px, y + 0.7, pz, 6, 1.2, L - 1, ry);
           var rx = -hz, rz = hx;
           setM(carIM.head, i*2, px + hx*L*0.5 + rx*2.2, y + H*0.3 + 0.7, pz + hz*L*0.5 + rz*2.2, 1.3, 0.9, 0.5, ry); setM(carIM.head, i*2 + 1, px + hx*L*0.5 - rx*2.2, y + H*0.3 + 0.7, pz + hz*L*0.5 - rz*2.2, 1.3, 0.9, 0.5, ry);
@@ -380,6 +411,8 @@
           var tl = night > 0.05 ? 24 + c.cv*0.25 : 0.01, hl = night > 0.05 ? 20 : 0.01;
           setM(carIM.trail, i, px - hx*(L*0.5 + tl*0.5), y + H*0.3 + 0.8, pz - hz*(L*0.5 + tl*0.5), 3.6, 0.5, tl, ry); setM(carIM.trail2, i, px + hx*(L*0.5 + hl*0.5), y + 0.9, pz + hz*(L*0.5 + hl*0.5), 3.6, 0.4, hl, ry);
         }
+        for(i = 0; i < CARS.length; i++){ c = CARS[i]; var fw = c.chase; if(!fw || c.far) continue; if(fw.far || !fw.crash || fw.r !== c.r){ c.chase = null; continue; }
+          var gap = (fw.s - c.s)*c.dir; if(gap < (c.L + fw.L)*0.5 + 0.8){ c.chase = null; burnCar(c, 11); burnCar(fw, 11); var cp = atS(c.r, c.s), qx = cp.x + cp.tz*c.o, qz = cp.z - cp.tx*c.o; fireBurst(qx, cp.y + 4, qz, true); showToast("💥 뒤따르던 차가 쾅! 추돌해서 두 차 모두 불타고 있어요!"); } }
         ["body", "cab", "under", "head", "tail", "trail", "trail2"].forEach(function(k){ carIM[k].instanceMatrix.needsUpdate = true; });
       }
       // ---------- 탈 수 있는 차 ----------
@@ -529,6 +562,10 @@
         else if(!shown && p.x > SKY.edgeX && SKY_REF >= 85 && SKY_REF < 900 && p.z > ZH){ shown = true; showToast("🪂 하늘섬 높은 곳에서 B (또는 J) 를 누르면 낙하산을 펴고 내려갈 수 있어요! (방향키로 방향 조절)"); }
         if(!DG.built){ if(!window.__dbgForceDG && (!window.__riverBuilt || p.z > 300)) return; build(); }
         ROOT.visible = p.z < 800 && DG.inShop < 0;
+        DG.hitCool = Math.max(0, (DG.hitCool || 0) - dt); fireTick(dt);
+        if(DG.hit){ var hh = DG.hit, ox0 = p.x, oz0 = p.z; hh.t += dt; p.x += hh.vx*dt; p.z += hh.vz*dt; var dec = Math.max(0, 1 - 1.8*dt); hh.vx *= dec; hh.vz *= dec; if(DG.push) DG.push(p, ox0, oz0);
+          if(state && state.keys){ for(var kk in state.keys) state.keys[kk] = false; }
+          if(hh.t > 1.8){ DG.hit = null; p.squash = -0.5; } }
         var nw = Math.min(1, window.__nightW || 0); nightK += (nw - nightK)*Math.min(1, dt*2);
         var e = nightK < 0.02 ? 0 : nightK; nightMats.forEach(function(m){ m.emissiveIntensity = e*0.95; });
         lampMat.color.setRGB(0.55 + e*0.45, 0.54 + e*0.42, 0.5 + e*0.1);

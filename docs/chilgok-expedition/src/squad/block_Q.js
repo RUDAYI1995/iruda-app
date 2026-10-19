@@ -287,12 +287,12 @@
       }
       function clickTile(t){
         var u = SQ.cur; if(!SQ.active || !u || u.side !== "rok" || u.anim || SQ.mode === "wait" || SQ.mode === "ai") return;
-        if(SQ.mode === "target"){ var ok = SQ.tgts.indexOf(t) >= 0; if(!ok) return; u.acted = true; setHl([]); SQ.mode = "wait"; var kind = SQ.skillKind;
-          if(kind === "attack") doAttack(u, t.unit, 1, {}); else applySkill(u, u.d.sk, t.unit || t); later(endTurn, 500); updUI(); return; }
+        if(SQ.mode === "target"){ var ok = SQ.tgts.indexOf(t) >= 0; if(!ok){ if(u.moved || u.acted) return; SQ.mode = "move"; showMove(); } else { u.acted = true; setHl([]); SQ.mode = "wait"; var kind = SQ.skillKind;
+          if(kind === "attack") doAttack(u, t.unit, 1, {}); else applySkill(u, u.d.sk, t.unit || t); later(endTurn, 500); updUI(); return; } }
         if(SQ.mode === "move" && !u.moved && !(SQ.reach && SQ.reach[key(t.i, t.j)] && SQ.reach[key(t.i, t.j)].cost > 0 && !SQ.reach[key(t.i, t.j)].noStop) && !t.unit){ logOnce(t.walkable ? "그 칸은 이동력이 모자라거나 막혀서 갈 수 없어요" : "벽·천막이라 지나갈 수 없어요"); return; }
         if(SQ.mode === "move" && !u.moved && SQ.reach && SQ.reach[key(t.i, t.j)] && SQ.reach[key(t.i, t.j)].cost > 0 && !SQ.reach[key(t.i, t.j)].noStop){ var R = SQ.reach; setHl([]); SQ.mode = "wait"; SQ.undo = { i:u.i, j:u.j }; moveUnit(u, R, t, function(){ SQ.mode = "move"; SQ.reach = null; if(!u.alive){ endTurn(); return; } if(!checkEnd()){ setHl([]); } updUI(); }); }
       }
-      function rightClick(){ var u = SQ.cur; if(!SQ.active || !u || u.side !== "rok") return; if(SQ.mode === "target"){ SQ.mode = "move"; setHl([]); updUI(); return; } if(u.moved && !u.acted && !u.anim && SQ.undo){ var t = tileOf(u.i, u.j); if(t.unit === u) t.unit = null; placeUnit(u, SQ.undo.i, SQ.undo.j); u.moved = false; SQ.undo = null; showMove(); focusOn(u); log("↩ 이동을 되돌렸어요"); } }
+      function rightClick(){ var u = SQ.cur; if(!SQ.active || !u || u.side !== "rok") return; if(SQ.mode === "target"){ SQ.mode = "move"; showMove(); updUI(); return; } if(u.moved && !u.acted && !u.anim && SQ.undo){ var t = tileOf(u.i, u.j); if(t.unit === u) t.unit = null; placeUnit(u, SQ.undo.i, SQ.undo.j); u.moved = false; SQ.undo = null; showMove(); focusOn(u); log("↩ 이동을 되돌렸어요"); } }
 
       // ---------- 적 AI: 공격 대상은 점수가 가장 높은 쪽 ----------
       //  점수 = (1 / 체력) × 100 + 공격력(위협도) × 0.1   (전선 전투와 같은 식)

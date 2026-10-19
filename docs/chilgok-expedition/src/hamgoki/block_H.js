@@ -110,6 +110,7 @@
         // 위치: 수영 중에는 몸을 물에 담가요 (클립 평면이 물 아래를 잘라내요)
         var sink = swK*(250*K);
         o.root.position.set(p.x, groundY + p.y - sink, p.z); o.root.rotation.y = o.yaw;
+        if(window.dgHitRoot) window.dgHitRoot(o.root, p);
         return true;
       };
     })();

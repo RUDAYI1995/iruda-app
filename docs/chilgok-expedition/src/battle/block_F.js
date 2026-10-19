@@ -34,6 +34,8 @@
         API.puff = function(x, y, z, kind){
           var n;
           if(kind === "gas"){ for(n = 0; n < 16; n++) part(x + rr(16), y + 1 + Math.random()*4, z + rr(16), { life:3.4 + Math.random()*1.6, vx:rr(2), vy:0.5 + Math.random()*0.9, vz:rr(2), s0:6, s1:17 + Math.random()*6, col:0x6fdc4a, a0:0.5 }); }
+          else if(kind === "poison"){ for(n = 0; n < 34; n++) part(x + rr(46), y + 1 + Math.random()*7, z + rr(46), { life:4.2 + Math.random()*1.8, vx:rr(3), vy:0.6 + Math.random()*1.3, vz:rr(3), s0:9, s1:28 + Math.random()*10, col:n % 2 ? 0xa04cf0 : 0x6a2aa8, a0:0.6 }); }
+          else if(kind === "poisonS"){ for(n = 0; n < 3; n++) part(x + rr(3), y + 3 + Math.random()*3, z + rr(3), { life:1.5, vx:rr(8), vy:2 + Math.random()*2, vz:rr(8), s0:3, s1:9, col:0xb86cff, a0:0.7 }); }
           else if(kind === "gasS"){ for(n = 0; n < 2; n++) part(x + rr(2), y, z + rr(2), { life:1.6, vx:rr(1.5), vy:1.2 + Math.random(), vz:rr(1.5), s0:1.6, s1:5, col:0x8be05a, a0:0.5 }); }
           else if(kind === "spark"){ for(n = 0; n < 4; n++) part(x, y, z, { life:0.28, vx:rr(16), vy:Math.random()*10, vz:rr(16), g:-30, s0:0.9, s1:0.2, col:0xffd870, add:true }); part(x, y, z, { life:0.12, s0:2.6, s1:1.2, col:0xfff0b0, add:true }); }
           else if(kind === "dust"){ for(n = 0; n < 3; n++) part(x + rr(1), y, z + rr(1), { life:0.7, vx:rr(3), vy:3 + Math.random()*2, vz:rr(3), s0:1.4, s1:4.2, col:0xb9a67a, a0:0.55 }); part(x, y, z, { life:0.1, s0:1.6, s1:0.8, col:0xffe9a0, add:true }); }

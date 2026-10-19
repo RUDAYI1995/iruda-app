@@ -24,6 +24,18 @@
       var QI = new Q();
       function seg(mesh, i, a, b, rad){ _d.subVectors(b, a); var len = _d.length() || 0.01; _d.multiplyScalar(1/len); _q.setFromUnitVectors(_Y, _d); put(mesh, i, (a.x + b.x)/2, (a.y + b.y)/2, (a.z + b.z)/2, _q, rad, len, rad); }
       function hide(mesh, i){ _m.makeScale(0, 0, 0); mesh.setMatrixAt(i, _m); }
+      // 특수 병사 겉모습: 자폭병(주황·빨강 조끼+노란 폭탄 배낭) · 독침병(초록 옷+보라 투구) · 철갑병(검은 갑옷, 큰 몸집) · 지휘관(빨간 옷+금빛 투구, 큰 몸집) · 영웅(아주 크고 눈에 띄는 색) · 정예(금빛 투구)
+      var ROLEL = {
+        bomber:{ cols:{ cloth:0xd8461a, pants:0x7a2a14, helm:0x3a2a1a, pack:0xffd23a, boot:0x2a1a10 }, lod:[2.4, 0.7, 0.35] },
+        venom:{ cols:{ cloth:0x35b03a, pants:0x1f6a2a, helm:0x7a2ab8, pack:0x7be04a, boot:0x1a3a1a }, lod:[0.7, 2.0, 0.6] },
+        iron:{ cols:{ cloth:0x3a4048, pants:0x2a2e34, helm:0x181b1f, pack:0x5a616c, boot:0x14161a }, lod:[0.45, 0.5, 0.65] },
+        cmdr:{ cols:{ cloth:0xb02222, pants:0x6a1a1a, helm:0xffd34d, pack:0x7a1a1a, boot:0x2a1410 }, lod:[2.0, 0.55, 0.55] },
+        ehero:{ cols:{ cloth:0x6a1f8f, pants:0x3a1050, helm:0xff4a8a, pack:0x2a0a3a, boot:0x1a0a20 }, lod:[1.4, 0.4, 2.0] },
+        ahero:{ cols:{ cloth:0xf0f0f0, pants:0xc9a227, helm:0xffd34d, pack:0xe0c060, boot:0x7a5a20 }, lod:[2.0, 1.9, 1.4] },
+        elite:{ cols:{ cloth:0x6a6c3f, pants:0x62613a, helm:0xffd34d, pack:0x4c4e30, boot:0x5b3b25 }, lod:[1.6, 1.5, 0.6] }
+      };
+      var ROLEC = {}; Object.keys(ROLEL).forEach(function(k){ ROLEC[k] = { cols:ROLEL[k].cols, lod:new CO(ROLEL[k].lod[0], ROLEL[k].lod[1], ROLEL[k].lod[2]) }; });
+      function roleLook(u){ if(u.hero) return ROLEC[u.side === "rok" ? "ahero" : "ehero"]; if(u.cmdr) return ROLEC.cmdr; if(u.role) return ROLEC[u.role]; if(u.elite && u.side === "rok") return ROLEC.elite; return null; }
       var COLS = { rok:{ cloth:0x6a6c3f, pants:0x62613a, helm:0x575a3a, pack:0x4c4e30, boot:0x5b3b25 }, nk:{ cloth:0x9a8040, pants:0x8a7338, helm:0x8c7a3e, pack:0x6e5a30, boot:0x5b3b25 } };
       var SKIN = 0xe0ad88, WOOD = 0x5b3b22, STEEL = 0x25272a;
       window.TBRig = { create:function(G, NU, NF){
@@ -46,7 +58,8 @@
         var ST = [], tmpC = new CO(), tint1 = new CO(0xb06aff), tint2 = new CO(0xff7a7a);
         for(var i = 0; i < N; i++) ST.push({ px:0, pz:0, yaw:0, ph:rnd1(i)*6.28, walk:0, aim:0, kn:0, sb:0, sg:0, rl:0, pt:0, pn:0, mg:0, sn:0, spr:0, tint:-1, off:rnd1(i + 91)*6.28, init:false, cheer:0, br:0.92 + rnd1(i + 3)*0.16 });
         function setColors(i, u, tint){
-          var C = COLS[u.side], st = ST[i], b = st.br, amt = tint === 1 ? 0.5 : (tint === 2 ? 0.45 : 0), tc = tint === 1 ? tint1 : tint2;
+          var C = COLS[u.side], rlk = roleLook(u), st = ST[i], b = st.br, amt = tint === 1 ? 0.5 : (tint === 2 ? 0.45 : 0), tc = tint === 1 ? tint1 : tint2;
+          if(rlk) C = rlk.cols;
           function col(m, hex, extra){ tmpC.setHex(hex).multiplyScalar(b*(extra || 1)); if(amt) tmpC.lerp(tc, amt); m.setColorAt(i, tmpC); }
           col(P.torso, C.cloth); col(P.sho, C.cloth, 0.94); col(P.pel, C.pants); col(P.pack, C.pack); col(P.head, 0xffffff, 1.0); col(P.headN, 0xffffff, 1.0); col(P.pkL, C.cloth, 0.8); col(P.pkR, C.cloth, 0.8); col(P.stL, 0x8a7a50, 1); col(P.stR, 0x8a7a50, 1); col(P.star, 0xd02a2a, 1); col(P.helm, C.helm); col(P.rim, C.helm, 0.9); col(P.tL, C.pants); col(P.tR, C.pants); col(P.sL, C.pants, 0.95); col(P.sR, C.pants, 0.95); col(P.bL, C.boot); col(P.bR, C.boot); col(P.uL, C.cloth); col(P.uR, C.cloth); col(P.fL, C.cloth, 0.95); col(P.fR, C.cloth, 0.95); col(P.hL, SKIN, 1); col(P.hR, SKIN, 1); col(P.stock, WOOD, 1); col(P.bayo, 0xb9bec4, 1); col(P.scope, 0x1d1f22, 1); col(P.barrel, STEEL, 1);
           Object.keys(P).forEach(function(k){ if(P[k].instanceColor) P[k].instanceColor.needsUpdate = true; }); st.tint = tint;
@@ -57,9 +70,9 @@
         function lodDraw(ui, u, ur){
           var dx = u.x - ur.lx, dz = u.z - ur.lz; if(dx*dx + dz*dz > 0.05) ur.lyaw = Math.atan2(dx, dz); ur.lx = u.x; ur.lz = u.z;
           var yaw = ur.lyaw !== undefined ? ur.lyaw : (u.yaw0 !== undefined ? u.yaw0 : (u.side === "rok" ? 0 : Math.PI)); if((u.fireT > 0 || u.act === "stab") && u.fx !== undefined) yaw = Math.atan2(u.fx - u.x, u.fz - u.z);
-          var fall = 0, sc = 1.1; if(u.die >= 0){ fall = Math.min(1, u.die/0.55)*1.5708; if(u.die > 2.3) sc = 1.1*Math.max(0, 1 - (u.die - 2.3)/0.6); }
+          var fall = 0, rs0 = u.rs || 1, sc = 1.1*rs0; if(u.die >= 0){ fall = Math.min(1, u.die/0.55)*1.5708; if(u.die > 2.3) sc = 1.1*rs0*Math.max(0, 1 - (u.die - 2.3)/0.6); }
           _e.set(-fall, yaw, 0, "YXZ"); _q.setFromEuler(_e); _p.set(u.x, (u.y || 0) + (fall > 0 ? fall*0.6 : 0), u.z); _s.set(sc, sc, sc); _m.compose(_p, _q, _s); lod.setMatrixAt(ui, _m); ur.lodOn = true;
-          if(!ur.lc){ lod.setColorAt(ui, u.side === "nk" ? cNK : cROK); lodColDirty = true; ur.lc = true; }
+          if(!ur.lc){ var rlc = roleLook(u); lod.setColorAt(ui, rlc ? rlc.lod : (u.side === "nk" ? cNK : cROK)); lodColDirty = true; ur.lc = true; }
         }
         var shL = new V3(-1.45, 8.1, 0.05), shR = new V3(1.45, 8.1, 0.05), hipL = new V3(-0.85, 5.4, 0), hipR = new V3(0.85, 5.4, 0), tg = new V3(), el = new V3(), hd = new V3(), poleA = new V3(), poleL = new V3(0, 0.15, 1), a0 = new V3(), a1 = new V3(), aL = new V3(), aR = new V3(), rh = new V3(), lh = new V3(), eLv = new V3(), eRv = new V3(), hLv = new V3(), hRv = new V3(), kL = new V3(), kR = new V3(), anL = new V3(), anR = new V3(), rd = new V3();
         var API = {}, PK = Object.keys(P);
@@ -97,7 +110,7 @@
             if(u.die >= 0){ var k = Math.min(1, u.die/0.55), e = k*k*(3 - 2*k); fall = e*(Math.PI/2); hy = e*1.0; lean = 0; flinch = 0; w = 0; }
             var scl = (u.die > 2.3) ? Math.max(0, 1 - (u.die - 2.3)/0.6) : 1;
             // 루트: 위치 + 방향 + 앞뒤로 기울임
-            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle + Math.sin(st.yaw)*1.4*sb, (u.y || 0) + bob + hy, u.z + Math.cos(st.yaw)*1.4*sb); _s.set(S0*scl, S0*scl, S0*scl); root.compose(_p, _q2, _s);
+            _e.set(-lean + flinch*-1 - fall, st.yaw, 0, "YXZ"); _q2.setFromEuler(_e); _p.set(u.x + Math.sin(tm*0.8 + st.off)*0.1*idle + Math.sin(st.yaw)*1.4*sb, (u.y || 0) + bob + hy, u.z + Math.cos(st.yaw)*1.4*sb); var rsx = S0*scl*(u.rs || 1); _s.set(rsx, rsx, rsx); root.compose(_p, _q2, _s);
             var sway = Math.sin(tm*0.9 + st.off)*0.12*idle, brt = 1 + Math.sin(tm*1.9 + st.off)*0.018;
             // 다리(2관절 IK): 발이 땅을 딛고 무릎이 접혀요
             var stride = 1.7*w + 0.9*spr, side, hip, kn_, an;
