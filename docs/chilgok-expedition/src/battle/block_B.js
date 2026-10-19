@@ -757,7 +757,7 @@
       var HDEF = {
         "께곡이":{ id:"kkegoki", ic:"👑", skill:"돌격 호령", desc:"반경 45칸 부대 공격 +60%·행군 +4 (3턴)" },
         "하곡이":{ id:"hagoki", ic:"🦉", skill:"약점 간파", desc:"적 2000명 3턴 동안 받는 피해 +50%" },
-        "는곡이":{ id:"neugoki", ic:"🦌", skill:"치유의 숲", desc:"반경 40칸 아군 3턴 동안 매 턴 +30 회복" },
+        "는곡이":{ id:"neugoki", ic:"🦌", skill:"치유의 숲", desc:"반경 55칸 아군 5턴 매 턴 +60 회복 · 공격력 +40%(2턴)" },
         "들곡이":{ id:"deulgoki", ic:"🐢", skill:"철벽 진지", desc:"주변 부대 받는 피해 -50% (3턴)" }
       };
       function markTex(fn){ var cv = document.createElement("canvas"); cv.width = 128; cv.height = 160; fn(cv.getContext("2d")); var t = new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; return t; }
@@ -791,7 +791,7 @@
         if(nm === "께곡이" || nm === "들곡이"){ var cnt = 0; for(var q = 1; q <= SQN; q++){ var c2 = squadCenter(q); if(!c2 || Math.abs(c2.x - cc.x) > 45 || Math.abs(c2.z - cc.z) > 45) continue; SQB[q] = nm === "께곡이" ? { atk:1.6, mv:4, t:3 } : { def:0.5, t:3 }; cnt++; } floatText(h.u.x, UH + 22, h.u.z, h.d.ic + " " + h.d.skill + "!", "#ffe27a");
           msg = nm === "께곡이" ? "👑 께곡이의 돌격 호령! " + tn + "번 부대 주변 " + cnt + "개 부대 공격력 +60%, 행군 +4칸 (3턴)" : "🐢 들곡이의 철벽 진지! " + tn + "번 부대 주변 " + cnt + "개 부대 받는 피해 -50% (3턴)"; }
         else if(nm === "하곡이"){ var foes = []; for(var i = 0; i < nk.length; i++){ var f = nk[i]; if(f.alive && Math.abs(f.gx - cc.x) <= 45 && Math.abs(f.gz - (cc.z + 25)) <= 45) foes.push(f); } foes.sort(function(a, b){ return Math.abs(a.gx - cc.x) + Math.abs(a.gz - cc.z - 25) - Math.abs(b.gx - cc.x) - Math.abs(b.gz - cc.z - 25); }); foes.slice(0, 2000).forEach(function(f){ f.expose = 3; }); floatText(h.u.x, UH + 22, h.u.z, "🦉 약점 간파!", "#ffe27a"); msg = "🦉 하곡이의 약점 간파! 적 " + Math.min(2000, foes.length) + "명이 약점을 드러냈어냥 (3턴 동안 받는 피해 +50%)"; }
-        else { var hl = rokNear(Math.round(cc.x), Math.round(cc.z), 40), tot = 0; hl.forEach(function(u){ u.regen = 3; var a = Math.min(u.maxHp, u.hp + 30) - u.hp; if(a > 0){ u.hp += a; u.vhp = u.hp; tot++; } }); floatText(h.u.x, UH + 22, h.u.z, "🦌 치유의 숲!", "#9fffa8"); msg = "🦌 는곡이의 치유의 숲! 범위 안 아군 " + hl.length + "명이 3턴 동안 매 턴 체력 +30 회복 (지금 다친 " + tot + "명 즉시 회복)"; }
+        else { var hl = rokNear(Math.round(cc.x), Math.round(cc.z), 55), tot = 0; hl.forEach(function(u){ u.regen = 5; u.carrot = Math.max(u.carrot||0, 2); var a = Math.min(u.maxHp, u.hp + 60) - u.hp; if(a > 0){ u.hp += a; u.vhp = u.hp; tot++; } }); floatText(h.u.x, UH + 22, h.u.z, "🦌 치유의 숲!", "#9fffa8"); msg = "🦌 는곡이의 치유의 숲! 범위 안 아군 " + hl.length + "명이 5턴 동안 매 턴 체력 +60 회복, 공격력 +40%(2턴) (지금 다친 " + tot + "명 즉시 회복)"; }
         h.cd = 4; if(FX){ FX.ring(h.u.x, 6, h.u.z, 42, 0.8); FX.puff(h.u.x, 8, h.u.z, "spark"); } shake(0.25); say(msg); return msg + " (재사용 4턴)";
       }
       function enemyHeroTurn(force){
@@ -801,7 +801,7 @@
       }
       window.__arSpr = function(){ return arSpr; };
       window.__heroDbg = { enemyHeroTurn:enemyHeroTurn, EH:function(){ return EHEROES; }, H:function(){ return HEROES; }, heroTick:heroTick, shake:shake };
-      function heroRoundEnd(){ HEROES.forEach(function(h){ if(h.cd > 0) h.cd--; }); [SQB, NSQB].forEach(function(B){ Object.keys(B).forEach(function(k){ var b = B[k]; if(typeof b === "number"){ B[k] = b - 1; if(B[k] <= 0) delete B[k]; } else { b.t--; if(b.t <= 0) delete B[k]; } }); }); rok.forEach(function(u){ if(u.carrot > 0) u.carrot--; if(u.regen > 0){ u.regen--; if(u.alive && u.hp < u.maxHp){ u.hp = u.vhp = Math.min(u.maxHp, u.hp + 30); } } }); nk.forEach(function(u){ if(u.expose > 0) u.expose--; }); }
+      function heroRoundEnd(){ HEROES.forEach(function(h){ if(h.cd > 0) h.cd--; }); [SQB, NSQB].forEach(function(B){ Object.keys(B).forEach(function(k){ var b = B[k]; if(typeof b === "number"){ B[k] = b - 1; if(B[k] <= 0) delete B[k]; } else { b.t--; if(b.t <= 0) delete B[k]; } }); }); rok.forEach(function(u){ if(u.carrot > 0) u.carrot--; if(u.regen > 0){ u.regen--; if(u.alive && u.hp < u.maxHp){ u.hp = u.vhp = Math.min(u.maxHp, u.hp + 60); } } }); nk.forEach(function(u){ if(u.expose > 0) u.expose--; }); }
       function heroReport(){ return "🦸 아군 영웅: " + HEROES.map(function(h){ return h.name + (h.u.alive ? (h.cd > 0 ? "(" + h.cd + "턴 뒤)" : "(준비됨)") : "(쓰러짐)"); }).join(" · ") + "<br>😈 적 영웅: " + EHEROES.map(function(e){ return e.name + (e.u.alive ? "" : "(격파)"); }).join(" · ") + "<br>🚩 적 지휘관 " + nk.filter(function(u){ return u.cmdr && u.alive; }).length + "/10 · 특수병: 자폭·독침·철갑"; }
       // ---------- AI루다: 따라다니는 고양이 + 채팅 명령 + 100부대 ----------
       var SQN = 100, SQLAB = {}, arLog = [], arUndo = [], arSpr = null, arPan = null, arT = 0;
@@ -931,8 +931,8 @@
           var gy = (typeof groundHeightAt === "function") ? groundHeightAt(q.x, q.z) : 0;
           if(moving){ q.ph += dt*12; var cyaw = state.cam ? state.cam.yaw : 0, sxr = mvx*(-Math.cos(cyaw)) + mvz*Math.sin(cyaw); if(Math.abs(sxr) > 1e-4) q.flip = sxr > 0 ? 1 : -1; } else q.ph += dt*2;
           var hop = moving ? Math.abs(Math.sin(q.ph))*1.3 : 0, breath = moving ? 0 : Math.sin(q.ph)*0.04;
-          arSpr.scale.set(9*q.flip*(1 + breath), 9*(1 - breath), 1); arSpr.material.rotation = moving ? Math.sin(q.ph)*0.07 : 0;
-          arSpr.position.set(q.x, gy + 3.9*(1 - breath) + hop, q.z); if(q.sh){ q.sh.position.set(q.x, gy + 0.15, q.z); var ss = 1 - hop*0.12; q.sh.scale.set(3.6*ss, 2.2*ss, 1); } }
+          arSpr.scale.set(3*q.flip*(1 + breath), 3*(1 - breath), 1); arSpr.material.rotation = moving ? Math.sin(q.ph)*0.07 : 0;
+          arSpr.position.set(q.x, gy + 1.3*(1 - breath) + hop*0.33, q.z); if(q.sh){ q.sh.position.set(q.x, gy + 0.15, q.z); var ss = 1 - hop*0.12; q.sh.scale.set(1.2*ss, 0.75*ss, 1); } }
         heroTick(dt);
         if(ui){ arMk(); if(arPan){ var on = S.active && (S.state === "player" || S.state === "enemy" || S.state === "anim"); arPan.root.style.display = on ? "block" : "none"; } }
       }
