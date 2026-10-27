@@ -45,3 +45,9 @@ next-env.d.ts
 # database
 *.db
 *.db-journal
+/docs/artifacts/plan/
+/docs/artifacts/bug/
+/docs/artifacts/analyze/
+/docs/chilgok-expedition/docs/artifacts/plan/
+/docs/chilgok-expedition/docs/artifacts/bug/
+/docs/chilgok-expedition/docs/artifacts/analyze/

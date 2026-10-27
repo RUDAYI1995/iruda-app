@@ -332,6 +332,8 @@
 <script src="units.js"></script>
 <script src="mountains.js"></script>
 <script src="skyart.js"></script>
+<script src="remodel/detailed-cottage.js"></script>
+<script src="remodel/rural-remodel.js"></script>
 <script>
 (function(){
   var need = {"three.min.js":"THREE","sprites.js":"SPRITES","sprites_dir.js":"SPRITES_DIR","textures.js":"TEXTURES","trees.js":"TREES","shops.js":"SHOPS","units.js":"UNITS","mountains.js":"MOUNTAINS"};
@@ -490,7 +492,8 @@ function groundHeightAt(x, z){
   // the bridge deck only exists over the road itself, not out over the river to either side
   var bridgeH = Math.abs(x) < 28 ? bridgeHeightAt(z) : 0;
   if((bridgeH <= 0 || Math.abs(x) >= 10) && window.RIVER && window.RIVER.water && window.RIVER.water(x, z)) return -0.25;      // 강물 위를 헤엄쳐요
-  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z), (window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0, window.DG ? window.DG.h(x, z) : 0);
+  var remodelH = window.RURAL_REMODEL && window.RURAL_REMODEL.ready ? window.RURAL_REMODEL.heightAt(x, z) : null;
+  return Math.max(bridgeH, mountainHeight(x, z), hillHeightAt(x, z), skyHeightAt(x, z), (window.RIVER && window.RIVER.hh) ? window.RIVER.hh(x, z) : 0, window.DG ? window.DG.h(x, z) : 0, remodelH === null ? 0 : remodelH);
 }
 
 /* ---------------- 하늘섬 (Sky Islands) + 마법 나무 ----------------
@@ -825,6 +828,7 @@ var VIL_POND = { x:-1740, z:260, r:60 };
 function vilWalkable(x, z){
   if(Math.abs(x - VIL_GH.cx) < VIL_GH.L/2 - 2 && Math.abs(z - VIL_GH.cz) < VIL_GH.hw) return true;      // 비닐하우스 안쪽 방
   if(x >= VIL.westX || x < VIL.x1 || z < -2650 || z > 2720) return false;
+  if(window.RURAL_REMODEL && window.RURAL_REMODEL.ready && !window.RURAL_REMODEL.walkable(x, z)) return false;
   if(Math.hypot(x - VIL_POND.x, z - VIL_POND.z) < VIL_POND.r) return false;
   for(var i = 0; i < VIL_RECTS.length; i++){ var r = VIL_RECTS[i]; if(Math.abs(x - r.x) < r.hx && Math.abs(z - r.z) < r.hz) return false; }
   for(i = 0; i < VIL_WALLS.length; i++){ var w = VIL_WALLS[i]; if(x < Math.max(w.x0, w.x1) + 1 && x > Math.min(w.x0, w.x1) - 1 && Math.abs(z - w.z) < 1.8) return false; }
@@ -1224,6 +1228,15 @@ function renderWorld(){
     zrow.appendChild(zb);
   });
   worldNodes.appendChild(zrow);
+  var gardenBtn = document.createElement("button");
+  gardenBtn.className = "node-btn";
+  gardenBtn.textContent = "🌼 농촌마을 7구역 꽃길 정원";
+  gardenBtn.addEventListener("click", function(){
+    state.player.x = -1418; state.player.z = -450; SKY_REF = 0;
+    state.cam.yaw = state.cam.target = -Math.PI/2; state.cam.yawVel = 0;
+    showScreen("game");
+  });
+  worldNodes.appendChild(gardenBtn);
   stampDots(stampRow);
 }
 document.getElementById("btnMap").addEventListener("click", function(){ showScreen("world"); });
@@ -9024,6 +9037,8 @@ function initThree(){
   // NOTE: three.waterMats/boats/enemies/projectiles were already populated
   // by the builders above (via property assignment on this same object) —
   // this must MERGE, not replace, or all of that gets silently discarded.
+  // 기존 농촌마을과 같은 씬·이동·카메라에 통합하며 별도 게임 루프는 만들지 않는다.
+  window.RURAL_REMODEL = window.mountRuralRemodel({ THREE:THREE, parent:scene, renderer:renderer, rects:VIL_RECTS, cameraRects:CAM_RECTS, cameraCircles:CAM_CIRCLES });
   Object.assign(three, {
     ready:true, scene:scene, camera:camera, renderer:renderer, sun:sun, world:world,
     playerTopSprite:playerTopSprite, playerLegSprite:playerLegSprite,
@@ -9742,6 +9757,8 @@ function render(dt){
   var vk = cs.vk || 0, vt = (p.x < VIL.westX - 50 && p.x > VIL.x1 - 100) ? 1 : 0; vk += (vt - vk)*(1 - Math.pow(0.02, dt)); cs.vk = vk < 0.001 ? 0 : vk;   // 마을 안에서는 카메라를 더 높고 멀리 (지붕 속으로 파고들지 않게)
   cs.pv = (cs.pv || 0) + ((cs.pt || 0) - (cs.pv || 0))*Math.min(1, dt*6); var pv = Math.abs(cs.pv) < 0.002 ? 0 : cs.pv;      // 마우스 위아래 시점 (위 = 하늘 쪽, 아래 = 내려다보기)
   var desiredY = 16 + camGY + p.y*0.4 + 15*cs.vk + (pv < 0 ? -pv*30 : -pv*8), camBack = 32 + 14*cs.vk + (pv < 0 ? -pv*10 : 0);
+  var remodelView = window.RURAL_REMODEL && window.RURAL_REMODEL.ready ? window.RURAL_REMODEL.cameraBlendAt(p.x, p.z) : 0;
+  desiredY -= remodelView*(13*cs.vk + 2); camBack -= remodelView*6*cs.vk;
   cam.position.x = cs.fx - sinY*camBack;
   cam.position.z = cs.fz - cosY*camBack;
   // never let the camera sink into a hillside (it can end up behind a slope when looking downhill)
@@ -9754,10 +9771,11 @@ function render(dt){
     cs.arm += (af - cs.arm) * Math.min(1, dt*(af < cs.arm ? 22 : 5));
     if(cs.arm < 0.999){ cs.rawY = aey; cs.armOn = true; cam.position.x = atx + (aex - atx)*cs.arm; cam.position.y = aty + (aey - aty)*cs.arm; cam.position.z = atz + (aez - atz)*cs.arm; }
   }
-  cam.lookAt((inSkyCam ? cs.fx : p.x) + sinY*14, camGY + 3 + p.y + Math.min(1, skyH/SKY.H)*12 + (pv > 0 ? pv*26 : pv*14), (inSkyCam ? cs.fz : p.z) + cosY*14);
+  cam.lookAt((inSkyCam ? cs.fx : p.x) + sinY*14, camGY + 3 + p.y + Math.min(1, skyH/SKY.H)*12 + (pv > 0 ? pv*26 : pv*14) + remodelView*5, (inSkyCam ? cs.fz : p.z) + cosY*14);
   if(three.skyUpdate){ try{ three.skyUpdate(t, dt, p, skyH); }catch(skyErr2){ if(window.console) console.warn("skyUpdate failed:", skyErr2); three.skyUpdate = null; } }
   if(three.dayUpdate){ try{ three.dayUpdate(t, dt, p); }catch(dayErr){ if(window.console) console.warn("dayUpdate failed:", dayErr); three.dayUpdate = null; } }
 
+  if(window.RURAL_REMODEL && window.RURAL_REMODEL.ready) window.RURAL_REMODEL.update(t, p);
   three.renderer.render(three.scene, three.camera);
 }
 
